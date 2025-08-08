@@ -1,0 +1,50 @@
+{
+  "profile": {
+    "completion": 75,
+    "fields": {
+      "bio": true,
+      "education": true,
+      "uploads": false,
+      "contact": true,
+      "profilePicture": true,
+      "skills": false
+    }
+  },
+  "courses": [
+    { "id": 1, "name": "Frontend Development", "progress": 80, "status": "Enrolled", "resumeLink": "/dashboard/courses/1", "instructor": "Jane Doe", "startDate": "2024-06-01", "endDate": "2024-07-01" },
+    { "id": 2, "name": "Career Planning", "progress": 100, "status": "Completed", "resumeLink": "/dashboard/courses/2", "instructor": "John Smith", "startDate": "2024-05-01", "endDate": "2024-06-01" },
+    { "id": 3, "name": "CV Writing", "progress": 60, "status": "Enrolled", "resumeLink": "/dashboard/courses/3", "instructor": "Emily Lee", "startDate": "2024-06-10", "endDate": "2024-07-10" },
+    { "id": 4, "name": "Interview Skills", "progress": 40, "status": "Enrolled", "resumeLink": "/dashboard/courses/4", "instructor": "Michael Brown", "startDate": "2024-06-15", "endDate": "2024-07-15" }
+  ],
+  "documents": [
+    { "id": 1, "name": "Transcript.pdf", "status": "Approved", "uploadedAt": "2024-06-01", "type": "Transcript" },
+    { "id": 2, "name": "CV.pdf", "status": "Pending", "uploadedAt": "2024-06-10", "type": "CV" },
+    { "id": 3, "name": "ID Card.jpg", "status": "Approved", "uploadedAt": "2024-05-20", "type": "ID" },
+    { "id": 4, "name": "Recommendation_Letter.pdf", "status": "Rejected", "uploadedAt": "2024-06-05", "type": "Recommendation" }
+  ],
+  "services": [
+    { "id": 1, "name": "CV Review", "status": "Active", "link": "/dashboard/booked-services", "bookedAt": "2024-06-15", "type": "Career" },
+    { "id": 2, "name": "Career Coaching", "status": "Active", "link": "/dashboard/booked-services", "bookedAt": "2024-06-10", "type": "Coaching" },
+    { "id": 3, "name": "Mock Interview", "status": "Completed", "link": "/dashboard/booked-services", "bookedAt": "2024-05-20", "type": "Interview" },
+    { "id": 4, "name": "Portfolio Review", "status": "Pending", "link": "/dashboard/booked-services", "bookedAt": "2024-06-18", "type": "Portfolio" }
+  ],
+  "announcements": [
+    { "title": "Welcome to TechEdu!", "date": "2024-06-20", "content": "Check out the new learning goals feature in your dashboard." },
+    { "title": "CV Builder Update", "date": "2024-06-18", "content": "You can now use AI suggestions to improve your CV." },
+    { "title": "New Course: Data Science Basics", "date": "2024-06-15", "content": "Enroll in our new Data Science course starting next week!" }
+  ],
+  "notifications": [
+    { "id": 1, "type": "offer", "message": "Special discount on new courses!", "date": "2024-06-19", "read": false },
+    { "id": 2, "type": "tip", "message": "Remember to upload your latest transcript.", "date": "2024-06-18", "read": true },
+    { "id": 3, "type": "reminder", "message": "Your CV review is scheduled for tomorrow.", "date": "2024-06-17", "read": false }
+  ],
+  "learningGoals": [
+    { "id": 1, "goal": "Complete React course", "progress": 60, "deadline": "2024-07-01" },
+    { "id": 2, "goal": "Upload all required documents", "progress": 80, "deadline": "2024-06-25" },
+    { "id": 3, "goal": "Attend 3 coaching sessions", "progress": 33, "deadline": "2024-07-10" }
+  ],
+  "supportTickets": [
+    { "id": 1, "subject": "Issue with course access", "status": "Open", "createdAt": "2024-06-10", "lastUpdate": "2024-06-12" },
+    { "id": 2, "subject": "Document upload error", "status": "Closed", "createdAt": "2024-05-28", "lastUpdate": "2024-05-29" }
+  ]
+} 

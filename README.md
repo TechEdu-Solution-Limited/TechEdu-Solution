@@ -1,1 +1,1 @@
-# TechEdu-Solution
+# tech-eduk
