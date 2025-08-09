@@ -43,10 +43,10 @@ export default function CookieConsent() {
             <div className="flex-1">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h3 className="text-xl font-semibold text-white mb-2">
+                  <h3 className="text-xl font-semibold text-[#0D1140] mb-2">
                     We value your privacy
                   </h3>
-                  <p className="text-sm text-gray-300 leading-relaxed">
+                  <p className="text-sm text-gray-800 leading-relaxed">
                     We use cookies to enhance your browsing experience, serve
                     personalized content, and analyze our traffic. By clicking
                     "Accept All", you consent to our use of cookies.
@@ -54,7 +54,7 @@ export default function CookieConsent() {
                 </div>
                 <button
                   onClick={() => setIsVisible(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-500 hover:text-gray-600 transition-colors"
                 >
                   <X size={20} />
                 </button>
@@ -102,7 +102,7 @@ export default function CookieConsent() {
                 <Button
                   onClick={handleReject}
                   variant="outline"
-                  className="border-gray-300 text-white hover:bg-gray-50 px-6 py-2 rounded-[10px] font-medium"
+                  className="border-gray-300 text-gray-500 hover:bg-gray-50 px-6 py-2 rounded-[10px] font-medium"
                 >
                   Reject Non-Essential
                 </Button>
@@ -115,7 +115,7 @@ export default function CookieConsent() {
                 </Button>
               </div>
 
-              <p className="text-xs text-gray-200 mt-3">
+              <p className="text-xs text-gray-700 mt-3">
                 You can change your cookie preferences at any time in our{" "}
                 <a
                   href="/privacy-policy"
