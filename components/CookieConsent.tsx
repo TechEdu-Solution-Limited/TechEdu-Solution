@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { X, Cookie, Shield, Settings } from "lucide-react";
+import { getCookie, setCookie } from "@/lib/cookies";
 
 export default function CookieConsent() {
   const [isVisible, setIsVisible] = useState(false);
@@ -11,19 +12,19 @@ export default function CookieConsent() {
 
   useEffect(() => {
     // Check if user has already made a choice
-    const consent = localStorage.getItem("cookieConsent");
+    const consent = getCookie("cookieConsent");
     if (!consent) {
       setIsVisible(true);
     }
   }, []);
 
   const handleAccept = () => {
-    localStorage.setItem("cookieConsent", "accepted");
+    setCookie("cookieConsent", "accepted");
     setIsVisible(false);
   };
 
   const handleReject = () => {
-    localStorage.setItem("cookieConsent", "rejected");
+    setCookie("cookieConsent", "rejected");
     setIsVisible(false);
   };
 
