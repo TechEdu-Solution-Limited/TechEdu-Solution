@@ -29,10 +29,19 @@ export default function Contact() {
           From a Personal Mission to a Global Platform
         </h1>
         {/* Foreground Content */}
-        <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 z-10">
-          {/* Left: Hero Content - Order 2 on mobile, Order 1 on desktop */}
-          <div className="space-y-4 text-center md:pt-[6rem] xl:text-left xl:pt-8 order-2 lg:order-1">
-            <p className="text-md text-gray-600 md:text-[1rem] max-w-2xl lg:max-w-xl mx-auto xl:mx-0">
+        <div className="relative z-10">
+          {/* Content with floating image on the left */}
+          <div className="space-y-4 text-center md:text-left md:pt-[6rem] xl:text-left xl:pt-8">
+            <div className="md:float-left md:w-[380px] w-full max-w-xl mx-auto md:mr-6 mb-4 rounded-xl overflow-hidden shadow-lg">
+              <Image
+                src="/assets/Precious-The-Founder.png"
+                alt="Precious Akaighe, Founder & Principal Consultant"
+                className="w-full h-auto object-cover"
+                height={720}
+                width={720}
+              />
+            </div>
+            <p className="text-md text-gray-600 md:text-[1rem] lg:max-w-full mx-auto xl:mx-0 text-justify">
               Precious Akaighe is the Founder and Principal Consultant of
               TechEdu Solution Ltd, a dynamic consultancy at the forefront of
               technology, education, leadership training, and digital
@@ -41,7 +50,7 @@ export default function Contact() {
               expertise in business analysis, project delivery, change
               management, applied AI governance, and education consulting.
             </p>
-            <p className="text-md text-gray-600 md:text-[1rem] md:leading-7 max-w-2xl lg:max-w-xl mx-auto xl:mx-0">
+            <p className="text-md text-gray-600 md:text-[1rem] md:leading-7 text-justify">
               Precious is a multi-certified professional, holding qualifications
               that reflect her breadth of knowledge and commitment to excellence
               as a Senior Business Analyst, Certified Agile Business Analyst,
@@ -49,7 +58,7 @@ export default function Contact() {
               Professional, Certified in Change Management, Applied Generative
               AI Professional, and AI Ethics and Governance Specialist.
             </p>
-            <p className="text-md text-gray-600 md:text-[1rem] md:leading-7 max-w-2xl lg:max-w-xl mx-auto xl:mx-0">
+            <p className="text-md text-gray-600 md:text-[1rem] md:leading-7 text-justify">
               Her proven track record includes leading large-scale initiatives
               in data migration and management, financial systems
               transformation, application development, enterprise change, and
@@ -58,7 +67,7 @@ export default function Contact() {
               with a strong focus on AI governance frameworks, ethical AI
               deployment, and compliance with emerging regulations.
             </p>
-            <p className="text-md text-gray-600 md:text-[1rem] md:leading-7 max-w-2xl lg:max-w-xl mx-auto xl:mx-0">
+            <p className="text-md text-gray-600 md:text-[1rem] md:leading-7 text-justify">
               In addition to her consulting work, Precious is a Professional
               Career Coach and Mentor, dedicated to empowering individuals to
               break into and thrive in the tech, business analysis, and
@@ -66,7 +75,7 @@ export default function Contact() {
               hands-on mentorship, she supports early- and mid-career
               professionals in achieving their career goals with confidence.
             </p>
-            <p className="text-md text-gray-600 md:text-[1rem] md:leading-7 max-w-2xl lg:max-w-xl mx-auto xl:mx-0">
+            <p className="text-md text-gray-600 md:text-[1rem] md:leading-7 text-justify">
               She also delivers Business Analysis Training, Leadership
               Development Workshops, and Education Consulting, equipping
               learners and organisations with the technical, strategic, and
@@ -76,7 +85,7 @@ export default function Contact() {
               sustainable strategies for innovation, growth, and impactful
               decision-making.
             </p>
-            <p className="text-md text-gray-600 md:text-[1rem] md:leading-7 max-w-2xl lg:max-w-xl mx-auto xl:mx-0">
+            <p className="text-md text-gray-600 md:text-[1rem] md:leading-7 text-justify">
               Through TechEdu Solution Ltd, Precious champions a mission of
               inclusive innovation, ethical leadership, and practical
               empowerment, helping businesses and individuals alike to thrive in
@@ -89,6 +98,7 @@ export default function Contact() {
                 Founder & Principal Consultant
               </span>
             </p>
+            <div className="clear-both" />
             {/* <button
               type="button"
               className="bg-[#0D1140] group-hover:bg-blue-700 text-white px-6 py-3 rounded text-[1rem] font-medium transition"
@@ -96,58 +106,24 @@ export default function Contact() {
               Watch the Founder Story →
             </button> */}
           </div>
-
-          {/* Right Video - Order 1 on mobile, Order 2 on desktop */}
-          <div className="flex flex-col items-center w-full max-w-xl mx-auto xl:pt-[6rem] pb-4 order-1 lg:order-2">
-            {/* Video Container */}
-            <div className="relative w-full rounded-xl overflow-hidden shadow-lg h-full">
-              {/* <iframe
-                src="https://www.youtube.com/embed/4WaJD0MF4q4?si=QIGfDw1WN_9VESRU"
-                title="YouTube video player"
-                className="w-full h-full"
-                frameBorder="0"
-                allowFullScreen
-              ></iframe> */}
-              <Image
-                src="/assets/Precious-The-Founder-Picture.png"
-                alt=""
-                className="w-full h-full object-cover"
-                height={200}
-                width={250}
-              />
-            </div>
-          </div>
         </div>
       </section>
 
       {/* About us Presentation by Senior Consultant */}
       <section className="pt-8 pb-24 px-4 md:px-16 mx-auto relative w-full">
-        {/* Foreground Content */}
-        <div className="relative grid grid-cols-1 xl:grid-cols-2 gap-8 md:gap-12 z-10">
-          {/* Left: Hero Content */}
-          <div className="flex flex-col items-center w-full max-w-xl mx-auto xl:pt-[6rem]">
-            {/* Video Container */}
-            <div className="relative w-full rounded-xl overflow-hidden shadow-lg h-full">
-              {/* <iframe
-                src="https://www.youtube.com/embed/4WaJD0MF4q4?si=QIGfDw1WN_9VESRU"
-                title="YouTube video player"
-                className="w-full h-full"
-                frameBorder="0"
-                allowFullScreen
-              ></iframe> */}
+        {/* Foreground Content with floating image on the right */}
+        <div className="relative z-10">
+          <div className="space-y-4 text-center md:text-left xl:text-left xl:pt-8">
+            <div className="md:float-right md:w-[380px] w-full max-w-xl mx-auto md:ml-6 mb-4 rounded-xl overflow-hidden shadow-lg">
               <Image
                 src="/assets/Dr-Godbless-Akaighe.png"
-                alt=""
-                className="w-full h-full object-cover"
-                height={200}
-                width={250}
+                alt="Dr. Godbless Akaighe"
+                className="w-full h-auto object-cover"
+                height={720}
+                width={720}
               />
             </div>
-          </div>
-
-          {/* Right Video */}
-          <div className="space-y-4 text-center xl:text-left xl:pt-8">
-            <p className="text-md text-gray-600 md:text-[1rem] max-w-2xl lg:max-w-xl mx-auto xl:mx-0">
+            <p className="text-md text-gray-600 md:text-[1rem] text-justify">
               Dr. Godbless Akaighe is a Senior Lecturer at a UK university with
               over a decade of experience in the Higher Education sector and
               more than 20 years of service as a teacher, mentor, youth leader,
@@ -157,7 +133,7 @@ export default function Contact() {
               administration, and mentoring across universities in Africa and
               Europe.
             </p>
-            <p className="text-md text-gray-600 md:text-[1rem] md:leading-7 max-w-2xl lg:max-w-xl mx-auto xl:mx-0">
+            <p className="text-md text-gray-600 md:text-[1rem] md:leading-7 text-justify">
               He holds a Bachelor's degree in Business Administration, a
               Master's degree in Organisational Behaviour (Distinction), and a
               PhD in Management (Work Psychology) from the University of
@@ -165,14 +141,14 @@ export default function Contact() {
               His doctoral research focused on the dynamics between narcissistic
               leaders and team members.
             </p>
-            <p className="text-md text-gray-600 md:text-[1rem] md:leading-7 max-w-2xl lg:max-w-xl mx-auto xl:mx-0">
+            <p className="text-md text-gray-600 md:text-[1rem] md:leading-7 text-justify">
               Dr. Akaighe is a Fellow of the Higher Education Academy (FHEA) and
               has published extensively in the fields of leadership,
               organisational behaviour, human resource management, work
               psychology, and management. He also serves as an Associate Editor
               for a British-rated academic journal.
             </p>
-            <p className="text-md text-gray-600 md:text-[1rem] md:leading-7 max-w-2xl lg:max-w-xl mx-auto xl:mx-0">
+            <p className="text-md text-gray-600 md:text-[1rem] md:leading-7 text-justify">
               In addition to his academic contributions, Dr. Akaighe has
               extensive experience in consulting and mentoring within both
               profit and non-profit sectors. He has trained leaders, team
@@ -181,7 +157,7 @@ export default function Contact() {
               external examining of Leadership and Management programmes at UK
               universities.
             </p>
-            <p className="text-md text-gray-600 md:text-[1rem] md:leading-7 max-w-2xl lg:max-w-xl mx-auto xl:mx-0">
+            <p className="text-md text-gray-600 md:text-[1rem] md:leading-7 text-justify">
               He is widely regarded as a go-to mentor for young people, helping
               them discover their purpose and navigate their academic and
               professional journeys. As a scholarship coach, he supports
@@ -198,6 +174,7 @@ export default function Contact() {
                 Leadership & Scholarship Coach
               </span>
             </p>
+            <div className="clear-both" />
             {/* <button
               type="button"
               className="bg-[#0D1140] group-hover:bg-blue-700 text-white px-6 py-3 rounded text-[1rem] font-medium transition"
