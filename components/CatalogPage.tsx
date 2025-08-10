@@ -83,6 +83,30 @@ export default function CatalogPage({
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
 
+  const scrollRef = useRef(null);
+  const [showLeftShadow, setShowLeftShadow] = useState(false);
+  const [showRightShadow, setShowRightShadow] = useState(true); // assume can scroll right initially
+
+  useEffect(() => {
+    const el = scrollRef.current;
+
+    function updateShadows() {
+      if (!el) return;
+      setShowLeftShadow(el.scrollLeft > 5);
+      setShowRightShadow(el.scrollLeft + el.clientWidth < el.scrollWidth - 5);
+    }
+
+    updateShadows(); // initial check
+
+    el.addEventListener("scroll", updateShadows);
+    window.addEventListener("resize", updateShadows); // update on resize too
+
+    return () => {
+      el.removeEventListener("scroll", updateShadows);
+      window.removeEventListener("resize", updateShadows);
+    };
+  }, []);
+
   // Fetch categories from products API
   useEffect(() => {
     setCategoriesLoading(true);
@@ -334,9 +358,14 @@ export default function CatalogPage({
           </p>
         </div>
 
-        <div className="relative">
-          <div className="flex gap-4 overflow-x-auto pb-4 px-4 md:px-0 scrollbar-hide">
-            {products.slice(0, 6).map((product, index) => (
+        <div
+          ref={scrollRef}
+          className={`relative scroll-shadow ${
+            showLeftShadow ? "shadow-left" : ""
+          } ${showRightShadow ? "shadow-right" : ""}`}
+        >
+          <div className="flex gap-4 overflow-x-auto pb-4 px-4 md:px-0">
+            {products.slice(0, 6).map((product) => (
               <div
                 key={product._id}
                 className="flex-shrink-0 bg-white border border-gray-200 rounded-xl p-4 w-[240px] cursor-pointer group hover:shadow-lg hover:border-blue-200 transition-all duration-300 transform hover:-translate-y-1"
@@ -451,7 +480,7 @@ export default function CatalogPage({
           </p>
         </div>
         <div className="flex justify-center px-4 md:px-0">
-          <div className="flex gap-3 md:gap-4 overflow-x-auto pb-2 md:pb-0 w-full max-w-4xl">
+          <div className="flex gap-3 md:gap-4 overflow-x-auto pb-2 md:pb-0 w-full">
             <button
               onClick={() => {
                 setCategory("");

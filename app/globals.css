@@ -173,6 +173,36 @@ input:focus, textarea:focus {
   text-overflow: ellipsis;    /* Show "..." for overflowed text */
 }
 
+.scroll-shadow {
+  position: relative;
+}
+
+.scroll-shadow::before,
+.scroll-shadow::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 0.3s ease;
+  opacity: 0; /* hidden by default */
+}
+
+.scroll-shadow.shadow-left::before {
+  left: 0;
+  background: linear-gradient(to right, rgba(244, 246, 248, 1), rgba(244, 246, 248, 0));
+  opacity: 1;
+}
+
+.scroll-shadow.shadow-right::after {
+  right: 0;
+  background: linear-gradient(to left, rgba(244, 246, 248, 1), rgba(244, 246, 248, 0));
+  opacity: 1;
+}
+
+
 
 /* Add this in your global CSS file */
 /* .hover-fill::before {
