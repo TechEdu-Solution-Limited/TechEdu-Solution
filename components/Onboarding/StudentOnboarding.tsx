@@ -133,7 +133,6 @@ export default function StudentOnboarding() {
       try {
         // FIRST: Always start onboarding
         await startOnboarding(userId, userType);
-        console.log("Onboarding started successfully");
 
         // THEN: Get onboarding progress
         const progressRes = await getOnboardingProgress(userId);
@@ -259,7 +258,6 @@ export default function StudentOnboarding() {
         console.error("Onboarding fetch error:", err);
       } finally {
         setLoading(false);
-        console.log("Loading set to false");
       }
     }
     fetchStatusAndProgress();
@@ -267,10 +265,6 @@ export default function StudentOnboarding() {
 
   // Show loading if still loading or if dynamicSteps is not loaded yet
   if (loading) {
-    console.log("Loading state:", {
-      loading,
-      dynamicStepsLength: dynamicSteps.length,
-    });
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -678,7 +672,6 @@ export default function StudentOnboarding() {
             (_, i) => i
           );
           const completedStepsSet = new Set(completedStepsArray);
-          console.log("Setting completed steps:", completedStepsSet);
           setCompletedSteps(completedStepsSet);
         }
       }

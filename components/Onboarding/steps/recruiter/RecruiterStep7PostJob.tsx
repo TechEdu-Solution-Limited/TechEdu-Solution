@@ -68,7 +68,6 @@ export default function RecruiterStep7PostJob({
     handleChange({
       target: { name, value },
     });
-  console.log("Submitting data:", form.requiredSkills, form.tags);
 
   return (
     <div className="space-y-6">

@@ -231,7 +231,6 @@ export default function AcademicServicesBookingsPage() {
           const instructorData =
             response.data.data?.users || response.data.users || [];
           setInstructors(instructorData);
-          console.log("Fetched instructors:", instructorData);
         } else {
           console.error(
             "Failed to fetch instructors:",

@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Login – TechEdu Solution",
+  title: "Job Posts – TechEdu Solution",
   description:
     "Login to your TechEdu Solution account to access CV Builder, scholarship tools, training records, and personalized support.",
   keywords:

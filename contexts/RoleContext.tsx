@@ -103,9 +103,6 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     const targetRoute = dashboardRoutes[targetRole] || "/dashboard/student";
     window.location.href = targetRoute;
 
-    console.debug("[Redirect] Role received:", role);
-    console.debug("[Redirect] Role used for routing:", targetRole);
-
     if (!dashboardRoutes[targetRole]) {
       console.warn(
         `[Redirect] No route found for role: "${targetRole}". Defaulting to /dashboard/student`
@@ -206,17 +203,14 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       }
 
       const response = await getActiveRole(token);
-      console.log("[RoleContext] getActiveRole response:", response);
 
       if (response.data && response.data.data) {
         const activeRole = response.data.data.role;
-        console.log("[RoleContext] Active role from backend:", activeRole);
 
         // Update local state if role has changed
         if (activeRole && activeRole !== userRole) {
           setUserRole(activeRole);
           setUserData((prev) => ({ ...prev, role: activeRole }));
-          console.log("[RoleContext] Updated local role to:", activeRole);
         }
       }
     } catch (error) {
@@ -234,11 +228,9 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       }
 
       const response = await switchUserRole(token);
-      console.log("[RoleContext] switchUserRole response:", response);
 
       if (response.data && response.data.data) {
         const newRole = response.data.data.role;
-        console.log("[RoleContext] New role after switch:", newRole);
 
         // Update local state
         setUserRole(newRole);
@@ -248,13 +240,11 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         const updatedUserData = { ...userData, role: newRole };
         saveUserDataToCookies(updatedUserData);
 
-        console.log("[RoleContext] Successfully switched to role:", newRole);
-
         // Redirect to appropriate dashboard
         redirectToRoleDashboard(newRole);
       }
     } catch (error) {
-      console.error("[RoleContext] Error switching user role:", error);
+      console.error("Error switching user role:", error);
     }
   };
 

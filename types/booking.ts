@@ -120,3 +120,124 @@ export interface ServiceLevel {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// User Booking Interface based on API response
+export interface UserBooking {
+  _id: string;
+  productId: string;
+  productType: string;
+  instructorId: string;
+  bookingPurpose: string;
+  scheduleAt?: string; // Legacy field - use scheduledStart instead
+  endAt?: string; // Legacy field - use scheduledEnd instead
+  scheduledStart?: string; // Actual scheduled start time from Calendly
+  scheduledEnd?: string; // Actual scheduled end time from Calendly
+  timezone?: string; // Timezone of scheduled session
+  minutesPerSession: number;
+  durationInMinutes: number;
+  numberOfExpectedParticipants: number;
+  isClassroom: boolean;
+  isSession: boolean;
+  status: "pending" | "confirmed" | "completed" | "cancelled";
+  paymentStatus: "paid" | "unpaid" | "refunded" | "free";
+  schedulingStatus:
+    | "awaiting-payment"
+    | "payment-failed"
+    | "eligible-to-schedule"
+    | "link-issued"
+    | "scheduled"
+    | "meeting-created"
+    | "canceled"
+    | "completed";
+
+  // Calendly integration fields
+  calendlyUrl?: string;
+  calendlyEventUri?: string;
+  calendlyInviteeUri?: string;
+  issuedAt?: string;
+
+  // Meeting link from associated classroom/session
+  meetingLink?: string;
+
+  userNotes?: string;
+  internalNotes?: string;
+  attachments?: string[];
+  cancellation?: {
+    isCancelled: boolean;
+    reason?: string;
+    cancelledBy?: string;
+    cancelledAt?: string;
+  };
+  createdBy: string;
+  participantType:
+    | "institution"
+    | "team"
+    | "individual"
+    | "recruiter"
+    | "visitor";
+  platformRole:
+    | "student"
+    | "individualTechProfessional"
+    | "teamTechProfessional"
+    | "recruiter"
+    | "institution"
+    | "admin"
+    | "visitor";
+  profileId?: string;
+  email: string;
+  fullName: string;
+  participants?: Array<{
+    participantType: string;
+    platformRole: string;
+    profileId?: string;
+    email: string;
+    fullName: string;
+    _id: string;
+  }>;
+  actualDaysAndTime?: Array<{
+    dayOfWeek:
+      | "Monday"
+      | "Tuesday"
+      | "Wednesday"
+      | "Thursday"
+      | "Friday"
+      | "Saturday"
+      | "Sunday";
+    startTime: string;
+    endTime: string;
+  }>;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface BookingEditForm {
+  bookingPurpose: string;
+  scheduleAt: string;
+  endAt?: string;
+  durationInMinutes: number;
+  participantType:
+    | "institution"
+    | "team"
+    | "individual"
+    | "recruiter"
+    | "visitor";
+  numberOfExpectedParticipants?: number;
+  userNotes?: string;
+  internalNotes?: string;
+  schedulingStatus?: string;
+  timezone: string;
+  isClassroom: boolean;
+  actualDaysAndTime?: Array<{
+    dayOfWeek:
+      | "Monday"
+      | "Tuesday"
+      | "Wednesday"
+      | "Thursday"
+      | "Friday"
+      | "Saturday"
+      | "Sunday";
+    startTime: string;
+    endTime: string;
+  }>;
+  attachments?: string[];
+}

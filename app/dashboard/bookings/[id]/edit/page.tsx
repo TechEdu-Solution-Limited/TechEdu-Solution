@@ -29,15 +29,8 @@ import { getTokenFromCookies } from "@/lib/cookies";
 import { toast } from "react-toastify";
 import { useRole } from "@/contexts/RoleContext";
 import { EditBookingFormSkeleton } from "@/components/BookingSkeletons";
-
-interface BookingEditForm {
-  bookingPurpose: string;
-  scheduleAt: string;
-  durationInMinutes: number;
-  participantType: "individual" | "team";
-  numberOfExpectedParticipants?: number;
-  userNotes?: string;
-}
+import { BookingEditForm, UserBooking } from "@/types/booking";
+import { getPrimaryDateTime } from "@/utils/helpers";
 
 export default function EditBookingPage() {
   const router = useRouter();
@@ -47,15 +40,24 @@ export default function EditBookingPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [booking, setBooking] = useState<any>(null);
+  const [booking, setBooking] = useState<UserBooking | null>(null);
   const [formData, setFormData] = useState<BookingEditForm>({
     bookingPurpose: "",
     scheduleAt: "",
+    endAt: "",
     durationInMinutes: 60,
     participantType: "individual",
     numberOfExpectedParticipants: 1,
     userNotes: "",
+    internalNotes: "",
+    schedulingStatus: "",
+    timezone: "UTC",
+    isClassroom: false,
+    actualDaysAndTime: [],
+    attachments: [],
   });
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [criticalFieldChanged, setCriticalFieldChanged] = useState(false);
 
   useEffect(() => {
     if (bookingId) {
@@ -86,16 +88,22 @@ export default function EditBookingPage() {
         }
 
         // Populate form with existing data
+        const { start, end } = getPrimaryDateTime(bookingData);
         setFormData({
           bookingPurpose: bookingData.bookingPurpose || "",
-          scheduleAt: bookingData.scheduleAt
-            ? new Date(bookingData.scheduleAt).toISOString().slice(0, 16)
-            : "",
+          scheduleAt: start ? new Date(start).toISOString().slice(0, 16) : "",
+          endAt: end ? new Date(end).toISOString().slice(0, 16) : "",
           durationInMinutes: bookingData.durationInMinutes || 60,
           participantType: bookingData.participantType || "individual",
           numberOfExpectedParticipants:
             bookingData.numberOfExpectedParticipants || 1,
           userNotes: bookingData.userNotes || "",
+          internalNotes: bookingData.internalNotes || "",
+          schedulingStatus: bookingData.schedulingStatus || "",
+          timezone: bookingData.timezone || "UTC",
+          isClassroom: bookingData.isClassroom || false,
+          actualDaysAndTime: bookingData.actualDaysAndTime || [],
+          attachments: bookingData.attachments || [],
         });
       } else {
         toast.error("Failed to fetch booking details");
@@ -110,20 +118,16 @@ export default function EditBookingPage() {
     }
   };
 
-  const canEditBooking = (booking: any) => {
+  const canEditBooking = (booking: UserBooking) => {
     // Cannot edit if cancelled or completed
     if (booking.status === "cancelled" || booking.status === "completed") {
       return false;
     }
 
-    // Cannot edit if in progress (session has started)
-    if (booking.status === "in-progress") {
-      return false;
-    }
-
     // Cannot edit if confirmed and less than 24 hours before session
     if (booking.status === "confirmed") {
-      const sessionTime = new Date(booking.scheduleAt);
+      const { start } = getPrimaryDateTime(booking);
+      const sessionTime = new Date(start);
       const now = new Date();
       const hoursUntilSession =
         (sessionTime.getTime() - now.getTime()) / (1000 * 60 * 60);
@@ -141,6 +145,18 @@ export default function EditBookingPage() {
 
     if (!booking) return;
 
+    // Show confirmation if critical fields changed
+    if (criticalFieldChanged) {
+      setShowConfirmation(true);
+      return;
+    }
+
+    await submitForm();
+  };
+
+  const submitForm = async () => {
+    if (!booking) return;
+
     setSaving(true);
     try {
       const token = getTokenFromCookies();
@@ -149,9 +165,16 @@ export default function EditBookingPage() {
         return;
       }
 
+      // Calculate end time based on start time and duration
+      const startTime = new Date(formData.scheduleAt);
+      const endTime = new Date(
+        startTime.getTime() + formData.durationInMinutes * 60000
+      );
+
       const updateData = {
         ...formData,
-        scheduleAt: new Date(formData.scheduleAt).toISOString(),
+        scheduleAt: startTime.toISOString(),
+        endAt: endTime.toISOString(),
       };
 
       const response = await putApiRequest(
@@ -171,13 +194,23 @@ export default function EditBookingPage() {
       toast.error("Error updating booking");
     } finally {
       setSaving(false);
+      setShowConfirmation(false);
     }
   };
 
   const handleInputChange = (
     field: keyof BookingEditForm,
-    value: string | number
+    value: string | number | boolean
   ) => {
+    // Check if critical fields are being changed
+    if (
+      field === "scheduleAt" ||
+      field === "durationInMinutes" ||
+      field === "timezone"
+    ) {
+      setCriticalFieldChanged(true);
+    }
+
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -257,8 +290,7 @@ export default function EditBookingPage() {
                     "Your booking is pending confirmation"}
                   {booking.status === "confirmed" &&
                     "Your booking has been confirmed"}
-                  {booking.status === "in-progress" &&
-                    "Your session is currently in progress"}
+
                   {booking.status === "completed" &&
                     "Your session has been completed"}
                   {booking.status === "cancelled" &&
@@ -334,7 +366,61 @@ export default function EditBookingPage() {
                       required
                     />
                   </div>
+                  {formData.scheduleAt && formData.durationInMinutes && (
+                    <p className="text-xs text-slate-500">
+                      Session will end at:{" "}
+                      {new Date(
+                        new Date(formData.scheduleAt).getTime() +
+                          formData.durationInMinutes * 60000
+                      ).toLocaleString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  )}
                 </div>
+              </div>
+
+              {/* Timezone */}
+              <div className="space-y-2">
+                <Label htmlFor="timezone">Timezone</Label>
+                <Select
+                  value={formData.timezone}
+                  onValueChange={(value) =>
+                    handleInputChange("timezone", value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select timezone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="UTC">UTC</SelectItem>
+                    <SelectItem value="America/New_York">
+                      Eastern Time (ET)
+                    </SelectItem>
+                    <SelectItem value="America/Chicago">
+                      Central Time (CT)
+                    </SelectItem>
+                    <SelectItem value="America/Denver">
+                      Mountain Time (MT)
+                    </SelectItem>
+                    <SelectItem value="America/Los_Angeles">
+                      Pacific Time (PT)
+                    </SelectItem>
+                    <SelectItem value="Europe/London">London (GMT)</SelectItem>
+                    <SelectItem value="Europe/Paris">Paris (CET)</SelectItem>
+                    <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
+                    <SelectItem value="Asia/Shanghai">
+                      Shanghai (CST)
+                    </SelectItem>
+                    <SelectItem value="Australia/Sydney">
+                      Sydney (AEST)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Participant Type */}
@@ -346,7 +432,12 @@ export default function EditBookingPage() {
                     onValueChange={(value) =>
                       handleInputChange(
                         "participantType",
-                        value as "individual" | "team"
+                        value as
+                          | "institution"
+                          | "team"
+                          | "individual"
+                          | "recruiter"
+                          | "visitor"
                       )
                     }
                   >
@@ -358,11 +449,15 @@ export default function EditBookingPage() {
                         Individual Session
                       </SelectItem>
                       <SelectItem value="team">Team Session</SelectItem>
+                      <SelectItem value="institution">Institution</SelectItem>
+                      <SelectItem value="recruiter">Recruiter</SelectItem>
+                      <SelectItem value="visitor">Visitor</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                {formData.participantType === "team" && (
+                {(formData.participantType === "team" ||
+                  formData.participantType === "institution") && (
                   <div className="space-y-2">
                     <Label htmlFor="numberOfExpectedParticipants">
                       Number of Participants
@@ -380,12 +475,45 @@ export default function EditBookingPage() {
                           )
                         }
                         min="2"
-                        max="20"
+                        max="50"
                         className="pl-10"
                       />
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Scheduling Status */}
+              <div className="space-y-2">
+                <Label htmlFor="schedulingStatus">Scheduling Status</Label>
+                <Select
+                  value={formData.schedulingStatus}
+                  onValueChange={(value) =>
+                    handleInputChange("schedulingStatus", value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select scheduling status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="awaiting-payment">
+                      Awaiting Payment
+                    </SelectItem>
+                    <SelectItem value="payment-failed">
+                      Payment Failed
+                    </SelectItem>
+                    <SelectItem value="eligible-to-schedule">
+                      Ready to Schedule
+                    </SelectItem>
+                    <SelectItem value="link-issued">Link Issued</SelectItem>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                    <SelectItem value="meeting-created">
+                      Meeting Created
+                    </SelectItem>
+                    <SelectItem value="canceled">Canceled</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* User Notes */}
@@ -401,6 +529,51 @@ export default function EditBookingPage() {
                   rows={4}
                 />
               </div>
+
+              {/* Internal Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="internalNotes">Internal Notes</Label>
+                <Textarea
+                  id="internalNotes"
+                  value={formData.internalNotes}
+                  onChange={(e) =>
+                    handleInputChange("internalNotes", e.target.value)
+                  }
+                  placeholder="Internal notes for staff and administrators..."
+                  rows={3}
+                />
+              </div>
+
+              {/* Attachments */}
+              {formData.attachments && formData.attachments.length > 0 && (
+                <div className="space-y-3">
+                  <Label>Current Attachments</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {formData.attachments.map(
+                      (attachment: string, index: number) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200"
+                        >
+                          <div className="p-2 bg-blue-100 rounded-full">📎</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-700 truncate">
+                              File {index + 1}
+                            </p>
+                            <p className="text-xs text-slate-500 truncate">
+                              {attachment}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Note: Attachments cannot be modified in this edit form.
+                    Contact support if you need to change files.
+                  </p>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex items-center gap-4 pt-6 border-t border-slate-200">
@@ -434,6 +607,45 @@ export default function EditBookingPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Confirmation Modal */}
+      {showConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">
+              Confirm Changes
+            </h3>
+            <p className="text-slate-600 mb-6">
+              You're about to change critical booking details (schedule time,
+              duration, or timezone). This may affect your instructor and other
+              participants. Are you sure you want to continue?
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={submitForm}
+                disabled={saving}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Yes, Update Booking"
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowConfirmation(false)}
+                disabled={saving}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

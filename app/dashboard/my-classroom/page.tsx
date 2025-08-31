@@ -31,12 +31,25 @@ interface Classroom {
   numberOfExpectedParticipants?: number;
   meetingLink?: string;
   status: string;
+  sessionType?: string;
+  participantType?: string;
+  sessionsCompleted?: number;
+  sessionsRemaining?: number;
+  participants?: Array<{
+    participantType: string;
+    platformRole: string;
+    profileId: string;
+    email: string;
+    fullName: string;
+    _id: string;
+  }>;
   instructorNotes?: string;
   internalNotes?: string;
   actualDaysAndTime?: Array<{
     day: string;
     time: string;
   }>;
+  createdBy?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -67,7 +80,6 @@ export default function StudentClassroomsPage() {
       try {
         const endpoint = "/api/classrooms/student/classroomm";
         const response = await getApiRequest(endpoint, token);
-        console.log("Student Classrooms API response:", response);
 
         if (response?.data?.success) {
           setClassrooms(response.data.data);
@@ -162,6 +174,30 @@ export default function StudentClassroomsPage() {
     }
   };
 
+  const getParticipantInfo = (classroom: Classroom) => {
+    if (classroom.participants && classroom.participants.length > 0) {
+      const participantCount = classroom.participants.length;
+      const participantType =
+        classroom.participants[0]?.participantType || "Individual";
+      return { count: participantCount, type: participantType };
+    }
+
+    return {
+      count: classroom.numberOfExpectedParticipants || 1,
+      type: classroom.participantType || "Individual",
+    };
+  };
+
+  const getSessionProgress = (classroom: Classroom) => {
+    const completed = classroom.sessionsCompleted || 0;
+    const remaining = classroom.sessionsRemaining || 0;
+    const total = completed + remaining;
+
+    if (total === 0) return "No sessions scheduled";
+
+    return `${completed}/${total} completed`;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -233,6 +269,9 @@ export default function StudentClassroomsPage() {
                   <option value="scheduleAt">Sort by Date</option>
                   <option value="status">Sort by Status</option>
                   <option value="productType">Sort by Type</option>
+                  <option value="sessionType">Sort by Session Type</option>
+                  <option value="sessionsCompleted">Sort by Progress</option>
+                  <option value="createdAt">Sort by Created Date</option>
                 </select>
               </div>
               <button
@@ -285,10 +324,19 @@ export default function StudentClassroomsPage() {
                       Product Type
                     </th>
                     <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                      Session Type
+                    </th>
+                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
                       Schedule
                     </th>
                     <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
                       Status
+                    </th>
+                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                      Progress
+                    </th>
+                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                      Participants
                     </th>
                     <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
                       Meeting Link
@@ -312,12 +360,23 @@ export default function StudentClassroomsPage() {
                             </div>
                             <div className="text-sm text-slate-500">
                               ID: {classroom._id.slice(-8)}
+                              {classroom.bookingId && (
+                                <span className="ml-2">
+                                  Booking:{" "}
+                                  {String(classroom.bookingId).slice(-8)}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
                           <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border border-blue-200">
                             {classroom.productType}
+                          </span>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-200">
+                            {classroom.sessionType || "N/A"}
                           </span>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
@@ -341,6 +400,25 @@ export default function StudentClassroomsPage() {
                             {getStatusIcon(classroom.status)}
                             {classroom.status}
                           </span>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="text-sm text-slate-900">
+                            {getSessionProgress(classroom)}
+                          </div>
+                          {classroom.sessionsCompleted !== undefined &&
+                            classroom.sessionsRemaining !== undefined && (
+                              <div className="text-xs text-slate-500">
+                                {classroom.sessionsRemaining} remaining
+                              </div>
+                            )}
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="text-sm text-slate-900">
+                            {getParticipantInfo(classroom).count} participant(s)
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            {getParticipantInfo(classroom).type}
+                          </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
                           {classroom.meetingLink ? (
@@ -374,7 +452,7 @@ export default function StudentClassroomsPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="px-8 py-16 text-center">
+                      <td colSpan={9} className="px-8 py-16 text-center">
                         <div className="flex flex-col items-center gap-4">
                           <div className="w-20 h-20 bg-gradient-to-r from-slate-100 to-blue-100 rounded-full flex items-center justify-center">
                             <BookOpen className="w-10 h-10 text-slate-400" />

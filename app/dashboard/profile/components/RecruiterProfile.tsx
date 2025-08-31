@@ -15,7 +15,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
-import { useProfile } from "@/contexts/ProfileContext";
+import { useProfileData } from "@/hooks/useProfileData";
 
 interface RecruiterProfileProps {
   userProfile: any;
@@ -64,7 +64,7 @@ export default function RecruiterProfile({
   const [skippedSteps, setSkippedSteps] = useState<Set<number>>(new Set());
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const { getOnboardingProgress, completeStep } = useOnboardingStatus(token);
-  const { profile: contextProfile, updateProfile } = useProfile();
+  const { profile: contextProfile, updateProfile } = useProfileData();
 
   useEffect(() => {
     const fetchOnboardingProgress = async () => {

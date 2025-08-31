@@ -21,7 +21,6 @@ export default function RoleTestPage() {
   const handleGetActiveRole = async () => {
     setLoading(true);
     try {
-      console.log("[RoleTestPage] Getting active role...");
       await getActiveRole();
       toast.success("Active role refreshed! Check console for details.");
     } catch (error) {
@@ -35,7 +34,6 @@ export default function RoleTestPage() {
   const handleSwitchRole = async () => {
     setLoading(true);
     try {
-      console.log("[RoleTestPage] Switching role...");
       await switchUserRole();
       toast.success("Role switched! Check console for details.");
     } catch (error) {

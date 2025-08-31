@@ -13,7 +13,7 @@ import {
   patchApiRequest,
 } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
-import { useProfile } from "@/contexts/ProfileContext";
+import { useProfileData } from "@/hooks/useProfileData";
 
 interface UserProfile {
   _id: string;
@@ -36,7 +36,7 @@ export default function ProfilePage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { profile: contextProfile, setProfile } = useProfile();
+  const { profile: contextProfile, setProfile } = useProfileData();
 
   useEffect(() => {
     fetchUserProfile();

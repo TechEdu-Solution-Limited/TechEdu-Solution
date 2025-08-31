@@ -568,9 +568,9 @@ export default function PaymentsPage() {
                   <p className="text-sm font-medium text-blue-700">
                     Total Payments
                   </p>
-                  <p className="text-xl sm:text-2xl font-bold text-blue-900">
+                  <div className="text-xl sm:text-2xl font-bold text-blue-900">
                     {loading ? <Skeleton className="h-8 w-16" /> : meta.total}
-                  </p>
+                  </div>
                   <p className="text-xs text-blue-600">All time transactions</p>
                 </div>
                 <div className="p-2 sm:p-3 bg-blue-200 rounded-full">
@@ -587,13 +587,13 @@ export default function PaymentsPage() {
                   <p className="text-sm font-medium text-green-700">
                     Total Amount
                   </p>
-                  <p className="text-xl sm:text-2xl font-bold text-green-900">
+                  <div className="text-xl sm:text-2xl font-bold text-green-900">
                     {loading ? (
                       <Skeleton className="h-8 w-20" />
                     ) : (
                       formatCurrency(totalAmount, "USD")
                     )}
-                  </p>
+                  </div>
                   <p className="text-xs text-green-600">Lifetime value</p>
                 </div>
                 <div className="p-2 sm:p-3 bg-green-200 rounded-full">
@@ -610,13 +610,13 @@ export default function PaymentsPage() {
                   <p className="text-sm font-medium text-purple-700">
                     Success Rate
                   </p>
-                  <p className="text-xl sm:text-2xl font-bold text-purple-900">
+                  <div className="text-xl sm:text-2xl font-bold text-purple-900">
                     {loading ? (
                       <Skeleton className="h-8 w-16" />
                     ) : (
                       `${successRate.toFixed(1)}%`
                     )}
-                  </p>
+                  </div>
                   <div className="flex items-center gap-2 mt-1">
                     <Progress
                       value={successRate}
@@ -639,13 +639,13 @@ export default function PaymentsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-orange-700">Pending</p>
-                  <p className="text-xl sm:text-2xl font-bold text-orange-900">
+                  <div className="text-xl sm:text-2xl font-bold text-orange-900">
                     {loading ? (
                       <Skeleton className="h-8 w-12" />
                     ) : (
                       pendingPayments.length
                     )}
-                  </p>
+                  </div>
                   <p className="text-xs text-orange-600">
                     Awaiting confirmation
                   </p>
@@ -873,7 +873,7 @@ export default function PaymentsPage() {
               </div>
             ) : viewMode === "table" ? (
               <>
-                <div className="rounded-lg border overflow-hidden">
+                <div className="rounded-[5px] border overflow-hidden">
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader className="bg-gray-50">
@@ -887,9 +887,9 @@ export default function PaymentsPage() {
                           <TableHead className="font-semibold">
                             Status
                           </TableHead>
-                          <TableHead className="font-semibold">
+                          {/* <TableHead className="font-semibold">
                             Provider
-                          </TableHead>
+                          </TableHead> */}
                           <TableHead className="font-semibold">
                             Product Type
                           </TableHead>
@@ -923,22 +923,22 @@ export default function PaymentsPage() {
                                     payment.currency
                                   )}
                                 </div>
-                                <div className="text-xs text-gray-500 uppercase">
+                                {/* <div className="text-xs text-gray-500 uppercase">
                                   {payment.currency}
-                                </div>
+                                </div> */}
                               </div>
                             </TableCell>
                             <TableCell>
                               {getStatusBadge(payment.status)}
                             </TableCell>
-                            <TableCell>
+                            {/* <TableCell>
                               <div className="flex items-center gap-2">
                                 {getProviderIcon(payment.provider)}
                                 <span className="capitalize font-medium">
                                   {payment.provider}
                                 </span>
                               </div>
-                            </TableCell>
+                            </TableCell> */}
                             <TableCell>
                               <div className="max-w-[200px]">
                                 <div
@@ -950,12 +950,12 @@ export default function PaymentsPage() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4 text-gray-400" />
-                                <span className="text-sm font-medium">
-                                  {formatDate(payment.createdAt)}
-                                </span>
-                              </div>
+                              {/* <div className=""> */}
+                              {/* <Calendar className="w-4 h-4 text-gray-400" /> */}
+                              <span className="text-sm font-medium">
+                                {formatDate(payment.createdAt)}
+                              </span>
+                              {/* </div> */}
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center justify-end gap-2">

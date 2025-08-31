@@ -2,14 +2,85 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { MdEmail } from "react-icons/md";
 import { FaWhatsapp } from "react-icons/fa";
 import { FaPhone } from "react-icons/fa6";
 import { IoLocation } from "react-icons/io5";
+import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import emailjs from "@emailjs/browser";
+import { EMAILJS_CONFIG } from "@/lib/emailjs-config";
 
 export default function ContactForm() {
   const [agreed, setAgreed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
+  const [submitMessage, setSubmitMessage] = useState("");
+
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!agreed) {
+      setSubmitStatus("error");
+      setSubmitMessage("Please agree to the data policy before submitting.");
+      return;
+    }
+
+    setLoading(true);
+    setSubmitStatus("idle");
+    setSubmitMessage("");
+
+    try {
+      // Add submission date to form data
+      const formData = new FormData(formRef.current!);
+      formData.append(
+        "submit_date",
+        new Date().toLocaleString("en-GB", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "Europe/London",
+        })
+      );
+
+      // Use EmailJS configuration
+      const result = await emailjs.sendForm(
+        EMAILJS_CONFIG.SERVICE_ID!,
+        EMAILJS_CONFIG.TEMPLATE_ID!,
+        formRef.current!,
+        EMAILJS_CONFIG.PUBLIC_KEY!
+      );
+
+      if (result.status === 200) {
+        setSubmitStatus("success");
+        setSubmitMessage(
+          "Message sent successfully! We'll get back to you soon."
+        );
+
+        // Reset form
+        if (formRef.current) {
+          formRef.current.reset();
+          setAgreed(false);
+        }
+      } else {
+        throw new Error("Failed to send message");
+      }
+    } catch (error) {
+      console.error("EmailJS error:", error);
+      setSubmitStatus("error");
+      setSubmitMessage(
+        "Failed to send message. Please try again or contact us directly."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <section id="contact-form" className="bg-white">
@@ -57,7 +128,7 @@ export default function ContactForm() {
                 <li className="flex items-center gap-4 sm:gap-6">
                   <MdEmail size={28} className="text-[#011F72] flex-shrink-0" />
                   <Link
-                    href="mailto:contact@techedusolution.com"
+                    href="mailto:info@techedusolution.com"
                     className="text-[1rem] text-black font-medium hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 ease-in-out"
                   >
                     info@techedusolution.com
@@ -91,19 +162,39 @@ export default function ContactForm() {
           </div>
 
           {/* Contact Form */}
-          <form className="space-y-6" aria-label="Contact form">
+          <form
+            ref={formRef}
+            onSubmit={handleSubmit}
+            className="space-y-6"
+            aria-label="Contact form"
+          >
+            {/* Submit Status Messages */}
+            {submitStatus === "success" && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <p className="text-green-800 font-medium">{submitMessage}</p>
+              </div>
+            )}
+
+            {submitStatus === "error" && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600" />
+                <p className="text-red-800 font-medium">{submitMessage}</p>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor="name"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Full Name
+                  Full Name *
                 </label>
                 <input
                   type="text"
                   id="name"
-                  name="name"
+                  name="user_name"
                   required
                   placeholder="Enter your full name"
                   className="mt-1 block w-full rounded-[8px] bg-gray-200 border border-gray-300 p-2 shadow-sm focus:ring-blue-500 focus:border-blue-500"
@@ -115,12 +206,12 @@ export default function ContactForm() {
                   htmlFor="email"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Email
+                  Email *
                 </label>
                 <input
                   type="email"
                   id="email"
-                  name="email"
+                  name="user_email"
                   required
                   placeholder="your.email@example.com"
                   className="mt-1 block w-full rounded-[8px] bg-gray-200 border border-gray-300 p-2 shadow-sm focus:ring-blue-500 focus:border-blue-500"
@@ -137,8 +228,8 @@ export default function ContactForm() {
                 <input
                   type="tel"
                   id="phone"
-                  name="phone"
-                  placeholder="+44 20 7123 4567"
+                  name="user_phone"
+                  placeholder="+44 78 4882 9768"
                   pattern="[0-9\s+()-]*"
                   title="Please enter a valid UK phone number"
                   className="mt-1 block w-full rounded-[8px] bg-gray-200 border border-gray-300 p-2 shadow-sm focus:ring-blue-500 focus:border-blue-500"
@@ -150,12 +241,13 @@ export default function ContactForm() {
                   htmlFor="subject"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Subject
+                  Subject *
                 </label>
                 <input
                   type="text"
                   id="subject"
                   name="subject"
+                  required
                   placeholder="What is this regarding?"
                   maxLength={100}
                   className="mt-1 block w-full rounded-[8px] bg-gray-200 border border-gray-300 p-2 shadow-sm focus:ring-blue-500 focus:border-blue-500"
@@ -168,20 +260,20 @@ export default function ContactForm() {
                 htmlFor="role"
                 className="block text-sm font-medium text-gray-700"
               >
-                I'm Reaching Out As...
+                I'm Reaching Out As... *
               </label>
               <select
                 id="role"
-                name="role"
+                name="user_role"
                 required
                 className="mt-1 block w-full rounded-[8px] bg-gray-200 border border-gray-300 p-2 shadow-sm focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Select your role</option>
                 <option value="student">Student</option>
-                <option value="parent">Individual Tech Professional</option>
-                <option value="teacher">Team Tech Professional</option>
-                <option value="school">Institution</option>
-                <option value="company">Recruiter</option>
+                <option value="individual">Individual Tech Professional</option>
+                <option value="team">Team Tech Professional</option>
+                <option value="institution">Institution</option>
+                <option value="recruiter">Recruiter</option>
                 <option value="other">Other</option>
               </select>
             </div>
@@ -191,7 +283,7 @@ export default function ContactForm() {
                 htmlFor="message"
                 className="block text-sm font-medium text-gray-700"
               >
-                Message
+                Message *
               </label>
               <textarea
                 id="message"
@@ -217,7 +309,7 @@ export default function ContactForm() {
               <input
                 type="file"
                 id="file"
-                name="file"
+                name="user_file"
                 accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
                 className="mt-1 block w-full text-sm text-gray-700 bg-gray-200 file:border file:border-gray-300 file:rounded file:px-4 file:py-2 file:bg-gray-50 hover:file:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -238,15 +330,27 @@ export default function ContactForm() {
                 required
               />
               <label htmlFor="agree" className="text-sm text-gray-700">
-                I agree to TechEdu Solution's data policy
+                I agree to TechEdu Solution's data policy *
               </label>
             </div>
 
             <button
               type="submit"
-              className="w-full px-6 py-4 text-white font-semibold bg-[#0D1140] hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-[8px]"
+              disabled={loading || !agreed}
+              className={`w-full px-6 py-4 text-white font-semibold rounded-[8px] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                loading || !agreed
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-[#0D1140] hover:bg-blue-700 hover:shadow-lg transform hover:-translate-y-0.5"
+              }`}
             >
-              Send Message →
+              {loading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Sending Message...
+                </div>
+              ) : (
+                "Send Message →"
+              )}
             </button>
           </form>
         </div>

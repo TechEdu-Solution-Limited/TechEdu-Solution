@@ -44,5 +44,6 @@ export interface CartItem {
     participantType?: string;
     userNotes?: string;
     bookingData?: any;
+    bookingId: string;
   };
 }

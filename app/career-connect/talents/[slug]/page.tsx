@@ -102,10 +102,6 @@ export default function Talents() {
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (file) {
-                    // handle image upload logic
-                    console.log("Uploaded image:", file);
-                  }
                 }}
               />
               <Image

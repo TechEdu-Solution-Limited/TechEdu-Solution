@@ -345,10 +345,6 @@ export default function InstitutionOnboarding() {
 
   // Show loading state
   if (loading || dynamicSteps.length === 0) {
-    console.log("Loading state:", {
-      loading,
-      dynamicStepsLength: dynamicSteps.length,
-    });
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -683,7 +679,6 @@ export default function InstitutionOnboarding() {
             (_, i) => i
           );
           const completedStepsSet = new Set(completedStepsArray);
-          console.log("Setting completed steps:", completedStepsSet);
           setCompletedSteps(completedStepsSet);
         }
       }

@@ -144,9 +144,6 @@ export default function CareerDevelopment() {
   const handleBooking = () => {
     if (selectedDate && selectedTime) {
       // Here you would typically integrate with your booking system
-      console.log(
-        `Booking for ${selectedDate.toDateString()} at ${selectedTime}`
-      );
       setShowConfirmation(true);
       // Hide confirmation after 3 seconds
       setTimeout(() => {
@@ -161,7 +158,7 @@ export default function CareerDevelopment() {
     <>
       <header className="relative w-full px-4 pt-20 md:pt-20 md:px-16 min-h-[100vh]">
         {/* Background Layer */}
-        <div className="absolute inset-0 h-full xl:h-[80vh] z-0 bg-gradient-to-b from-[#011F72] to-[#ffffff] xl:bg-none xl:bg-[#0D1140]"></div>
+        <div className="absolute inset-0 h-full xl:h-[84vh] z-0 bg-gradient-to-b from-[#011F72] to-[#ffffff] xl:bg-none xl:bg-[#0D1140]"></div>
         {/* Foreground Content */}
         <div className="relative grid grid-cols-1 xl:grid-cols-2 gap-8 md:gap-24 z-10 pt-16">
           {/* Left: Hero Content */}
@@ -177,7 +174,7 @@ export default function CareerDevelopment() {
               next bold move.
             </p>
 
-            <div className="pt-4">
+            <div className="pt-10">
               <Link
                 href="/contact#discovery-call"
                 className="bg-[#0D1140] hover:bg-blue-700 text-white text-center px-6 py-4 rounded text-[1rem] font-medium transition "

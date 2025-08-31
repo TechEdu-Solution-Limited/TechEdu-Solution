@@ -152,7 +152,7 @@ function PaymentForm({
             window.location.origin
           }/payment-success?amount=${amount}&currency=${currency}&product_name=${encodeURIComponent(
             productName
-          )}`,
+          )}&redirect_status=return`,
         });
 
       if (submitError) {
@@ -161,30 +161,41 @@ function PaymentForm({
         onError(submitError.message || "Payment failed");
         setIsProcessing(false);
       } else if (paymentIntent && paymentIntent.status === "succeeded") {
-        // Set payment successful state and show for 3 seconds
+        // Set payment successful state
         setPaymentSuccessful(true);
+
         // Call onSuccess immediately to remove item from cart
         onSuccess();
 
-        // After 3 seconds, redirect to success page with payment details
-        setTimeout(() => {
-          window.location.href = `/payment-success?payment_intent=${
-            paymentIntent.id
-          }&amount=${amount}&currency=${currency}&product_name=${encodeURIComponent(
-            productName
-          )}&redirect_status=succeeded`;
-        }, 3000); // 3 seconds to show success state
+        // Redirect to success page immediately with payment details
+        const successUrl = `/payment-success?payment_intent=${
+          paymentIntent.id
+        }&amount=${amount}&currency=${currency}&product_name=${encodeURIComponent(
+          productName
+        )}&redirect_status=succeeded&payment_method=${paymentMethod.id}`;
+        window.location.href = successUrl;
       } else if (paymentIntent && paymentIntent.status === "requires_action") {
         // Don't set error here as the redirect should handle it
       } else if (paymentIntent && paymentIntent.status === "processing") {
-        // Payment is being processed
-        // toast.info(
-        //   "Payment is being processed. You'll be notified once it's complete."
-        // );
+        // Payment is being processed - show success state and redirect
+        setPaymentSuccessful(true);
         onSuccess();
+
+        // Redirect to success page with processing status
+        const processingUrl = `/payment-success?payment_intent=${
+          paymentIntent.id
+        }&amount=${amount}&currency=${currency}&product_name=${encodeURIComponent(
+          productName
+        )}&redirect_status=processing&payment_method=${paymentMethod.id}`;
+
+        window.location.href = processingUrl;
       } else {
-        setError("Payment did not succeed.");
-        onError("Payment did not succeed.");
+        console.warn(
+          "Unexpected payment intent status:",
+          paymentIntent?.status
+        );
+        setError(`Payment status: ${paymentIntent?.status || "unknown"}`);
+        onError(`Payment status: ${paymentIntent?.status || "unknown"}`);
         setIsProcessing(false);
       }
     } catch (error: any) {

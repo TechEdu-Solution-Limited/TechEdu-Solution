@@ -98,7 +98,7 @@ export default function NotFound() {
           </div> */}
 
           {/* Search Section */}
-          <div className="mb-12 p-8 bg-white rounded-2xl shadow-lg border border-gray-100">
+          {/* <div className="mb-12 p-8 bg-white rounded-2xl shadow-lg border border-gray-100">
             <div className="flex items-center justify-center mb-4">
               <Search className="w-6 h-6 text-gray-400 mr-3" />
               <h3 className="text-xl font-semibold text-gray-900">
@@ -142,7 +142,7 @@ export default function NotFound() {
                 </Button>
               </Link>
             </div>
-          </div>
+          </div> */}
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">

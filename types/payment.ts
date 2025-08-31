@@ -8,7 +8,7 @@ export interface PaymentIntent {
   bookingService: string;
   platformRole: string;
   transactionId: string;
-  profileId?: string;
+  profileId: string; // Profile ID is required
   isSession: boolean;
   isClassroom: boolean;
   customerId?: string;
@@ -53,7 +53,7 @@ export interface Payment {
     | "institution"
     | "admin"
     | "visitor";
-  profileId?: string;
+  profileId: string; // Profile ID is required
   isSession: boolean;
   isClassroom: boolean;
   isDeleted: boolean;
@@ -116,10 +116,12 @@ export interface CreatePaymentIntentRequest {
     | "institution"
     | "admin"
     | "visitor";
-  profileId?: string;
+  userId: string; // User ID is required
+  profileId: string; // Profile ID is required
   isSession: boolean;
   isClassroom: boolean;
   customerId?: string;
+  bookingId: string;
 }
 
 // Payment response

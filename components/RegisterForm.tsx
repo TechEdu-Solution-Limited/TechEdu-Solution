@@ -17,7 +17,6 @@ import { toast } from "react-toastify";
 const Page = () => {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
-  const role = "student"; // Always student for catalog/checkout
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [formData, setFormData] = useState<
     UserRegistrationData & {
@@ -32,7 +31,7 @@ const Page = () => {
     confirmPassword: "",
     showPassword: false,
     showConfirmPassword: false,
-    role: role, // always student
+    role: "", // Will be selected by user
   });
   const [passwordCriteria, setPasswordCriteria] = useState({
     length: false,
@@ -101,6 +100,19 @@ const Page = () => {
     }
   };
 
+  const handleRoleChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      role: value,
+    }));
+
+    // Clear role error when user selects a role
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      role: "",
+    }));
+  };
+
   const validate = () => {
     const newErrors: { [key: string]: string } = {};
     if (!formData.fullName?.trim()) newErrors.fullName = "Name is required.";
@@ -165,7 +177,7 @@ const Page = () => {
         fullName: formData.fullName,
         email: formData.email,
         password: formData.password,
-        role: "student", // always student
+        role: formData.role, // Use selected role
       });
 
       // Show success message and verification notice
@@ -524,8 +536,35 @@ const Page = () => {
               )}
           </div>
 
-          {/* Hide role select, always student */}
-          <input type="hidden" name="role" value="student" />
+          {/* Role Selection */}
+          <div className="space-y-2">
+            <label
+              htmlFor="role"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Select your role
+            </label>
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border rounded-[10px] focus:ring-2 focus:ring-[#011F72]"
+            >
+              <option value="">Select your role</option>
+              <option value="student">Student</option>
+              <option value="individualTechProfessional">
+                Individual Tech Professional
+              </option>
+              <option value="teamTechProfessional">
+                Team Tech Professional
+              </option>
+              <option value="institution">Institution</option>
+              <option value="recruiter">Recruiter</option>
+            </select>
+            {errors.role && (
+              <p className="text-red-600 text-sm">{errors.role}</p>
+            )}
+          </div>
 
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" className="mt-1" required />

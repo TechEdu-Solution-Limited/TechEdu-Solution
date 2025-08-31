@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { CheckCircle, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { postApiRequest } from "@/lib/apiFetch";
+import { postApiRequest, apiRequest } from "@/lib/apiFetch";
 import { getCookie, setCookie, deleteCookie } from "@/lib/cookies";
 import { Button } from "@/components/ui/button";
-import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+import { useRole } from "@/contexts/RoleContext";
 
 // Step Components
 import {
@@ -232,7 +232,8 @@ export default function IndividualindividualTechProfessionalOnboarding() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = getCookie("token") || getCookie("access_token");
-  const userType = "individualTechProfessional";
+  const { userRole } = useRole();
+  const userType = userRole || "individualTechProfessional"; // Fallback to default if context not available
 
   // All state hooks must be called first
   const [step, setStep] = useState(0);
@@ -275,24 +276,87 @@ export default function IndividualindividualTechProfessionalOnboarding() {
     }
   }, [searchParams, router]);
 
-  // Use onboarding status hook with token
-  const {
-    startOnboarding,
-    getOnboardingProgress,
-    setOnboardingStatus,
-    skipStep,
-    completeStep,
-  } = useOnboardingStatus(token);
+  // Local API functions to replace the hook
+  const startOnboarding = useCallback(
+    async (userId: string, userType: string) => {
+      if (!token) throw new Error("No token available");
+      return await apiRequest(
+        "/api/onboarding/start",
+        "POST",
+        { userId, userType },
+        token
+      );
+    },
+    [token]
+  );
+
+  const getOnboardingProgress = useCallback(
+    async (userId: string) => {
+      if (!token) throw new Error("No token available");
+      return await apiRequest(
+        `/api/onboarding/${userId}/progress`,
+        "GET",
+        undefined,
+        token
+      );
+    },
+    [token]
+  );
+
+  const setOnboardingStatus = useCallback(
+    async (userId: string, status: string) => {
+      if (!token) throw new Error("No token available");
+      return await apiRequest(
+        `/api/onboarding/${userId}/status`,
+        "PATCH",
+        { status },
+        token
+      );
+    },
+    [token]
+  );
+
+  const skipStep = useCallback(
+    async (userId: string, stepNumber: number, reason: string) => {
+      if (!token) throw new Error("No token available");
+      return await apiRequest(
+        `/api/onboarding/${userId}/skip`,
+        "POST",
+        { stepNumber, reason },
+        token
+      );
+    },
+    [token]
+  );
+
+  const completeStep = useCallback(
+    async (userId: string, stepNumber: number) => {
+      if (!token) throw new Error("No token available");
+      return await apiRequest(
+        `/api/onboarding/${userId}/complete`,
+        "POST",
+        { stepNumber },
+        token
+      );
+    },
+    [token]
+  );
+
+  // Debug token availability
+  useEffect(() => {}, [token, userId, userType]);
 
   // Fetch onboarding status and progress on load
   useEffect(() => {
     async function fetchStatusAndProgress() {
-      if (!userId || !token) return;
+      if (!userId || !token) {
+        return;
+      }
+
       setLoading(true);
       setError(null);
       try {
         // FIRST: Always start onboarding
-        await startOnboarding(userId, userType);
+        const startResult = await startOnboarding(userId, userType);
 
         // THEN: Get onboarding progress
         const progressRes = await getOnboardingProgress(userId);
@@ -462,7 +526,11 @@ export default function IndividualindividualTechProfessionalOnboarding() {
         setLoading(false);
       }
     }
-    fetchStatusAndProgress();
+
+    // Only run when both userId and token are available
+    if (userId && token) {
+      fetchStatusAndProgress();
+    }
   }, [userId, token, startOnboarding, getOnboardingProgress]);
 
   // Pre-fill form with all step data from progress response
@@ -834,16 +902,43 @@ export default function IndividualindividualTechProfessionalOnboarding() {
         throw new Error(`No step identifier found for step ${step + 1}`);
       }
 
+      if (!token) {
+        throw new Error("Authentication token not found. Please log in again.");
+      }
+
       const result = await postApiRequest(
         `/api/onboarding/individual-tech-professional/${userId}/${stepIdentifier}`,
-        stepData,
-        token ? { Authorization: `Bearer ${token}` } : {}
+        token as string,
+        stepData
       );
 
       // If this is the final step, mark onboarding as completed
       if (step === dynamicSteps.length - 1) {
         await setOnboardingStatus(userId, "completed");
         setStatus("completed");
+
+        // Determine the correct dashboard route based on user role
+        const getDashboardRoute = (role: string) => {
+          switch (role) {
+            case "student":
+              return "/dashboard/student";
+            case "individualTechProfessional":
+              return "/dashboard/individual-tech-professional";
+            case "teamTechProfessional":
+              return "/dashboard/team-tech-professional";
+            case "institution":
+              return "/dashboard/institution";
+            case "recruiter":
+              return "/dashboard/recruiter";
+            case "admin":
+              return "/dashboard/admin";
+            default:
+              return "/dashboard"; // Fallback
+          }
+        };
+
+        const dashboardRoute = getDashboardRoute(userType);
+
         // Show completion modal
         setCompletionModal({
           open: true,
@@ -852,7 +947,7 @@ export default function IndividualindividualTechProfessionalOnboarding() {
         setStepSuccess(result?.message || "Onboarding completed successfully!");
         setTimeout(() => {
           setCompletionModal({ open: false, message: "" });
-          router.push("/dashboard/individual-tech-professional");
+          router.push(dashboardRoute);
         }, 2000);
         return;
       }

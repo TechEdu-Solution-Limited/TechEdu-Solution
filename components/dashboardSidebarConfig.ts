@@ -141,42 +141,37 @@ export const dashboardSidebarConfig = {
           },
         ],
       },
-      {
-        title: "Learning & Progress",
-        items: [
-          {
-            label: "Service Access Summary",
-            icon: Clipboard,
-            href: "/dashboard/service-access",
-          },
-          {
-            label: "Track Review",
-            icon: ClipboardList,
-            href: "/dashboard/track-review",
-          },
-          {
-            label: "Learning Goals",
-            icon: Target,
-            href: "/dashboard/learning-goals",
-          },
-        ],
-      },
+      // {
+      //   title: "Learning & Progress",
+      //   items: [
+      //     {
+      //       label: "Service Access Summary",
+      //       icon: Clipboard,
+      //       href: "/dashboard/service-access",
+      //     },
+      //     {
+      //       label: "Track Review",
+      //       icon: ClipboardList,
+      //       href: "/dashboard/track-review",
+      //     },
+      //     {
+      //       label: "Learning Goals",
+      //       icon: Target,
+      //       href: "/dashboard/learning-goals",
+      //     },
+      //   ],
+      // },
       {
         title: "Communication & Support",
         items: [
-          {
-            label: "Announcements",
-            icon: MessageCircle,
-            href: "/dashboard/announcements",
-          },
           { label: "Mentors", icon: User, href: "/dashboard/mentors" },
           {
             label: "Notifications",
             icon: Bell,
             href: "/dashboard/notifications",
           },
-          { label: "Resources", icon: Layers, href: "/dashboard/resources" },
-          { label: "Support", icon: MessageCircle, href: "/dashboard/support" },
+          // { label: "Resources", icon: Layers, href: "/dashboard/resources" },
+          // { label: "Support", icon: MessageCircle, href: "/dashboard/support" },
         ],
       },
     ],

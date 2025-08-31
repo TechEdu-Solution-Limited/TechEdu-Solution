@@ -10,6 +10,7 @@ import {
   Video,
   BookOpen,
   Users,
+  User,
   FileText,
   ExternalLink,
   ArrowLeft,
@@ -78,12 +79,25 @@ interface Classroom {
   numberOfExpectedParticipants?: number;
   meetingLink?: string;
   status: string;
+  sessionType?: string;
+  participantType?: string;
+  sessionsCompleted?: number;
+  sessionsRemaining?: number;
+  participants?: Array<{
+    participantType: string;
+    platformRole: string;
+    profileId: string;
+    email: string;
+    fullName: string;
+    _id: string;
+  }>;
   instructorNotes?: string;
   internalNotes?: string;
   actualDaysAndTime?: Array<{
     day: string;
     time: string;
   }>;
+  createdBy?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -212,6 +226,55 @@ export default function SingleClassroomPage() {
     };
 
     return icons[productType as keyof typeof icons] || BookOpen;
+  };
+
+  const getParticipantInfo = (classroom: Classroom) => {
+    if (classroom.participants && classroom.participants.length > 0) {
+      const participantCount = classroom.participants.length;
+      const participantType =
+        classroom.participants[0]?.participantType || "Individual";
+      return { count: participantCount, type: participantType };
+    }
+
+    return {
+      count: classroom.numberOfExpectedParticipants || 1,
+      type: classroom.participantType || "Individual",
+    };
+  };
+
+  const getSessionProgress = (classroom: Classroom) => {
+    const completed = classroom.sessionsCompleted || 0;
+    const remaining = classroom.sessionsRemaining || 0;
+    const total = completed + remaining;
+
+    if (total === 0) return "No sessions scheduled";
+
+    return `${completed}/${total} completed`;
+  };
+
+  const getSessionTypeBadge = (sessionType: string) => {
+    const typeConfig = {
+      "1-on-1": {
+        color: "bg-purple-100 text-purple-800",
+        label: "1-on-1 Session",
+      },
+      group: { color: "bg-orange-100 text-orange-800", label: "Group Session" },
+      workshop: { color: "bg-indigo-100 text-indigo-800", label: "Workshop" },
+      seminar: { color: "bg-teal-100 text-teal-800", label: "Seminar" },
+    };
+
+    const config = typeConfig[sessionType as keyof typeof typeConfig] || {
+      color: "bg-slate-100 text-slate-800",
+      label: sessionType || "N/A",
+    };
+
+    return (
+      <span
+        className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${config.color} border border-current/20`}
+      >
+        {config.label}
+      </span>
+    );
   };
 
   const calculateTimeUntil = (dateString: string) => {
@@ -375,7 +438,21 @@ export default function SingleClassroomPage() {
                       </CardTitle>
                       <CardDescription className="text-base">
                         {classroom.productType} • ID: {classroom._id.slice(-8)}
+                        {classroom.bookingId && (
+                          <span className="ml-2">
+                            • Booking: {String(classroom.bookingId).slice(-8)}
+                          </span>
+                        )}
                       </CardDescription>
+                    </div>
+                    <div className="flex gap-2">
+                      {classroom.sessionType &&
+                        getSessionTypeBadge(classroom.sessionType)}
+                      {classroom.participantType && (
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                          {classroom.participantType}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -499,6 +576,40 @@ export default function SingleClassroomPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Session Progress */}
+                {(classroom.sessionsCompleted !== undefined ||
+                  classroom.sessionsRemaining !== undefined) && (
+                  <div className="p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl border border-indigo-200">
+                    <div className="flex items-center gap-3 mb-3">
+                      <TrendingUp className="w-5 h-5 text-indigo-600" />
+                      <span className="font-semibold text-indigo-800">
+                        Session Progress
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-indigo-700">
+                          {classroom.sessionsCompleted || 0}
+                        </div>
+                        <div className="text-xs text-indigo-600">Completed</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-indigo-700">
+                          {classroom.sessionsRemaining || 0}
+                        </div>
+                        <div className="text-xs text-indigo-600">Remaining</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-indigo-700">
+                          {(classroom.sessionsCompleted || 0) +
+                            (classroom.sessionsRemaining || 0)}
+                        </div>
+                        <div className="text-xs text-indigo-600">Total</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -539,6 +650,53 @@ export default function SingleClassroomPage() {
                   </CardContent>
                 </Card>
               )}
+
+            {/* Participants Information */}
+            {classroom.participants && classroom.participants.length > 0 && (
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <Users className="w-5 h-5 text-blue-600" />
+                    Participants ({classroom.participants.length})
+                  </CardTitle>
+                  <CardDescription>
+                    {getParticipantInfo(classroom).type} training session
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {classroom.participants.map((participant, index) => (
+                      <div
+                        key={participant._id}
+                        className="p-4 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl border border-slate-200 hover:border-blue-300 transition-all duration-300"
+                      >
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <User className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-slate-900">
+                              {participant.fullName}
+                            </p>
+                            <p className="text-sm text-slate-500">
+                              {participant.email}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {participant.participantType}
+                          </span>
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            {participant.platformRole}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Instructor Notes */}
             {classroom.instructorNotes && (
@@ -600,6 +758,58 @@ export default function SingleClassroomPage() {
                         </div>
                       </div>
                     </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="p-4 bg-slate-50 rounded-xl">
+                        <div className="text-sm font-medium text-slate-600 mb-1">
+                          Session Type
+                        </div>
+                        <div className="text-sm text-slate-800">
+                          {classroom.sessionType || "Not specified"}
+                        </div>
+                      </div>
+                      <div className="p-4 bg-slate-50 rounded-xl">
+                        <div className="text-sm font-medium text-slate-600 mb-1">
+                          Participant Type
+                        </div>
+                        <div className="text-sm text-slate-800">
+                          {classroom.participantType || "Not specified"}
+                        </div>
+                      </div>
+                    </div>
+
+                    {(classroom.sessionsCompleted !== undefined ||
+                      classroom.sessionsRemaining !== undefined) && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="p-4 bg-slate-50 rounded-xl">
+                          <div className="text-sm font-medium text-slate-600 mb-1">
+                            Sessions Completed
+                          </div>
+                          <div className="text-sm text-slate-800">
+                            {classroom.sessionsCompleted || 0}
+                          </div>
+                        </div>
+                        <div className="p-4 bg-slate-50 rounded-xl">
+                          <div className="text-sm font-medium text-slate-600 mb-1">
+                            Sessions Remaining
+                          </div>
+                          <div className="text-sm text-slate-800">
+                            {classroom.sessionsRemaining || 0}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {classroom.createdBy && (
+                      <div className="p-4 bg-slate-50 rounded-xl">
+                        <div className="text-sm font-medium text-slate-600 mb-1">
+                          Created By
+                        </div>
+                        <div className="font-mono text-sm text-slate-800">
+                          {String(classroom.createdBy).slice(-8)}
+                        </div>
+                      </div>
+                    )}
 
                     {classroom.internalNotes && (
                       <div className="p-4 bg-slate-50 rounded-xl">
@@ -695,16 +905,19 @@ export default function SingleClassroomPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Completion</span>
                     <span className="font-medium text-gray-900">
-                      {classroom.status === "completed"
-                        ? "100%"
-                        : classroom.status === "active"
-                        ? "50%"
-                        : "0%"}
+                      {getSessionProgress(classroom)}
                     </span>
                   </div>
                   <Progress
                     value={
-                      classroom.status === "completed"
+                      classroom.sessionsCompleted && classroom.sessionsRemaining
+                        ? Math.round(
+                            (classroom.sessionsCompleted /
+                              (classroom.sessionsCompleted +
+                                classroom.sessionsRemaining)) *
+                              100
+                          )
+                        : classroom.status === "completed"
                         ? 100
                         : classroom.status === "active"
                         ? 50
@@ -723,11 +936,29 @@ export default function SingleClassroomPage() {
                   </div>
                   <div className="p-3 bg-green-50 rounded-xl">
                     <div className="text-lg font-bold text-green-600">
-                      {classroom.numberOfExpectedParticipants || "∞"}
+                      {getParticipantInfo(classroom).count}
                     </div>
                     <div className="text-xs text-green-600">Participants</div>
                   </div>
                 </div>
+
+                {(classroom.sessionsCompleted !== undefined ||
+                  classroom.sessionsRemaining !== undefined) && (
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div className="p-3 bg-purple-50 rounded-xl">
+                      <div className="text-lg font-bold text-purple-600">
+                        {classroom.sessionsCompleted || 0}
+                      </div>
+                      <div className="text-xs text-purple-600">Completed</div>
+                    </div>
+                    <div className="p-3 bg-orange-50 rounded-xl">
+                      <div className="text-lg font-bold text-orange-600">
+                        {classroom.sessionsRemaining || 0}
+                      </div>
+                      <div className="text-xs text-orange-600">Remaining</div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

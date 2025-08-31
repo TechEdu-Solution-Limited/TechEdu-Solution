@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useCart } from "@/contexts/CartContext";
 import { useRole } from "@/contexts/RoleContext";
+import { useProfileData } from "@/hooks/useProfileData";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +45,13 @@ export default function CartPage() {
     setIsAuthenticated,
     setUserRole,
   } = useRole();
+  const {
+    getProfileId,
+    getUserId,
+    profile,
+    loading: profileLoading,
+    fetchProfile,
+  } = useProfileData();
   const isStudent = userData?.role === "student";
   const searchParams = useSearchParams();
   const success = searchParams.get("success");
@@ -75,7 +83,7 @@ export default function CartPage() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-GB", {
       style: "currency",
-      currency: "GBP",
+      currency: "usd",
     }).format(amount);
   };
 
@@ -127,6 +135,22 @@ export default function CartPage() {
         return;
       }
 
+      if (profileLoading) {
+        toast.info("Loading profile data...");
+        return;
+      }
+
+      if (!profile && fetchProfile) {
+        try {
+          await fetchProfile();
+        } catch (profileError) {
+          console.warn(
+            "Failed to fetch profile, continuing with fallback:",
+            profileError
+          );
+        }
+      }
+
       const item = cartItems.find((ci) => ci.id === productId);
       if (!item) {
         toast.error("Item not found in cart");
@@ -142,11 +166,43 @@ export default function CartPage() {
         throw new Error("Authentication required. Please log in again.");
       }
 
+      // Get user and profile IDs with multiple fallback strategies
+      const userId =
+        getUserId() ||
+        (userData as any)?.id ||
+        (userData as any)?._id ||
+        (userData as any)?.userId;
+
+      // Get profile ID from the profile context
+      let profileId: string | null = null;
+
+      if (profile?.profile?._id) {
+        profileId = profile.profile._id;
+      } else {
+        // Fallback to getProfileId() if profile context doesn't have it
+        profileId = getProfileId();
+      }
+
+      if (!userId) {
+        throw new Error("User ID not found. Please refresh your profile.");
+      }
+
+      if (!profileId) {
+        throw new Error("Profile ID not found. Please refresh your profile.");
+      }
+
+      // Ensure profileId is a string at this point
+      if (!profileId) {
+        throw new Error(
+          "Unable to determine profile ID. Please complete your profile setup."
+        );
+      }
+
       const amountCents = Math.round((item.price || 0) * 100);
 
       const paymentData: CreatePaymentIntentRequest = {
         amount: amountCents,
-        currency: "gbp",
+        currency: "usd",
         productId: item.id,
         productType: (item.productType ||
           "Training & Certification") as CreatePaymentIntentRequest["productType"],
@@ -155,7 +211,9 @@ export default function CartPage() {
           "student") as CreatePaymentIntentRequest["platformRole"],
         isSession: item.hasSession || false,
         isClassroom: item.hasClassroom || false,
-        profileId: (userData as any)?.id || (userData as any)?._id,
+        userId,
+        profileId: profileId as string,
+        bookingId: item.bookingDetails?.bookingId || "",
       };
 
       const response = await PaymentService.createPaymentIntent(
@@ -175,13 +233,17 @@ export default function CartPage() {
 
       setPaymentClientSecret(secret);
       setPaymentAmountCents(amountCents);
-      setPaymentCurrency(paymentData.currency || "gbp");
+      setPaymentCurrency(paymentData.currency || "usd");
       setShowPaymentForm(true);
       toast.success("Secure payment initialized");
     } catch (err: any) {
       console.error("Init payment error:", err);
-      setPaymentError(err?.message || "Failed to start payment");
-      toast.error(err?.message || "Failed to start payment");
+
+      // Provide error message
+      let errorMessage = err?.message || "Failed to start payment";
+
+      setPaymentError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsInitializingPayment(false);
     }
@@ -610,15 +672,15 @@ export default function CartPage() {
         )}
 
         {/* Role-based access warning in order summary */}
-        {isAuthenticated && (
+        {/* {isAuthenticated && (
           <div className="bg-blue-50 border border-blue-200 rounded-[10px] p-3 md:p-4 mb-4">
             <div className="flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-blue-600" />
-              <div>
+              <div className="flex-1">
                 <h4 className="font-medium text-blue-800 text-sm md:text-base">
                   Role-Based Access Control
                 </h4>
-                <p className="text-xs md:text-sm text-blue-700">
+                <p className="text-xs md:text-sm text-blue-700 mb-2">
                   • Students: Academic Support Services
                   <br />
                   • Tech Professionals: Training & Certification
@@ -630,11 +692,11 @@ export default function CartPage() {
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
           {/* Cart Items */}
-          <div className="lg:col-span-2 order-2 lg:order-1">
+          <div className="lg:col-span-3">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
@@ -651,132 +713,144 @@ export default function CartPage() {
                       d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01"
                     />
                   </svg>
-                  Course Items ({cartCount})
+                  Your Cart ({cartCount})
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 md:space-y-4">
+              <CardContent className="space-y-4">
                 {cartItems.map((item) => (
                   <div
                     key={item.id}
-                    className="flex flex-col sm:flex-row items-start gap-3 md:gap-4 p-3 md:p-4 border rounded-[10px] hover:bg-gray-50 transition-colors"
+                    className="flex flex-col lg:flex-row items-start gap-4 p-6 border border-gray-200 rounded-xl hover:shadow-md transition-all duration-200 bg-white"
                   >
-                    <div className="relative w-full sm:w-20 h-32 sm:h-20 flex-shrink-0">
+                    <div className="relative w-full lg:w-32 h-40 lg:h-32 flex-shrink-0">
                       <Image
                         src={item.image}
                         alt={item.title}
                         fill
-                        className="rounded-[10px] object-cover"
+                        className="rounded-lg object-cover"
                       />
+                      <div className="absolute top-2 right-2">
+                        <Badge
+                          variant="secondary"
+                          className="bg-white/90 text-gray-700"
+                        >
+                          {item.category}
+                        </Badge>
+                      </div>
                     </div>
 
-                    <div className="flex-1 min-w-0 w-full">
-                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-0">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 text-base md:text-lg">
-                            {item.title}
-                          </h3>
-                          <p className="text-xs md:text-sm text-gray-600 mb-2 line-clamp-2">
-                            {item.description}
-                          </p>
+                    <div className="flex-1 min-w-0 w-full space-y-4">
+                      <div className="space-y-2">
+                        <h3 className="font-bold text-xl text-gray-900 line-clamp-2">
+                          {item.title}
+                        </h3>
+                        <p className="text-gray-600 line-clamp-2">
+                          {item.description}
+                        </p>
+                      </div>
 
-                          <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm text-gray-500 mb-2">
-                            <div className="flex items-center gap-1">
-                              <Clock size={14} />
-                              <span>{item.duration}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Award size={14} />
-                              <span>
-                                {item.certificate
-                                  ? "Certificate"
-                                  : "No Certificate"}
-                              </span>
-                            </div>
-                          </div>
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
+                        <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full">
+                          <Clock size={16} className="text-blue-500" />
+                          <span>{item.duration}</span>
+                        </div>
+                        <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full">
+                          <Award size={16} className="text-green-500" />
+                          <span>
+                            {item.certificate
+                              ? "Certificate Included"
+                              : "No Certificate"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full">
+                          <span className="text-xs font-medium px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                            {item.level}
+                          </span>
+                        </div>
+                      </div>
 
-                          <div className="flex flex-wrap items-center gap-1 md:gap-2">
-                            <Badge variant="outline" className="text-xs">
-                              {item.category}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                              {item.level}
-                            </Badge>
-                            <Badge
-                              variant={
-                                canPurchaseProductType(
-                                  item.productType || "Training & Certification"
-                                )
-                                  ? "default"
-                                  : "destructive"
-                              }
-                              className="text-xs"
-                            >
-                              {item.productType || "Training & Certification"}
-                            </Badge>
-                          </div>
-
-                          {/* Role restriction warning */}
-                          {isAuthenticated &&
-                            !canPurchaseProductType(
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={
+                            canPurchaseProductType(
                               item.productType || "Training & Certification"
-                            ) && (
-                              <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-                                <AlertCircle className="w-3 h-3 inline mr-1" />
+                            )
+                              ? "default"
+                              : "destructive"
+                          }
+                          className="text-sm"
+                        >
+                          {item.productType || "Training & Certification"}
+                        </Badge>
+                      </div>
+
+                      {/* Role restriction warning */}
+                      {isAuthenticated &&
+                        !canPurchaseProductType(
+                          item.productType || "Training & Certification"
+                        ) && (
+                          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                            <div className="flex items-center gap-2">
+                              <AlertCircle className="w-4 h-4" />
+                              <span>
                                 {getRoleRestrictionMessage(
                                   item.productType || "Training & Certification"
                                 )}
-                              </div>
-                            )}
-                        </div>
-
-                        <div className="text-right sm:ml-4 w-full sm:w-auto">
-                          <p className="font-bold text-lg md:text-xl text-[#011F72] mb-2">
-                            {formatCurrency(item.price || 0)}
-                          </p>
-                          <div className="flex flex-col gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                handleRemoveItem(item.id, item.title)
-                              }
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 self-end"
-                            >
-                              <Trash2 size={16} />
-                            </Button>
-                            {/* Single-product checkout button */}
-                            <Button
-                              onClick={() => handleProductCheckout(item.id)}
-                              className="w-full bg-[#0D1140] hover:bg-blue-700 text-white text-sm md:text-base py-2 md:py-3"
-                              disabled={
-                                isInitializingPayment ||
-                                !canPurchaseProductType(
-                                  item.productType || "Training & Certification"
-                                )
-                              }
-                            >
-                              {isInitializingPayment &&
-                              selectedCheckoutItemId === item.id ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Checking Out...
-                                </>
-                              ) : (
-                                <>
-                                  <CreditCard size={16} className="mr-2" />
-                                  {!isAuthenticated
-                                    ? "Login to Checkout"
-                                    : !canPurchaseProductType(
-                                        item.productType ||
-                                          "Training & Certification"
-                                      )
-                                    ? "Role Restricted"
-                                    : "Checkout This Course"}
-                                </>
-                              )}
-                            </Button>
+                              </span>
+                            </div>
                           </div>
-                        </div>
+                        )}
+                    </div>
+
+                    <div className="w-full lg:w-auto lg:text-right space-y-4">
+                      <div className="text-center lg:text-right">
+                        <p className="text-3xl font-bold text-[#011F72] mb-1">
+                          {formatCurrency(item.price || 0)}
+                        </p>
+                        <p className="text-sm text-gray-500">per course</p>
+                      </div>
+
+                      <div className="flex flex-col gap-3">
+                        <Button
+                          onClick={() => handleProductCheckout(item.id)}
+                          className="w-full lg:w-48 bg-[#0D1140] hover:bg-blue-700 text-white text-base py-3 px-6 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                          disabled={
+                            isInitializingPayment ||
+                            !canPurchaseProductType(
+                              item.productType || "Training & Certification"
+                            )
+                          }
+                        >
+                          {isInitializingPayment &&
+                          selectedCheckoutItemId === item.id ? (
+                            <>
+                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <CreditCard size={20} className="mr-2" />
+                              {!isAuthenticated
+                                ? "Login to Purchase"
+                                : !canPurchaseProductType(
+                                    item.productType ||
+                                      "Training & Certification"
+                                  )
+                                ? "Role Restricted"
+                                : "Purchase Now"}
+                            </>
+                          )}
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveItem(item.id, item.title)}
+                          className="w-full lg:w-48 text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200"
+                        >
+                          <Trash2 size={16} className="mr-2" />
+                          Remove
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -784,226 +858,152 @@ export default function CartPage() {
               </CardContent>
             </Card>
           </div>
+        </div>
 
-          {/* Order Summary (hidden when inline payment is active) */}
-          {!showPaymentForm && (
-            <div className="lg:col-span-1 order-1 lg:order-2">
-              <Card className="sticky top-8 mb-6 lg:mb-0">
-                <CardHeader>
-                  <CardTitle className="text-lg md:text-xl">
-                    Order Summary
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 md:space-y-4">
-                  {/* Authentication Status */}
-                  {!isAuthenticated && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-[10px] p-3 md:p-4 mb-4">
-                      <div className="flex items-start gap-3">
-                        <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                        <div className="w-full">
-                          <h4 className="font-medium text-blue-800 mb-2 text-sm md:text-base">
-                            {isLoginMode
-                              ? "Sign In to Complete Purchase"
-                              : "Quick Sign Up to Complete Purchase"}
-                          </h4>
-                          <p className="text-xs md:text-sm text-blue-700 mb-4">
-                            {isLoginMode
-                              ? "Sign in to your account to access your courses and track your progress."
-                              : "Create an account to access your courses and track your progress."}
-                          </p>
-
-                          {/* Inline Auth Form */}
-                          <div className="space-y-2 md:space-y-3">
-                            <div className="flex flex-col gap-2">
-                              <Input
-                                type="email"
-                                placeholder="Email address"
-                                className="flex-1 text-sm md:text-base"
-                                value={authEmail}
-                                onChange={(e) => setAuthEmail(e.target.value)}
-                              />
-                              <Input
-                                type="password"
-                                placeholder="Password"
-                                className="flex-1 text-sm md:text-base"
-                                value={authPassword}
-                                onChange={(e) =>
-                                  setAuthPassword(e.target.value)
-                                }
-                              />
-                            </div>
-
-                            <div className="flex flex-col gap-2">
-                              <Button
-                                className="flex-1 bg-[#0D1140] hover:bg-blue-700 text-white text-sm md:text-base py-2 md:py-3"
-                                onClick={
-                                  isLoginMode
-                                    ? handleQuickLogin
-                                    : handleQuickSignUp
-                                }
-                                disabled={isAuthLoading}
-                              >
-                                {isAuthLoading ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    {isLoginMode
-                                      ? "Signing In..."
-                                      : "Creating Account..."}
-                                  </>
-                                ) : isLoginMode ? (
-                                  "Sign In"
-                                ) : (
-                                  "Create Account"
-                                )}
-                              </Button>
-
-                              <Button
-                                variant="outline"
-                                className="flex-1 border-gray-300 hover:bg-gray-50 text-sm md:text-base py-2 md:py-3"
-                                onClick={handleGoogleSignIn}
-                                disabled={isAuthLoading}
-                              >
-                                <svg
-                                  className="w-4 h-4 mr-2"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    fill="#4285F4"
-                                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                                  />
-                                  <path
-                                    fill="#34A853"
-                                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                                  />
-                                  <path
-                                    fill="#FBBC05"
-                                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                                  />
-                                  <path
-                                    fill="#EA4335"
-                                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                                  />
-                                </svg>
-                                Google
-                              </Button>
-                            </div>
-
-                            <div className="text-center">
-                              <span className="text-xs md:text-sm text-blue-600">
-                                {isLoginMode
-                                  ? "Don't have an account? "
-                                  : "Already have an account? "}
-                              </span>
-                              <button
-                                onClick={() => {
-                                  setIsLoginMode(!isLoginMode);
-                                  setAuthError("");
-                                  setAuthEmail("");
-                                  setAuthPassword("");
-                                }}
-                                className="text-[#011F72] hover:underline text-xs md:text-sm font-medium"
-                              >
-                                {isLoginMode
-                                  ? "Sign up instead"
-                                  : "Sign in instead"}
-                              </button>
-                            </div>
-
-                            {authError && (
-                              <div className="text-red-600 text-xs md:text-sm text-center bg-red-50 p-2 rounded">
-                                {authError}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {isAuthenticated && (
-                    <div className="bg-green-50 border border-green-200 rounded-[10px] p-3 md:p-4 mb-4">
-                      <div className="flex items-center gap-3">
-                        <User className="w-5 h-5 text-green-600" />
-                        <div>
-                          <h4 className="font-medium text-green-800 text-sm md:text-base">
-                            Welcome back, {userData.fullName || userData.email}!
-                          </h4>
-                          <p className="text-xs md:text-sm text-green-700">
-                            You're all set to complete your purchase.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="space-y-2 md:space-y-3">
-                    <div className="flex justify-between text-xs md:text-sm">
-                      <span>Subtotal ({cartCount} items)</span>
-                      <span>{formatCurrency(cartTotal)}</span>
-                    </div>
-                    <div className="flex justify-between text-xs md:text-sm">
-                      <span>Tax</span>
-                      <span>{formatCurrency(cartTotal * 0.2)}</span>
-                    </div>
-                    <div className="flex justify-between text-xs md:text-sm">
-                      <span>Processing Fee</span>
-                      <span>{formatCurrency(2.99)}</span>
-                    </div>
-                    <div className="border-t pt-2">
-                      <div className="flex justify-between font-bold text-base md:text-lg">
-                        <span>Total</span>
-                        <span>
-                          {formatCurrency(cartTotal + cartTotal * 0.2 + 2.99)}
-                        </span>
-                      </div>
-                    </div>
+        {/* Authentication Section - Full Width */}
+        {!isAuthenticated && (
+          <div className="mt-8">
+            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl text-blue-900">
+                  {isLoginMode
+                    ? "Sign In to Complete Your Purchase"
+                    : "Create Account to Get Started"}
+                </CardTitle>
+                <p className="text-blue-700">
+                  {isLoginMode
+                    ? "Access your courses and track your progress"
+                    : "Join thousands of learners and start your journey"}
+                </p>
+              </CardHeader>
+              <CardContent className="max-w-md mx-auto">
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    <Input
+                      type="email"
+                      placeholder="Email address"
+                      className="text-base py-3"
+                      value={authEmail}
+                      onChange={(e) => setAuthEmail(e.target.value)}
+                    />
+                    <Input
+                      type="password"
+                      placeholder="Password"
+                      className="text-base py-3"
+                      value={authPassword}
+                      onChange={(e) => setAuthPassword(e.target.value)}
+                    />
                   </div>
 
-                  <div className="space-y-2 md:space-y-3">
-                    {/* Remove or disable the main multi-item checkout button */}
-                    {/* <Button
-                    onClick={handleCheckout}
-                    disabled={!isAuthenticated}
-                    className={`w-full py-4 rounded-[10px] font-semibold ${
-                      isAuthenticated
-                        ? "bg-[#0D1140] hover:bg-blue-700 text-white"
-                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    }`}
-                  >
-                    <CreditCard size={18} className="mr-2" />
-                    {isAuthenticated ? "Proceed to Checkout" : "Checkout"}
-                  </Button> */}
-
-                    <div className="flex items-center gap-2 text-xs text-gray-500 justify-center md:justify-start">
-                      <Lock size={14} />
-                      <span>Secure checkout powered by Stripe</span>
-                    </div>
-                  </div>
-
-                  <div className="border-t pt-3 md:pt-4">
-                    <h4 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">
-                      What's included:
-                    </h4>
-                    <ul className="text-xs md:text-sm text-gray-600 space-y-1">
-                      <li>• Lifetime access to course content</li>
-                      <li>• Certificate upon completion</li>
-                      <li>• 30-day money-back guarantee</li>
-                      <li>• 24/7 customer support</li>
-                    </ul>
-                  </div>
-
-                  <div className="text-center pt-2">
-                    <Link
-                      href="/training/catalog"
-                      className="text-[#011F72] hover:underline text-xs md:text-sm"
+                  <div className="space-y-3">
+                    <Button
+                      className="w-full bg-[#0D1140] hover:bg-blue-700 text-white text-base py-3 font-semibold"
+                      onClick={
+                        isLoginMode ? handleQuickLogin : handleQuickSignUp
+                      }
+                      disabled={isAuthLoading}
                     >
-                      Continue Shopping
-                    </Link>
+                      {isAuthLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          {isLoginMode
+                            ? "Signing In..."
+                            : "Creating Account..."}
+                        </>
+                      ) : isLoginMode ? (
+                        "Sign In"
+                      ) : (
+                        "Create Account"
+                      )}
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="w-full border-gray-300 hover:bg-white text-base py-3 font-semibold"
+                      onClick={handleGoogleSignIn}
+                      disabled={isAuthLoading}
+                    >
+                      <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                        <path
+                          fill="#4285F4"
+                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                        />
+                      </svg>
+                      Continue with Google
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+
+                  <div className="text-center">
+                    <span className="text-sm text-blue-700">
+                      {isLoginMode
+                        ? "Don't have an account? "
+                        : "Already have an account? "}
+                    </span>
+                    <button
+                      onClick={() => {
+                        setIsLoginMode(!isLoginMode);
+                        setAuthError("");
+                        setAuthEmail("");
+                        setAuthPassword("");
+                      }}
+                      className="text-[#011F72] hover:underline font-semibold"
+                    >
+                      {isLoginMode ? "Sign up instead" : "Sign in instead"}
+                    </button>
+                  </div>
+
+                  {authError && (
+                    <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-lg border border-red-200">
+                      {authError}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Welcome Message for Authenticated Users */}
+        {isAuthenticated && (
+          <div className="mt-8">
+            <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+              <CardContent className="text-center py-6">
+                <div className="flex items-center justify-center gap-3 mb-3">
+                  <User className="w-8 h-8 text-green-600" />
+                  <h3 className="text-xl font-semibold text-green-800">
+                    Welcome back, {userData.fullName || userData.email}!
+                  </h3>
+                </div>
+                <p className="text-green-700">
+                  You're all set to complete your purchase. Click "Purchase Now"
+                  on any course to proceed.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Continue Shopping Section */}
+        <div className="mt-8 text-center">
+          <Link
+            href="/training/catalog"
+            className="inline-flex items-center gap-2 text-[#011F72] hover:text-blue-700 font-semibold text-lg hover:underline transition-colors"
+          >
+            <ArrowLeft size={20} />
+            Continue Shopping
+          </Link>
         </div>
 
         {/* Inline Stripe Payment Form */}
@@ -1021,7 +1021,12 @@ export default function CartPage() {
               <CardContent>
                 {paymentError && (
                   <div className="mb-4 text-sm text-red-600 bg-red-50 p-2 rounded">
-                    {paymentError}
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="mb-2">{paymentError}</p>
+                      </div>
+                    </div>
                   </div>
                 )}
                 <StripePaymentForm

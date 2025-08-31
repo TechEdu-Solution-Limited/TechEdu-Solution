@@ -151,22 +151,26 @@ export default function InstructorAttendancePage() {
     }
 
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-        sortBy,
-        sortOrder,
-        ...(filterStatus !== "all" && { status: filterStatus }),
-        ...(filterProductType !== "all" && { productType: filterProductType }),
-        ...(filterInstructor !== "all" && { instructor: filterInstructor }),
-        ...(dateRangeStart && { startDate: dateRangeStart }),
-        ...(dateRangeEnd && { endDate: dateRangeEnd }),
-        ...(searchTerm && { search: searchTerm }),
-      });
+      const params = new URLSearchParams();
 
-      const endpoint = `/api/attendance/my-attendances?${params}`;
+      // Only add parameters if they have meaningful values
+      if (page > 1) params.append("page", page.toString());
+      if (limit !== 10) params.append("limit", limit.toString());
+      if (sortBy !== "scheduleAt") params.append("sortBy", sortBy);
+      if (sortOrder !== "desc") params.append("sortOrder", sortOrder);
+      if (filterStatus !== "all") params.append("status", filterStatus);
+      if (filterProductType !== "all")
+        params.append("productType", filterProductType);
+      if (filterInstructor !== "all")
+        params.append("instructor", filterInstructor);
+      if (dateRangeStart) params.append("startDate", dateRangeStart);
+      if (dateRangeEnd) params.append("endDate", dateRangeEnd);
+      if (searchTerm.trim()) params.append("search", searchTerm.trim());
+
+      const endpoint = params.toString()
+        ? `/api/attendance/my-attendances?${params}`
+        : `/api/attendance/my-attendances`;
       const response = await getApiRequest(endpoint, token);
-      console.log("Attendance API response:", response);
 
       if (response?.data?.success) {
         setAttendances(response.data.data.attendances || []);
@@ -182,10 +186,29 @@ export default function InstructorAttendancePage() {
         ] as string[];
         setInstructors(uniqueInstructors);
       } else {
-        setError(response?.data?.message || "Failed to load attendances");
+        // Handle specific error cases
+        if (
+          response?.data?.error?.code === "NOT_FOUND" &&
+          response?.data?.error?.details?.includes("User not found")
+        ) {
+          setError("Authentication failed. Please log in again.");
+          // Optionally redirect to login page or clear cookies
+          // router.push('/login');
+        } else {
+          setError(
+            response?.data?.message ||
+              response?.data?.error?.message ||
+              "Failed to load attendances"
+          );
+        }
       }
     } catch (err: any) {
-      setError(err.message || "Failed to load attendances");
+      // Handle network or other errors
+      if (err.response?.data?.error?.code === "NOT_FOUND") {
+        setError("Authentication failed. Please log in again.");
+      } else {
+        setError(err.message || "Failed to load attendances");
+      }
     } finally {
       setLoading(false);
     }
@@ -273,6 +296,18 @@ export default function InstructorAttendancePage() {
   };
 
   const handleRefresh = () => {
+    fetchAttendances();
+  };
+
+  const handleReauthenticate = () => {
+    // Clear any stored tokens and redirect to login
+    // This would typically clear cookies/localStorage
+    window.location.href = "/login";
+  };
+
+  const handleRetry = () => {
+    // Reset error state and try fetching again
+    setError(null);
     fetchAttendances();
   };
 
@@ -510,7 +545,29 @@ export default function InstructorAttendancePage() {
           ) : error ? (
             <div className="text-center py-12">
               <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <p className="text-red-600 text-lg">{error}</p>
+              <p className="text-red-600 text-lg mb-4">{error}</p>
+              {error.includes("Authentication failed") && (
+                <div className="space-y-3">
+                  <p className="text-slate-600 text-sm">
+                    Your session may have expired. Please try logging in again.
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      onClick={handleRetry}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2 inline" />
+                      Retry
+                    </button>
+                    <button
+                      onClick={handleReauthenticate}
+                      className="px-4 py-2 bg-slate-600 text-white rounded-xl hover:bg-slate-700 transition-colors"
+                    >
+                      Login Again
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : attendances.length === 0 ? (
             <div className="text-center py-12">

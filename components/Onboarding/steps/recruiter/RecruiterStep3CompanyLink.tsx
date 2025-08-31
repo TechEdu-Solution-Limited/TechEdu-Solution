@@ -70,12 +70,10 @@ export default function RecruiterStep3CompanyLink({
   useEffect(() => {
     getApiRequest<any>("/api/companies", token, { limit: 1000 })
       .then((data) => {
-        console.log("Raw API response:", data);
         const companies = (data?.data?.data?.companies || []).map((c: any) => ({
           ...c,
           id: c._id,
         }));
-        console.log("Fetched companies:", companies);
         setAllCompanies(companies);
       })
       .catch(() => {
@@ -116,9 +114,6 @@ export default function RecruiterStep3CompanyLink({
     setFieldValue("rcNumber", "");
     setFieldValue("companyId", "");
   };
-
-  // Debug: log companyId before render
-  console.log("companyId input value:", form.companyId);
 
   return (
     <div className="space-y-6 relative">

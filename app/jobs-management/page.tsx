@@ -90,14 +90,12 @@ const useJobs = () => {
       setError(null);
 
       const token = getTokenFromCookies();
-      console.log("🔑 Token check:", token ? "Token found" : "No token");
 
       if (!token) {
         setError("Authentication required. Please log in.");
         return;
       }
 
-      console.log("📡 Making API request to:", "/api/ats/job-posts");
       const response = await getApiRequest<{
         success: boolean;
         message: string;
@@ -105,18 +103,9 @@ const useJobs = () => {
         meta?: any;
       }>("/api/ats/job-posts", token);
 
-      console.log("📥 Full API Response:", {
-        status: response.status,
-        message: response.message,
-        data: response.data,
-        responseObject: response,
-      });
-
       if (response.status >= 200 && response.status < 300) {
         // Handle nested data structure: response.data.data contains the actual jobs array
         const jobsData = response.data?.data || response.data || [];
-        console.log("✅ Success! Jobs loaded:", jobsData.length);
-        console.log("📋 Jobs data structure:", jobsData);
         setJobs(jobsData);
       } else {
         console.error("❌ API Error:", response.message);
@@ -137,8 +126,6 @@ const useJobs = () => {
   const deleteJob = async (jobId: string) => {
     try {
       const token = getTokenFromCookies();
-      console.log("🗑️ Deleting job:", jobId);
-      console.log("🔑 Token for delete:", token ? "Present" : "Missing");
 
       if (!token) {
         return { success: false, message: "Authentication required" };
@@ -149,27 +136,13 @@ const useJobs = () => {
         token
       );
 
-      console.log("🗑️ Delete Response:", {
-        status: response.status,
-        message: response.message,
-        data: response.data,
-        fullResponse: response,
-      });
-
       if (response.status >= 200 && response.status < 300) {
-        console.log("✅ Job deleted successfully");
         setJobs(jobs.filter((job) => job._id !== jobId));
         return { success: true };
       } else {
-        console.error("❌ Delete failed:", response.message);
         return { success: false, message: response.message };
       }
     } catch (error: any) {
-      console.error("💥 Delete error:", {
-        message: error.message,
-        status: error.status,
-        fullError: error,
-      });
       return {
         success: false,
         message: error.message || "An error occurred while deleting the job",
@@ -383,10 +356,7 @@ export default function JobsManagementPage() {
                 <Button
                   onClick={() => {
                     const token = getTokenFromCookies();
-                    console.log(
-                      "🔍 Manual Auth Check - Token:",
-                      token ? "Present" : "Missing"
-                    );
+
                     if (!token) {
                       toast.error(
                         "No authentication token found. Please log in."

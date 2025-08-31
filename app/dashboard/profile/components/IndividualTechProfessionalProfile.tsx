@@ -23,7 +23,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
-import { useProfile } from "@/contexts/ProfileContext";
+import { useProfileData } from "@/hooks/useProfileData";
 
 interface IndividualTechProfessionalProfileProps {
   userProfile: any;
@@ -98,7 +98,7 @@ export default function IndividualTechProfessionalProfile({
   const [skippedSteps, setSkippedSteps] = useState<Set<number>>(new Set());
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const { getOnboardingProgress, completeStep } = useOnboardingStatus(token);
-  const { profile: contextProfile, updateProfile } = useProfile();
+  const { profile: contextProfile, updateProfile } = useProfileData();
 
   useEffect(() => {
     const fetchOnboardingProgress = async () => {

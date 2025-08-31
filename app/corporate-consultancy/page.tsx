@@ -265,7 +265,7 @@ export default function CorporateConsultancy() {
     <>
       <header className="relative w-full px-4 pt-20 md:px-16 min-h-[100vh]">
         {/* Background Layer */}
-        <div className="absolute inset-0 h-full xl:h-[83vh] z-0 bg-gradient-to-b from-[#011F72] to-[#ffffff] xl:bg-none xl:bg-[#0D1140]"></div>
+        <div className="absolute inset-0 h-full xl:h-[84vh] z-0 bg-gradient-to-b from-[#011F72] to-[#ffffff] xl:bg-none xl:bg-[#0D1140]"></div>
         {/* Foreground Content */}
         <div className="relative grid grid-cols-1 xl:grid-cols-2 gap-8 md:gap-24 z-10 pt-16">
           {/* Left: Hero Content */}

@@ -24,20 +24,28 @@ interface Session {
   bookingId: string;
   productId: string;
   productType: string;
-  bookingPurpose?: string;
-  instructorId?: string;
+  bookingPurpose: string;
+  instructorId: string;
   scheduleAt: string;
   endAt?: string;
-  minutesPerSession?: number;
-  numberOfExpectedParticipants?: number;
+  minutesPerSession: number;
+  numberOfExpectedParticipants: number;
   meetingLink?: string;
-  sessionType?: string;
-  status: string;
+  sessionType: "group" | "1-on-1";
+  status: "upcoming" | "confirmed" | "completed" | "cancelled";
+  avgRating?: number;
   userNotes?: string;
   internalNotes?: string;
-  avgRating?: number;
+  participants: Array<{
+    participantType: string;
+    platformRole: string;
+    profileId?: string;
+    email: string;
+    fullName: string;
+  }>;
+  createdBy: string;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt: string;
 }
 
 export default function StudentSessionsPage() {
@@ -67,7 +75,6 @@ export default function StudentSessionsPage() {
       try {
         const endpoint = "/api/sessions/student/my-sessions";
         const response = await getApiRequest(endpoint, token);
-        console.log("Student Sessions API response:", response);
 
         if (response?.data?.success) {
           setSessions(response.data.data);

@@ -70,9 +70,9 @@ const createHeaders = (
 ): Record<string, string> => {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    ...(token && { Authorization: `Bearer ${token}` }),
     ...extraHeaders,
   };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
   return headers;
 };
 
@@ -259,14 +259,15 @@ export const resetPassword = async (
  * Get single user-me
  */
 export const getUserMe = async (token: string): Promise<ApiResponse<any>> => {
-  return getApiRequest("/api/user/me", token);
+  return getApiRequest("/api/users/me", token);
 };
 
 /**
  * Logout user (with metadata)
  */
 export const logoutUser = async (): Promise<ApiResponse<any>> => {
-  const accessToken = getCookie("accessToken");
+  // Use the correct cookie keys that match how tokens are saved
+  const accessToken = getCookie("token");
   const refreshToken = getCookie("refreshToken");
 
   const requestBody = {
@@ -278,12 +279,27 @@ export const logoutUser = async (): Promise<ApiResponse<any>> => {
   };
 
   try {
-    const response = await postApiRequest("/api/auth/logout", requestBody);
+    if (!accessToken) {
+      throw new Error("No access token found for logout");
+    }
+
+    const response = await postApiRequest(
+      "/api/auth/logout",
+      accessToken,
+      requestBody
+    );
     return response;
   } catch (error) {
-    throw error;
+    console.error("Logout API error:", error);
+    // Don't re-throw the error, just return a failed response
+    return {
+      data: { success: false, message: "Logout failed" },
+      status: 500,
+      message: error instanceof Error ? error.message : "Unknown logout error",
+    };
   } finally {
-    deleteTokenFromCookies(); // Always clear cookies on logout
+    // Always clear cookies on logout attempt
+    deleteTokenFromCookies();
     deleteRefreshTokenFromCookies();
   }
 };
@@ -295,7 +311,7 @@ export const changePassword = async (
   oldPassword: string,
   newPassword: string
 ): Promise<ApiResponse<any>> => {
-  return postApiRequest("/api/user/change-password", {
+  return postApiRequest("/api/users/change-password", {
     oldPassword,
     newPassword,
   });
@@ -440,7 +456,6 @@ export const getActiveRole = async (
     "/api/users/active-role",
     token
   );
-  console.log("[getActiveRole] Backend Response:", response);
   return response;
 };
 
@@ -455,6 +470,5 @@ export const switchUserRole = async (
     {},
     token
   );
-  console.log("[switchUserRole] Backend Response:", response);
   return response;
 };

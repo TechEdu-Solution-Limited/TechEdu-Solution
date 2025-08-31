@@ -56,27 +56,16 @@ import {
   Heart,
   Share2,
   Edit,
-  Loader2,
   RefreshCw,
   BarChart3,
-  TrendingDown,
-  Users2,
-  BriefcaseBusiness,
-  Sparkles,
   AlertTriangle,
-  CheckCheck,
-  Timer,
-  CalendarDays,
-  FilterX,
-  SortAsc,
-  SortDesc,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import { Job } from "@/types/jobs";
-import { getApiRequest, deleteApiRequest } from "@/lib/apiFetch";
-import { getTokenFromCookies } from "@/lib/cookies";
+import { getApiRequest, deleteApiRequest, apiRequest } from "@/lib/apiFetch";
+import { getCookie, getTokenFromCookies } from "@/lib/cookies";
 
 // API integration for jobs
 const useJobs = () => {
@@ -89,37 +78,58 @@ const useJobs = () => {
       setLoading(true);
       setError(null);
 
-      const token = getTokenFromCookies();
-      console.log("🔑 Token check:", token ? "Token found" : "No token");
+      const token = getCookie("token");
 
       if (!token) {
         setError("Authentication required. Please log in.");
         return;
       }
 
-      console.log("📡 Making API request to:", "/api/ats/job-posts");
+      // Use getApiRequest to call the external API endpoint
       const response = await getApiRequest<{
         success: boolean;
         message: string;
-        data: Job[];
+        data: any[];
         meta?: any;
       }>("/api/ats/job-posts", token);
 
-      console.log("📥 Full API Response:", {
-        status: response.status,
-        message: response.message,
-        data: response.data,
-        responseObject: response,
-      });
-
       if (response.status >= 200 && response.status < 300) {
-        // Handle nested data structure: response.data.data contains the actual jobs array
-        const jobsData = response.data?.data || response.data || [];
-        console.log("✅ Success! Jobs loaded:", jobsData.length);
-        console.log("📋 Jobs data structure:", jobsData);
-        setJobs(jobsData);
+        // Handle the actual API response structure
+        const jobsData = response.data?.data || response.data.data || [];
+        // Transform the API data to match our Job interface
+        const transformedJobs = jobsData.map((job: any) => ({
+          _id: job._id,
+          title: job.title,
+          description: job.description,
+          location: job.location,
+          employmentType: job.employmentType,
+          requiredSkills: job.requiredSkills || [],
+          tags: job.tags || [],
+          salaryRange: job.salaryRange || "",
+          company: job.companyName || job.companyId?.name || "", // Use companyName or fallback to companyId.name
+          companyId: job.companyId?._id || "", // Extract company ID from nested object
+          department: job.department || "",
+          contactEmail: job.contactEmail || "",
+          contactPhone: job.contactPhone || "",
+          website: job.website || "",
+          recruiter: job.recruiter || "",
+          isFeatured: job.isFeatured || false,
+          isUrgent: job.isUrgent || false,
+          expiryDate: job.expiryDate || "",
+          isDeleted: job.isDeleted || false,
+          deletedAt: job.deletedAt || "",
+          createdAt: job.createdAt,
+          updatedAt: job.updatedAt,
+          slug: job.slug || "",
+          // Additional fields from API
+          experienceLevel: job.experienceLevel || "",
+          companyLogo: job.companyLogo || "",
+          version: job.version || 1,
+          previousVersions: job.previousVersions || [],
+          recruiterId: job.recruiterId || "",
+        }));
+        setJobs(transformedJobs);
       } else {
-        console.error("❌ API Error:", response.message);
         setError(response.message || "Failed to fetch jobs");
       }
     } catch (error: any) {
@@ -137,27 +147,18 @@ const useJobs = () => {
   const deleteJob = async (jobId: string) => {
     try {
       const token = getTokenFromCookies();
-      console.log("🗑️ Deleting job:", jobId);
-      console.log("🔑 Token for delete:", token ? "Present" : "Missing");
 
       if (!token) {
         return { success: false, message: "Authentication required" };
       }
 
+      // Use deleteApiRequest to call the external API endpoint
       const response = await deleteApiRequest(
         `/api/ats/job-posts/${jobId}`,
         token
       );
 
-      console.log("🗑️ Delete Response:", {
-        status: response.status,
-        message: response.message,
-        data: response.data,
-        fullResponse: response,
-      });
-
       if (response.status >= 200 && response.status < 300) {
-        console.log("✅ Job deleted successfully");
         setJobs(jobs.filter((job) => job._id !== jobId));
         return { success: true };
       } else {
@@ -383,10 +384,6 @@ export default function JobsManagementPage() {
                 <Button
                   onClick={() => {
                     const token = getTokenFromCookies();
-                    console.log(
-                      "🔍 Manual Auth Check - Token:",
-                      token ? "Present" : "Missing"
-                    );
                     if (!token) {
                       toast.error(
                         "No authentication token found. Please log in."

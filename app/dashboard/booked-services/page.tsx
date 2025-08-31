@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,48 +8,80 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Calendar,
-  Clock,
-  MapPin,
-  User,
-  Video,
-  Phone,
   MessageCircle,
   Star,
   CheckCircle,
   XCircle,
-  AlertCircle,
-  ExternalLink,
   Download,
   Share2,
 } from "lucide-react";
 import { useRole } from "@/contexts/RoleContext";
 import Link from "next/link";
+import { getApiRequest } from "@/lib/apiFetch";
+import { getTokenFromCookies } from "@/lib/cookies";
 
 interface BookedService {
-  id: string;
-  serviceName: string;
-  serviceType:
-    | "coaching"
-    | "mentorship"
-    | "cv-review"
-    | "interview-prep"
-    | "assessment";
-  provider: {
-    name: string;
-    avatar?: string;
-    title: string;
-    rating: number;
-  };
-  date: string;
-  time: string;
-  duration: number; // in minutes
-  status: "upcoming" | "completed" | "cancelled" | "rescheduled";
-  meetingType: "video" | "phone" | "in-person";
-  location?: string;
-  meetingLink?: string;
-  notes?: string;
+  _id: string;
+  title: string;
+  description: string;
+  targetRoles: string[];
+  deliveryMode: "online" | "offline" | "hybrid";
+  sessionType: "1-on-1" | "group" | "workshop";
+  durationMinutes: number;
   price: number;
-  currency: string;
+  isActive: boolean;
+  calendarAvailability: any[];
+  category: string[];
+  tags: string[];
+  discounts: any[];
+  visibility: "public" | "private" | "restricted";
+  maxParticipants: number;
+  prerequisites: string;
+  learningObjectives: string[];
+  rating: number;
+  totalReviews: number;
+  thumbnailUrl?: string;
+  mediaUrls: string[];
+  serviceLevel: "basic" | "standard" | "premium";
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+
+  // Booking-specific fields
+  status: "upcoming" | "completed" | "cancelled" | "rescheduled";
+  bookingId: string;
+  bookingDate: string;
+  sessionDate: string;
+  sessionTime: string;
+  providerId: string;
+  providerName: string;
+  providerAvatar?: string;
+  providerTitle: string;
+  providerRating: number;
+  providerTotalReviews: number;
+
+  // Payment and receipt fields
+  paymentStatus: "pending" | "completed" | "failed" | "refunded";
+  paymentMethod: string;
+  receiptUrl?: string;
+
+  // Session management fields
+  meetingLink?: string;
+  meetingPassword?: string;
+  location?: string;
+  notes?: string;
+  cancellationReason?: string;
+  rescheduleReason?: string;
+
+  // User interaction fields
+  userRating?: number;
+  userReview?: string;
+  userFeedback?: string;
+  contactHistory: Array<{
+    date: string;
+    message: string;
+    sender: "user" | "provider";
+  }>;
 }
 
 export default function BookedServicesPage() {
@@ -59,111 +91,162 @@ export default function BookedServicesPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Mock data - replace with actual API call
-    const mockServices: BookedService[] = [
-      {
-        id: "1",
-        serviceName: "Academic Coaching Session",
-        serviceType: "coaching",
-        provider: {
-          name: "Dr. Sarah Johnson",
-          avatar: "/assets/team/Dr-Godbless-Akaighe.png",
-          title: "Senior Academic Coach",
-          rating: 4.8,
-        },
-        date: "2024-01-20",
-        time: "14:00",
-        duration: 60,
-        status: "upcoming",
-        meetingType: "video",
-        meetingLink: "https://meet.google.com/abc-defg-hij",
-        notes: "Focus on study planning and exam preparation strategies",
-        price: 75,
-        currency: "USD",
-      },
-      {
-        id: "2",
-        serviceName: "CV Review & Feedback",
-        serviceType: "cv-review",
-        provider: {
-          name: "Michael Chen",
-          avatar: "/assets/team/developer.avif",
-          title: "Career Development Specialist",
-          rating: 4.9,
-        },
-        date: "2024-01-18",
-        time: "10:30",
-        duration: 45,
-        status: "completed",
-        meetingType: "video",
-        meetingLink: "https://meet.google.com/xyz-uvw-123",
-        notes: "Comprehensive CV review with actionable feedback",
-        price: 50,
-        currency: "USD",
-      },
-      {
-        id: "3",
-        serviceName: "Mentorship Session",
-        serviceType: "mentorship",
-        provider: {
-          name: "Emily Rodriguez",
-          title: "Tech Industry Mentor",
-          rating: 4.7,
-        },
-        date: "2024-01-25",
-        time: "16:00",
-        duration: 90,
-        status: "upcoming",
-        meetingType: "phone",
-        notes: "Career guidance and industry insights discussion",
-        price: 100,
-        currency: "USD",
-      },
-      {
-        id: "4",
-        serviceName: "Interview Preparation",
-        serviceType: "interview-prep",
-        provider: {
-          name: "David Kim",
-          avatar: "/assets/team/Maria.webp",
-          title: "Interview Coach",
-          rating: 4.6,
-        },
-        date: "2024-01-15",
-        time: "11:00",
-        duration: 60,
-        status: "completed",
-        meetingType: "video",
-        meetingLink: "https://meet.google.com/def-ghi-jkl",
-        notes: "Mock interview with feedback on responses and body language",
-        price: 80,
-        currency: "USD",
-      },
-      {
-        id: "5",
-        serviceName: "Skill Assessment",
-        serviceType: "assessment",
-        provider: {
-          name: "Lisa Thompson",
-          title: "Assessment Specialist",
-          rating: 4.5,
-        },
-        date: "2024-01-30",
-        time: "13:00",
-        duration: 120,
-        status: "upcoming",
-        meetingType: "in-person",
-        location: "TechEduK Center, Room 205",
-        notes: "Comprehensive skill evaluation and career path recommendations",
-        price: 120,
-        currency: "USD",
-      },
-    ];
+    fetchBookedServices();
+  }, []);
 
-    setTimeout(() => {
-      setServices(mockServices);
+  const fetchBookedServices = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const token = getTokenFromCookies();
+      if (!token) {
+        setError("Authentication required. Please log in.");
+        return;
+      }
+
+      const response = await getApiRequest(
+        "/api/bookings/user/my-bookings",
+        token
+      );
+
+      if (response?.data?.success) {
+        const bookingsData = response.data.data || [];
+
+        // Transform booking data to match our BookedService interface
+        const transformedServices: BookedService[] = bookingsData.map(
+          (booking: any) => ({
+            _id: booking._id,
+            title: booking.serviceTitle || booking.productTitle || "Service",
+            description:
+              booking.serviceDescription ||
+              booking.productDescription ||
+              "No description available",
+            targetRoles: booking.targetRoles || ["student"],
+            deliveryMode: booking.deliveryMode || "online",
+            sessionType: booking.sessionType || "1-on-1",
+            durationMinutes: booking.duration || 60,
+            price: booking.price || 0,
+            isActive: true,
+            calendarAvailability: [],
+            category: booking.category || ["general"],
+            tags: booking.tags || [],
+            discounts: [],
+            visibility: "public",
+            maxParticipants: 1,
+            prerequisites: booking.requirements?.join(", ") || "None",
+            learningObjectives: [],
+            rating: 0,
+            totalReviews: 0,
+            thumbnailUrl: booking.thumbnailUrl || "",
+            mediaUrls: [],
+            serviceLevel: "standard",
+            createdAt: booking.createdAt,
+            updatedAt: booking.updatedAt,
+            __v: 0,
+
+            // Booking-specific fields
+            status: mapBookingStatus(booking.status),
+            bookingId: booking._id,
+            bookingDate: booking.createdAt,
+            sessionDate: booking.scheduledDate || booking.createdAt,
+            sessionTime: formatSessionTime(booking.scheduledDate),
+            providerId: booking.instructorId || booking.providerId || "",
+            providerName:
+              booking.instructorName || booking.providerName || "Provider",
+            providerAvatar:
+              booking.instructorAvatar || booking.providerAvatar || "",
+            providerTitle:
+              booking.instructorTitle || booking.providerTitle || "Instructor",
+            providerRating: booking.instructorRating || 0,
+            providerTotalReviews: booking.instructorTotalReviews || 0,
+
+            // Payment and receipt fields
+            paymentStatus: mapPaymentStatus(booking.paymentStatus || "pending"),
+            paymentMethod: booking.paymentMethod || "Not specified",
+            receiptUrl: booking.receiptUrl || "",
+
+            // Session management fields
+            meetingLink: booking.meetingLink || "",
+            meetingPassword: "",
+            location: booking.classroomDetails?.address || "",
+            notes: booking.notes || "",
+            cancellationReason: booking.cancellationReason || "",
+            rescheduleReason: "",
+
+            // User interaction fields
+            userRating: 0,
+            userReview: "",
+            userFeedback: "",
+            contactHistory: [],
+          })
+        );
+
+        setServices(transformedServices);
+      } else {
+        console.error(
+          "Failed to fetch booked services:",
+          response?.data?.message
+        );
+        setError("Failed to fetch booked services");
+      }
+    } catch (err) {
+      setError("Failed to fetch booked services");
+      console.error("Error fetching booked services:", err);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
+  };
+
+  // Helper functions optimized with useCallback
+  const mapBookingStatus = useCallback(
+    (
+      status: string
+    ): "upcoming" | "completed" | "cancelled" | "rescheduled" => {
+      switch (status) {
+        case "confirmed":
+        case "pending":
+          return "upcoming";
+        case "completed":
+          return "completed";
+        case "cancelled":
+          return "cancelled";
+        case "rescheduled":
+          return "rescheduled";
+        default:
+          return "upcoming";
+      }
+    },
+    []
+  );
+
+  const mapPaymentStatus = useCallback(
+    (status: string): "pending" | "completed" | "failed" | "refunded" => {
+      switch (status) {
+        case "completed":
+          return "completed";
+        case "failed":
+          return "failed";
+        case "refunded":
+          return "refunded";
+        default:
+          return "pending";
+      }
+    },
+    []
+  );
+
+  const formatSessionTime = useCallback((dateString: string): string => {
+    if (!dateString) return "TBD";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "TBD";
+    }
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -181,52 +264,35 @@ export default function BookedServicesPage() {
     }
   };
 
-  const getServiceTypeIcon = (type: string) => {
-    switch (type) {
-      case "coaching":
-        return "BookOpen";
-      case "mentorship":
-        return "Users";
-      case "cv-review":
-        return "FileText";
-      case "interview-prep":
-        return "Calendar";
-      case "assessment":
-        return "Target";
-      default:
-        return "BookOpen";
-    }
-  };
-
-  const getMeetingTypeIcon = (type: string) => {
-    switch (type) {
-      case "video":
-        return Video;
-      case "phone":
-        return Phone;
-      case "in-person":
-        return MapPin;
-      default:
-        return Video;
-    }
-  };
-
-  const upcomingServices = services.filter(
-    (service) => service.status === "upcoming"
-  );
-  const completedServices = services.filter(
-    (service) => service.status === "completed"
-  );
-  const cancelledServices = services.filter(
-    (service) => service.status === "cancelled"
+  // Memoize filtered services to avoid recalculation on every render
+  const upcomingServices = useMemo(
+    () => services.filter((service) => service.status === "upcoming"),
+    [services]
   );
 
-  const totalSpent = completedServices.reduce(
-    (sum, service) => sum + service.price,
-    0
+  const completedServices = useMemo(
+    () => services.filter((service) => service.status === "completed"),
+    [services]
   );
-  const upcomingCount = upcomingServices.length;
-  const completedCount = completedServices.length;
+
+  const cancelledServices = useMemo(
+    () => services.filter((service) => service.status === "cancelled"),
+    [services]
+  );
+
+  const totalSpent = useMemo(
+    () => completedServices.reduce((sum, service) => sum + service.price, 0),
+    [completedServices]
+  );
+
+  const upcomingCount = useMemo(
+    () => upcomingServices.length,
+    [upcomingServices]
+  );
+  const completedCount = useMemo(
+    () => completedServices.length,
+    [completedServices]
+  );
 
   if (loading) {
     return (
@@ -266,12 +332,22 @@ export default function BookedServicesPage() {
             Manage your booked services and upcoming sessions
           </p>
         </div>
-        <Link href="/dashboard/academic-services/bookings">
-          <Button className="text-white hover:bg-blue-600 rounded-[10px]">
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={fetchBookedServices}
+            disabled={loading}
+          >
             <Calendar className="w-4 h-4 mr-2" />
-            Book New Service
+            {loading ? "Refreshing..." : "Refresh"}
           </Button>
-        </Link>
+          <Link href="/dashboard/academic-services/bookings">
+            <Button className="text-white hover:bg-blue-600 rounded-[10px]">
+              <Calendar className="w-4 h-4 mr-2" />
+              Book New Service
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -353,7 +429,7 @@ export default function BookedServicesPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {upcomingServices.map((service) => (
                 <Card
-                  key={service.id}
+                  key={service._id}
                   className="hover:shadow-md transition-shadow"
                 >
                   <CardHeader>
@@ -364,15 +440,14 @@ export default function BookedServicesPage() {
                         </div>
                         <div>
                           <CardTitle className="text-lg">
-                            {service.serviceName}
+                            {service.title}
                           </CardTitle>
                           <p className="text-sm text-gray-600">
-                            {new Date(service.date).toLocaleDateString()} at{" "}
-                            {service.time}
+                            {new Date(service.createdAt).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
-                      <Badge className={getStatusColor(service.status)}>
+                      <Badge className={getStatusColor(service.status || "")}>
                         {service.status}
                       </Badge>
                     </div>
@@ -382,47 +457,73 @@ export default function BookedServicesPage() {
                       {/* Provider Info */}
                       <div className="flex items-center space-x-3">
                         <Avatar className="w-10 h-10">
-                          <AvatarImage src={service.provider.avatar} />
+                          <AvatarImage src={service.providerAvatar || ""} />
                           <AvatarFallback>
-                            {service.provider.name
+                            {service.providerName
                               .split(" ")
                               .map((n) => n[0])
                               .join("")}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium">{service.provider.name}</p>
+                          <p className="font-medium">{service.providerName}</p>
                           <p className="text-sm text-gray-600">
-                            {service.provider.title}
+                            {service.providerTitle}
                           </p>
                           <div className="flex items-center text-sm">
                             <Star className="w-4 h-4 text-yellow-500 mr-1" />
-                            {service.provider.rating}
+                            {service.providerRating}
                           </div>
                         </div>
                       </div>
 
-                      {/* Meeting Details */}
+                      {/* Service Details */}
                       <div className="space-y-2">
-                        <div className="flex items-center text-sm text-gray-600">
-                          {(() => {
-                            const IconComponent = getMeetingTypeIcon(
-                              service.meetingType
-                            );
-                            return <IconComponent className="w-4 h-4 mr-2" />;
-                          })()}
-                          {service.meetingType === "in-person" &&
-                          service.location
-                            ? service.location
-                            : `${
-                                service.meetingType.charAt(0).toUpperCase() +
-                                service.meetingType.slice(1)
-                              } Meeting`}
+                        <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
+                          <strong>Description:</strong> {service.description}
                         </div>
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Clock className="w-4 h-4 mr-2" />
-                          {service.duration} minutes
+                        <div className="flex flex-wrap gap-2">
+                          {service.tags.map((tag, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="text-xs"
+                            >
+                              {tag}
+                            </Badge>
+                          ))}
                         </div>
+                        <div className="text-sm text-gray-600">
+                          <strong>Prerequisites:</strong>{" "}
+                          {service.prerequisites}
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <strong>Session Date:</strong>{" "}
+                            {new Date(service.sessionDate).toLocaleDateString()}
+                          </div>
+                          <div>
+                            <strong>Session Time:</strong> {service.sessionTime}
+                          </div>
+                          <div>
+                            <strong>Duration:</strong> {service.durationMinutes}{" "}
+                            minutes
+                          </div>
+                          <div>
+                            <strong>Price:</strong> ${service.price}
+                          </div>
+                          <div>
+                            <strong>Booking ID:</strong> {service.bookingId}
+                          </div>
+                          <div>
+                            <strong>Payment:</strong> {service.paymentStatus}
+                          </div>
+                        </div>
+                        {service.location && (
+                          <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
+                            <strong>Location:</strong> {service.location}
+                          </div>
+                        )}
                         {service.notes && (
                           <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
                             <strong>Notes:</strong> {service.notes}
@@ -432,16 +533,9 @@ export default function BookedServicesPage() {
 
                       {/* Actions */}
                       <div className="flex space-x-2 pt-4 border-t">
-                        {service.meetingType === "video" &&
-                          service.meetingLink && (
-                            <Button size="sm" className="flex-1">
-                              <Video className="w-4 h-4 mr-2" />
-                              Join Meeting
-                            </Button>
-                          )}
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" className="flex-1">
                           <MessageCircle className="w-4 h-4 mr-2" />
-                          Message
+                          Contact Provider
                         </Button>
                         <Button size="sm" variant="outline">
                           <Calendar className="w-4 h-4 mr-2" />
@@ -473,7 +567,7 @@ export default function BookedServicesPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {completedServices.map((service) => (
                 <Card
-                  key={service.id}
+                  key={service._id}
                   className="hover:shadow-md transition-shadow"
                 >
                   <CardHeader>
@@ -484,11 +578,11 @@ export default function BookedServicesPage() {
                         </div>
                         <div>
                           <CardTitle className="text-lg">
-                            {service.serviceName}
+                            {service.title}
                           </CardTitle>
                           <p className="text-sm text-gray-600">
                             Completed on{" "}
-                            {new Date(service.date).toLocaleDateString()}
+                            {new Date(service.createdAt).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
@@ -502,43 +596,42 @@ export default function BookedServicesPage() {
                       {/* Provider Info */}
                       <div className="flex items-center space-x-3">
                         <Avatar className="w-10 h-10">
-                          <AvatarImage src={service.provider.avatar} />
+                          <AvatarImage src={service.providerAvatar} />
                           <AvatarFallback>
-                            {service.provider.name
+                            {service.providerName
                               .split(" ")
                               .map((n) => n[0])
                               .join("")}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium">{service.provider.name}</p>
+                          <p className="font-medium">{service.providerName}</p>
                           <p className="text-sm text-gray-600">
-                            {service.provider.title}
+                            {service.providerTitle}
                           </p>
                           <div className="flex items-center text-sm">
                             <Star className="w-4 h-4 text-yellow-500 mr-1" />
-                            {service.provider.rating}
+                            {service.providerRating}
                           </div>
                         </div>
                       </div>
 
                       {/* Session Details */}
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span>Duration:</span>
-                          <span>{service.duration} minutes</span>
+                        <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
+                          <strong>Description:</strong> {service.description}
                         </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span>Price:</span>
-                          <span>
-                            ${service.price} {service.currency}
-                          </span>
+                        <div className="flex flex-wrap gap-2">
+                          {service.tags.map((tag, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="text-xs"
+                            >
+                              {tag}
+                            </Badge>
+                          ))}
                         </div>
-                        {service.notes && (
-                          <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
-                            <strong>Session Notes:</strong> {service.notes}
-                          </div>
-                        )}
                       </div>
 
                       {/* Actions */}
@@ -581,7 +674,7 @@ export default function BookedServicesPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {cancelledServices.map((service) => (
                 <Card
-                  key={service.id}
+                  key={service._id}
                   className="hover:shadow-md transition-shadow"
                 >
                   <CardHeader>
@@ -592,11 +685,11 @@ export default function BookedServicesPage() {
                         </div>
                         <div>
                           <CardTitle className="text-lg">
-                            {service.serviceName}
+                            {service.title}
                           </CardTitle>
                           <p className="text-sm text-gray-600">
                             Cancelled on{" "}
-                            {new Date(service.date).toLocaleDateString()}
+                            {new Date(service.createdAt).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
@@ -607,22 +700,21 @@ export default function BookedServicesPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {/* Provider Info */}
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="w-10 h-10">
-                          <AvatarImage src={service.provider.avatar} />
-                          <AvatarFallback>
-                            {service.provider.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{service.provider.name}</p>
-                          <p className="text-sm text-gray-600">
-                            {service.provider.title}
-                          </p>
+                      {/* Service Info */}
+                      <div className="space-y-2">
+                        <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
+                          <strong>Description:</strong> {service.description}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {service.tags.map((tag, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="text-xs"
+                            >
+                              {tag}
+                            </Badge>
+                          ))}
                         </div>
                       </div>
 

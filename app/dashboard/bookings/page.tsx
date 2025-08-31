@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,42 +28,34 @@ import {
   Video,
   Users,
   MapPin,
+  GraduationCap,
+  Users2,
+  Link as LinkIcon,
 } from "lucide-react";
 import { getApiRequest, deleteApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 import { toast } from "react-toastify";
 import { useRole } from "@/contexts/RoleContext";
 import { BookingListSkeleton } from "@/components/BookingSkeletons";
-
-// User Booking Interface based on API response
-interface UserBooking {
-  _id: string;
-  productId: string;
-  productType: string;
-  instructorId?: string;
-  bookingPurpose: string;
-  scheduleAt: string;
-  status: "pending" | "confirmed" | "completed" | "cancelled";
-  paymentStatus: "unpaid" | "paid" | "refunded";
-  participantType: "individual" | "team";
-  platformRole: string;
-  email: string;
-  fullName: string;
-  createdAt: string;
-  durationInMinutes?: number;
-  numberOfExpectedParticipants?: number;
-  meetingLink?: string;
-  userNotes?: string;
-}
+import ConfirmationModal from "@/components/ConfirmationModal";
+import { UserBooking } from "@/types/booking";
+import {
+  formatTimeRange,
+  getDurationText,
+  getPrimaryDateTime,
+} from "@/utils/helpers";
 
 export default function UserBookingsPage() {
   const { userData } = useRole();
+  const router = useRouter();
   const [bookings, setBookings] = useState<UserBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState<string | null>(null);
 
   // Determine which booking button to show based on user role
   const isStudent = userData?.role === "student";
@@ -105,10 +98,15 @@ export default function UserBookingsPage() {
     }
   };
 
-  const handleCancelBooking = async (bookingId: string) => {
-    if (!confirm("Are you sure you want to cancel this booking?")) return;
+  const handleCancelBooking = (bookingId: string) => {
+    setBookingToCancel(bookingId);
+    setShowCancelModal(true);
+  };
 
-    setCancellingId(bookingId);
+  const confirmCancelBooking = async () => {
+    if (!bookingToCancel) return;
+
+    setCancellingId(bookingToCancel);
     try {
       const token = getTokenFromCookies();
       if (!token) {
@@ -117,7 +115,7 @@ export default function UserBookingsPage() {
       }
 
       const response = await deleteApiRequest(
-        `/api/bookings/${bookingId}/cancel`,
+        `/api/bookings/${bookingToCancel}/cancel`,
         token
       );
       if (response?.data?.success) {
@@ -131,7 +129,14 @@ export default function UserBookingsPage() {
       toast.error("Error cancelling booking");
     } finally {
       setCancellingId(null);
+      setShowCancelModal(false);
+      setBookingToCancel(null);
     }
+  };
+
+  const closeCancelModal = () => {
+    setShowCancelModal(false);
+    setBookingToCancel(null);
   };
 
   // Check if booking can be cancelled based on status and role
@@ -154,7 +159,8 @@ export default function UserBookingsPage() {
 
     // Cannot edit if confirmed and less than 24 hours before session
     if (booking.status === "confirmed") {
-      const sessionTime = new Date(booking.scheduleAt);
+      const { start } = getPrimaryDateTime(booking);
+      const sessionTime = new Date(start);
       const now = new Date();
       const hoursUntilSession =
         (sessionTime.getTime() - now.getTime()) / (1000 * 60 * 60);
@@ -200,6 +206,7 @@ export default function UserBookingsPage() {
       unpaid: { color: "bg-red-100 text-red-800", label: "Unpaid" },
       paid: { color: "bg-green-100 text-green-800", label: "Paid" },
       refunded: { color: "bg-gray-100 text-gray-800", label: "Refunded" },
+      free: { color: "bg-blue-100 text-blue-800", label: "Free" },
     };
 
     const config =
@@ -207,21 +214,39 @@ export default function UserBookingsPage() {
     return <Badge className={config.color}>{config.label}</Badge>;
   };
 
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  const getSchedulingStatusBadge = (status: string) => {
+    const statusConfig = {
+      "awaiting-payment": {
+        color: "bg-orange-100 text-orange-800",
+        label: "Awaiting Payment",
+      },
+      "payment-failed": {
+        color: "bg-red-100 text-red-800",
+        label: "Payment Failed",
+      },
+      "eligible-to-schedule": {
+        color: "bg-blue-100 text-blue-800",
+        label: "Ready to Schedule",
+      },
+      "link-issued": {
+        color: "bg-purple-100 text-purple-800",
+        label: "Link Issued",
+      },
+      scheduled: { color: "bg-green-100 text-green-800", label: "Scheduled" },
+      "meeting-created": {
+        color: "bg-indigo-100 text-indigo-800",
+        label: "Meeting Created",
+      },
+      canceled: { color: "bg-red-100 text-red-800", label: "Canceled" },
+      completed: { color: "bg-blue-100 text-blue-800", label: "Completed" },
+    };
 
-  const getDurationText = (minutes?: number) => {
-    if (!minutes) return "Duration not specified";
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+    const config = statusConfig[status as keyof typeof statusConfig] || {
+      color: "bg-gray-100 text-gray-800",
+      label: status || "Unknown",
+    };
+
+    return <Badge className={config.color}>{config.label}</Badge>;
   };
 
   return (
@@ -238,6 +263,44 @@ export default function UserBookingsPage() {
             </p>
           </div>
           <div className="flex flex-col lg:flex-row gap-3">
+            <Button
+              onClick={() => {
+                if (isStudent) {
+                  router.push("/academic-services");
+                } else if (
+                  userData?.role === "individualTechProfessional" ||
+                  userData?.role === "teamTechProfessional"
+                ) {
+                  router.push("/training/catalog");
+                } else if (userData?.role === "institution") {
+                  // For institutions, show options or route to corporate consultancy
+                  router.push("/corporate-consultancy");
+                } else {
+                  // Default fallback
+                  router.push("/academic-services");
+                }
+              }}
+              disabled={loading}
+              className="group relative px-6 py-3 bg-gradient-to-r from-sky-400 to-blue-600 text-white font-semibold rounded-2xl hover:from-sky-500 hover:to-blue-900 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            >
+              <span className="flex items-center gap-2">
+                <Plus
+                  className={`w-4 h-4 ${
+                    loading
+                      ? "animate-spin"
+                      : "group-hover:rotate-180 transition-transform duration-300"
+                  }`}
+                />
+                {isStudent
+                  ? "Book Academic Service"
+                  : userData?.role === "individualTechProfessional" ||
+                    userData?.role === "teamTechProfessional"
+                  ? "Book Training Program"
+                  : userData?.role === "institution"
+                  ? "Corporate Consultancy"
+                  : "Book a Service"}
+              </span>
+            </Button>
             <Button
               onClick={fetchUserBookings}
               disabled={loading}
@@ -349,6 +412,68 @@ export default function UserBookingsPage() {
                 </div>
                 <div className="p-3 bg-blue-100 rounded-full">
                   <Video className="w-6 h-6 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">
+                    Cancelled
+                  </p>
+                  <p className="text-2xl font-bold text-red-600">
+                    {bookings.filter((b) => b.status === "cancelled").length}
+                  </p>
+                </div>
+                <div className="p-3 bg-red-100 rounded-full">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">
+                    Ready to Schedule
+                  </p>
+                  <p className="text-2xl font-bold text-indigo-600">
+                    {
+                      bookings.filter(
+                        (b) => b.schedulingStatus === "eligible-to-schedule"
+                      ).length
+                    }
+                  </p>
+                </div>
+                <div className="p-3 bg-indigo-100 rounded-full">
+                  <Calendar className="w-6 h-6 text-indigo-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">
+                    Link Issued
+                  </p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {
+                      bookings.filter(
+                        (b) => b.schedulingStatus === "link-issued"
+                      ).length
+                    }
+                  </p>
+                </div>
+                <div className="p-3 bg-purple-100 rounded-full">
+                  <LinkIcon className="w-6 h-6 text-purple-600" />
                 </div>
               </div>
             </CardContent>
@@ -489,7 +614,7 @@ export default function UserBookingsPage() {
                           {booking.fullName}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Badge
                           variant={
                             booking.productType === "AcademicService"
@@ -505,6 +630,8 @@ export default function UserBookingsPage() {
                         </Badge>
                         {getStatusBadge(booking.status)}
                         {getPaymentStatusBadge(booking.paymentStatus)}
+                        {booking.schedulingStatus &&
+                          getSchedulingStatusBadge(booking.schedulingStatus)}
                       </div>
                     </div>
                   </div>
@@ -513,7 +640,23 @@ export default function UserBookingsPage() {
                 <CardContent className="space-y-3">
                   <div className="flex items-center gap-2 text-sm text-slate-600">
                     <Calendar className="w-4 h-4" />
-                    <span>{formatDateTime(booking.scheduleAt)}</span>
+                    <span>
+                      {(() => {
+                        const { start, end } = getPrimaryDateTime(booking);
+                        return (
+                          <>
+                            {new Date(start).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                            <span className="text-slate-500 ml-2">
+                              {formatTimeRange(start, end)}
+                            </span>
+                          </>
+                        );
+                      })()}
+                    </span>
                   </div>
 
                   {booking.durationInMinutes && (
@@ -523,34 +666,32 @@ export default function UserBookingsPage() {
                     </div>
                   )}
 
+                  {booking.timezone && (
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <MapPin className="w-4 h-4" />
+                      <span>Timezone: {booking.timezone}</span>
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-2 text-sm text-slate-600">
                     <Users className="w-4 h-4" />
                     <span>
-                      {booking.participantType === "individual"
-                        ? "Individual"
-                        : "Team"}{" "}
-                      session
+                      {(() => {
+                        const participantTypeLabels = {
+                          individual: "Individual",
+                          team: "Team",
+                          institution: "Institution",
+                          recruiter: "Recruiter",
+                          visitor: "Visitor",
+                        };
+                        return `${
+                          participantTypeLabels[
+                            booking.participantType as keyof typeof participantTypeLabels
+                          ] || booking.participantType
+                        } session`;
+                      })()}
                     </span>
                   </div>
-
-                  {booking.meetingLink && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      asChild
-                      className="flex items-center gap-2 rounded-[10px]"
-                    >
-                      <a
-                        href={booking.meetingLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="truncate"
-                      >
-                        <Video className="w-4 h-4 mr-1" />
-                        Join Meeting
-                      </a>
-                    </Button>
-                  )}
 
                   {booking.userNotes && (
                     <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
@@ -559,17 +700,69 @@ export default function UserBookingsPage() {
                     </div>
                   )}
 
+                  {booking.attachments && booking.attachments.length > 0 && (
+                    <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
+                      <p className="font-medium mb-2">Attachments:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {booking.attachments.map((attachment, index) => (
+                          <Badge
+                            key={index}
+                            variant="outline"
+                            className="text-xs"
+                          >
+                            📎 File {index + 1}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Meeting and Scheduling Links */}
+                  {(booking.meetingLink || booking.calendlyUrl) && (
+                    <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
+                      <p className="font-medium mb-2">Links:</p>
+                      <div className="space-y-2">
+                        {booking.meetingLink && (
+                          <div className="flex items-center gap-2">
+                            <Video className="w-4 h-4 text-blue-600" />
+                            <a
+                              href={booking.meetingLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline text-xs"
+                            >
+                              Join Meeting
+                            </a>
+                          </div>
+                        )}
+                        {booking.calendlyUrl && (
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-green-600" />
+                            <a
+                              href={booking.calendlyUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-green-600 hover:text-green-800 underline text-xs"
+                            >
+                              Reschedule
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-2 pt-3 border-t border-slate-200">
-                    {/* <Link href={`/dashboard/bookings/${booking._id}`}>
+                    <Link href={`/dashboard/bookings/${booking._id}`}>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1 rounded-[5px]"
+                        className="flex-1 rounded-[5px] w-full"
                       >
                         <Eye className="w-4 h-4 mr-1" />
                         View
                       </Button>
-                    </Link> */}
+                    </Link>
                     {/* {canEditBooking(booking) ? (
                       <Link href={`/dashboard/bookings/${booking._id}/edit`}>
                         <Button
@@ -602,12 +795,15 @@ export default function UserBookingsPage() {
                         variant="outline"
                         onClick={() => handleCancelBooking(booking._id)}
                         disabled={cancellingId === booking._id}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-[5px]"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-[5px] w-full"
                       >
                         {cancellingId === booking._id ? (
                           <RefreshCw className="w-4 h-4 animate-spin" />
                         ) : (
-                          <Trash2 className="w-4 h-4" />
+                          <>
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Cancel
+                          </>
                         )}
                       </Button>
                     ) : (
@@ -615,7 +811,7 @@ export default function UserBookingsPage() {
                         size="sm"
                         variant="outline"
                         disabled
-                        className="text-gray-400 cursor-not-allowed"
+                        className="text-gray-400 cursor-not-allowed w-full"
                         title={
                           booking.status === "cancelled" ||
                           booking.status === "completed"
@@ -627,12 +823,53 @@ export default function UserBookingsPage() {
                       </Button>
                     )}
                   </div>
+
+                  {/* Classroom Button */}
+                  {booking.isClassroom && (
+                    <Link href={`/dashboard/my-classroom`}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-[5px] w-full mt-4"
+                      >
+                        <GraduationCap className="w-4 h-4 mr-1" />
+                        Classroom
+                      </Button>
+                    </Link>
+                  )}
+
+                  {/* Session Button */}
+                  {booking.isSession && (
+                    <Link href={`/dashboard/sessions/my-sessions`}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-[5px] w-full mt-4"
+                      >
+                        <Users2 className="w-4 h-4 mr-1" />
+                        Sessions
+                      </Button>
+                    </Link>
+                  )}
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showCancelModal}
+        onClose={closeCancelModal}
+        onConfirm={confirmCancelBooking}
+        title="Cancel Booking"
+        message="Are you sure you want to cancel this booking? This action cannot be undone."
+        confirmText="Cancel Booking"
+        cancelText="Keep Booking"
+        variant="danger"
+        isLoading={cancellingId !== null}
+      />
     </div>
   );
 }

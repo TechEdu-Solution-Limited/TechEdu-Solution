@@ -16,7 +16,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
-import { useProfile } from "@/contexts/ProfileContext";
+import { useProfileData } from "@/hooks/useProfileData";
 import { toast } from "react-toastify";
 
 interface InstitutionProfileProps {
@@ -41,7 +41,7 @@ export default function InstitutionProfile({
 
   // Use onboarding status hook and profile context
   const { getOnboardingProgress, completeStep } = useOnboardingStatus(token);
-  const { profile: contextProfile, updateProfile } = useProfile();
+  const { profile: contextProfile, updateProfile } = useProfileData();
 
   // Fetch onboarding progress on component mount
   useEffect(() => {
@@ -157,8 +157,6 @@ export default function InstitutionProfile({
         return;
       }
 
-      console.log("Skipped steps from progress:", skippedStepsFromProgress);
-
       // Group data by actual step numbers from onboarding progress
       const stepsToComplete = new Map<number, any>(); // stepNumber -> stepData
 
@@ -172,10 +170,6 @@ export default function InstitutionProfile({
           console.warn(`No field mapping found for step ${stepNumber}`);
           continue;
         }
-
-        console.log(
-          `Checking step ${stepNumber} (fields: ${fields.join(", ")})`
-        );
 
         // Check if any field in this step has data
         const stepData: any = {};
@@ -191,24 +185,13 @@ export default function InstitutionProfile({
           ) {
             stepData[field] = value;
             hasData = true;
-            console.log(`  Field "${field}" has data:`, value);
-          } else {
-            console.log(`  Field "${field}" is empty or null`);
           }
         });
 
         if (hasData) {
           stepsToComplete.set(stepNumber, stepData);
-          console.log(
-            `  Step ${stepNumber} will be completed with data:`,
-            stepData
-          );
-        } else {
-          console.log(`  Step ${stepNumber} has no data, skipping completion`);
         }
       }
-
-      console.log(`Total steps to complete: ${stepsToComplete.size}`);
 
       if (stepsToComplete.size === 0) {
         toast.warn("No data found for any skipped steps");
@@ -219,12 +202,7 @@ export default function InstitutionProfile({
       // Complete the steps with their specific data using actual step numbers
       for (const [stepNumber, stepData] of stepsToComplete) {
         try {
-          console.log(`Completing step ${stepNumber} with payload:`, {
-            stepNumber,
-            stepData,
-          });
           await completeStep(userId, stepNumber, stepData);
-          console.log(`✅ Successfully completed step ${stepNumber}`);
 
           // Update the context with the saved data
           updateProfile(stepData);

@@ -20,34 +20,49 @@ export default function PaymentSuccessPage() {
   useEffect(() => {
     // Get payment details from URL parameters
     const paymentIntentId = searchParams.get("payment_intent");
-    const paymentIntentClientSecret = searchParams.get(
-      "payment_intent_client_secret"
-    );
+    const amount = searchParams.get("amount");
+    const currency = searchParams.get("currency");
+    const productName = searchParams.get("product_name");
     const redirectStatus = searchParams.get("redirect_status");
+    const paymentMethod = searchParams.get("payment_method");
 
-    if (paymentIntentId && redirectStatus === "succeeded") {
-      // Payment was successful
+    if (paymentIntentId) {
+      // Set payment details based on redirect status
       setPaymentDetails({
         paymentIntentId,
-        status: "succeeded",
-        amount: searchParams.get("amount"),
-        currency: searchParams.get("currency"),
-        productName: searchParams.get("product_name"),
+        status: redirectStatus || "unknown",
+        amount: amount,
+        currency: currency,
+        productName: productName ? decodeURIComponent(productName) : null,
+        paymentMethod: paymentMethod,
+        timestamp: new Date().toISOString(),
       });
-      // toast.success("Payment completed successfully!");
-    } else if (redirectStatus === "failed") {
-      toast.error("Payment failed. Please try again.");
-      router.push("/bookings");
+
+      // Show appropriate toast based on status
+      if (redirectStatus === "succeeded") {
+        toast.success("Payment completed successfully!");
+      } else if (redirectStatus === "processing") {
+        toast.info(
+          "Payment is being processed. You'll be notified once it's complete."
+        );
+      } else if (redirectStatus === "return") {
+        toast.info("Returned from payment process.");
+      }
+    } else {
+      // No payment intent ID - might be a direct visit
+      toast.warn("No payment information found.");
+      router.push("/");
+      return;
     }
 
     setLoading(false);
   }, [searchParams, router]);
 
-  // Auto-redirect to dashboard after 5 seconds
+  // Auto-redirect to dashboard after 5 seconds for successful payments
   useEffect(() => {
     if (paymentDetails?.status === "succeeded" && userData?.role) {
       const timer = setTimeout(() => {
-        setRedirecting(true);
+        setRedirecting(false);
 
         // Redirect based on user role
         let dashboardPath = "/dashboard";
@@ -79,7 +94,19 @@ export default function PaymentSuccessPage() {
   };
 
   const handleViewBookings = () => {
-    router.push("/dashboard/booked-services");
+    if (userData?.role) {
+      let dashboardPath = "/dashboard";
+      if (userData.role === "student") {
+        dashboardPath = "/dashboard/student";
+      } else if (userData.role === "individualTechProfessional") {
+        dashboardPath = "/dashboard/individual-tech-professional";
+      } else if (userData.role === "teamTechProfessional") {
+        dashboardPath = "/dashboard/team-tech-professional";
+      }
+      router.push(`${dashboardPath}/booked-services`);
+    } else {
+      router.push("/dashboard/booked-services");
+    }
   };
 
   const handleGoHome = () => {
@@ -113,14 +140,38 @@ export default function PaymentSuccessPage() {
         <div className="max-w-2xl mx-auto">
           {/* Success Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6">
-              <CheckCircle className="w-10 h-10 text-green-600" />
+            <div
+              className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-6 ${
+                paymentDetails?.status === "succeeded"
+                  ? "bg-green-100"
+                  : paymentDetails?.status === "processing"
+                  ? "bg-yellow-100"
+                  : "bg-blue-100"
+              }`}
+            >
+              <CheckCircle
+                className={`w-10 h-10 ${
+                  paymentDetails?.status === "succeeded"
+                    ? "text-green-600"
+                    : paymentDetails?.status === "processing"
+                    ? "text-yellow-600"
+                    : "text-blue-600"
+                }`}
+              />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-4">
-              Payment Successful!
+              {paymentDetails?.status === "succeeded"
+                ? "Payment Successful!"
+                : paymentDetails?.status === "processing"
+                ? "Payment Processing"
+                : "Payment Status"}
             </h1>
             <p className="text-lg text-gray-600 mb-2">
-              Thank you for your purchase. Your booking has been confirmed.
+              {paymentDetails?.status === "succeeded"
+                ? "Thank you for your purchase. Your booking has been confirmed."
+                : paymentDetails?.status === "processing"
+                ? "Your payment is being processed. Please wait for confirmation."
+                : "Your payment process has been completed."}
             </p>
             {paymentDetails?.productName && (
               <p className="text-gray-500">
@@ -150,11 +201,20 @@ export default function PaymentSuccessPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Status</p>
-                  <Badge className="bg-green-100 text-green-800">
+                  <Badge
+                    className={
+                      paymentDetails?.status === "succeeded"
+                        ? "bg-green-100 text-green-800"
+                        : paymentDetails?.status === "processing"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-blue-100 text-blue-800"
+                    }
+                  >
                     {paymentDetails?.status}
                   </Badge>
                 </div>
               </div>
+
               {paymentDetails?.amount && (
                 <div>
                   <p className="text-sm text-gray-500">Amount</p>
@@ -163,6 +223,24 @@ export default function PaymentSuccessPage() {
                       style: "currency",
                       currency: paymentDetails.currency?.toUpperCase() || "USD",
                     }).format(parseInt(paymentDetails.amount) / 100)}
+                  </p>
+                </div>
+              )}
+
+              {paymentDetails?.paymentMethod && (
+                <div>
+                  <p className="text-sm text-gray-500">Payment Method</p>
+                  <p className="font-mono text-sm bg-gray-100 p-2 rounded">
+                    {paymentDetails.paymentMethod.slice(-8)}
+                  </p>
+                </div>
+              )}
+
+              {paymentDetails?.timestamp && (
+                <div>
+                  <p className="text-sm text-gray-500">Transaction Time</p>
+                  <p className="text-sm">
+                    {new Date(paymentDetails.timestamp).toLocaleString()}
                   </p>
                 </div>
               )}
@@ -191,6 +269,37 @@ export default function PaymentSuccessPage() {
               </div>
             )}
 
+          {/* Processing payment notification */}
+          {paymentDetails?.status === "processing" && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+              <div className="text-center">
+                <p className="text-sm text-yellow-700 mb-2">
+                  ⏳ Your payment is being processed. This may take a few
+                  minutes.
+                </p>
+                <p className="text-xs text-yellow-600">
+                  You'll receive a confirmation email once the payment is
+                  complete.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Return from payment notification */}
+          {paymentDetails?.status === "return" && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+              <div className="text-center">
+                <p className="text-sm text-blue-700 mb-2">
+                  🔄 You've returned from the payment process.
+                </p>
+                <p className="text-xs text-blue-600">
+                  Please check your email for payment confirmation or contact
+                  support if you have any questions.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Redirecting state */}
           {redirecting && (
             <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
@@ -204,14 +313,25 @@ export default function PaymentSuccessPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button
-              onClick={handleContinueToDashboard}
-              disabled={redirecting}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 disabled:opacity-50"
-            >
-              <User className="w-5 h-5 mr-2" />
-              {redirecting ? "Redirecting..." : "Go to Dashboard Now"}
-            </Button>
+            {paymentDetails?.status === "succeeded" ? (
+              <Button
+                onClick={handleContinueToDashboard}
+                disabled={redirecting}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 disabled:opacity-50"
+              >
+                <User className="w-5 h-5 mr-2" />
+                {redirecting ? "Redirecting..." : "Go to Dashboard Now"}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleViewBookings}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3"
+              >
+                <User className="w-5 h-5 mr-2" />
+                View My Bookings
+              </Button>
+            )}
+
             <Button
               onClick={handleGoHome}
               variant="ghost"

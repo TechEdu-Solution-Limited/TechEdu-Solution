@@ -191,7 +191,6 @@ export const clearAllCookies = (): boolean => {
       "userId",
       "authToken",
       "session",
-      "accessToken",
     ];
 
     commonAuthCookies.forEach((cookieName) => {

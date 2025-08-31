@@ -113,6 +113,5 @@ export default function Page() {
 }
 `;
     fs.writeFileSync(pageFile, content, 'utf8');
-    console.log('Created:', pageFile);
   }
 }); 

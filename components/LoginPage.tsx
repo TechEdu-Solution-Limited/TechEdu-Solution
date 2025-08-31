@@ -10,11 +10,12 @@ import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "react-toastify";
-import { loginUser } from "@/lib/apiFetch";
+import { loginUser, apiRequest } from "@/lib/apiFetch";
 import {
   saveTokenToCookies,
   setCookie,
   saveTokensToCookies,
+  getCookie,
 } from "@/lib/cookies";
 
 const LoginPage = () => {
@@ -27,6 +28,7 @@ const LoginPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [oauthError, setOauthError] = useState<string | null>(null);
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
 
   const router = useRouter();
   const { setUserRole, setUserData, setIsAuthenticated } = useRole();
@@ -116,8 +118,8 @@ const LoginPage = () => {
   };
 
   // Function to determine redirect route based on user role and onboarding status
-  const getRedirectRoute = (userData: any) => {
-    const { role, onboardingStatus, id } = userData;
+  const getRedirectRoute = async (userData: any) => {
+    const { role, id } = userData;
 
     // Store userId in cookie for onboarding if needed
     if (id) {
@@ -144,32 +146,69 @@ const LoginPage = () => {
       return redirectTo;
     }
 
-    // PRIORITY 2: If onboarding is not completed, route to onboarding
-    if (
-      onboardingStatus === "not_started" ||
-      onboardingStatus === "in_progress"
-    ) {
-      switch (role) {
-        case "student":
-          return `/onboarding/student?userId=${id}${
-            redirectTo && redirectTo !== "/dashboard"
-              ? `&redirect=${encodeURIComponent(redirectTo)}`
-              : ""
-          }`;
-        case "recruiter":
-          return `/onboarding/recruiter?userId=${id}`;
-        case "institution":
-          return `/onboarding/institution?userId=${id}`;
-        case "individualTechProfessional":
-          return `/onboarding/tech-professional?userId=${id}`;
-        case "teamTechProfessional":
-          return `/onboarding/team-tech-professional?userId=${id}`;
-        default:
-          return `/onboarding?userId=${id}`;
+    // PRIORITY 2: Check onboarding status from API for intelligent routing
+    try {
+      // Get fresh token after login
+      const token = getCookie("token");
+      if (!token) {
+        return getOnboardingRoute(role, id);
       }
+
+      // Set loading state for better UX
+      setIsCheckingOnboarding(true);
+
+      // Check onboarding status to determine routing
+      const startResponse = await apiRequest(
+        "/api/onboarding/start",
+        "POST",
+        { userId: id, userType: role },
+        token
+      );
+
+      if (startResponse.status === 200 && startResponse.data) {
+        const onboardingStatus = startResponse.data?.status;
+
+        // If onboarding is completed, go directly to dashboard
+        if (onboardingStatus === "completed") {
+          return getDashboardRoute(role);
+        }
+
+        // If onboarding is in progress, get detailed progress and route to onboarding
+        if (onboardingStatus === "in_progress") {
+          try {
+            const progressResponse = await apiRequest(
+              `/api/onboarding/${id}/progress`,
+              "GET",
+              undefined,
+              token
+            );
+          } catch (progressError) {
+            console.error("Error fetching progress details:", progressError);
+          }
+          return getOnboardingRoute(role, id);
+        }
+
+        // If onboarding hasn't started, route to onboarding
+        if (onboardingStatus === "not_started" || !onboardingStatus) {
+          return getOnboardingRoute(role, id);
+        } else {
+          console.warn("Unexpected onboarding response:", startResponse);
+        }
+      }
+    } catch (error) {
+      console.error("Error checking onboarding status:", error);
+      // If API call fails, fall back to onboarding route for safety
+    } finally {
+      // Reset loading state
+      setIsCheckingOnboarding(false);
     }
 
-    // PRIORITY 3: If onboarding is completed, use role-specific dashboard
+    // PRIORITY 3: Fallback to onboarding route if anything goes wrong
+    return getOnboardingRoute(role, id);
+  };
+
+  // Helper functions for routing
+  const getDashboardRoute = (role: string) => {
     const roleToDashboardRoute: Record<string, string> = {
       student: "student",
       recruiter: "recruiter",
@@ -177,18 +216,28 @@ const LoginPage = () => {
       individualTechProfessional: "individual-tech-professional",
       teamTechProfessional: "team-tech-professional",
     };
-    if (onboardingStatus === "completed") {
-      const dashboardRoute = `/dashboard/${
-        roleToDashboardRoute[role] || "student"
-      }`;
-      return dashboardRoute;
-    }
+    return `/dashboard/${roleToDashboardRoute[role] || "student"}`;
+  };
 
-    // PRIORITY 4: Fallback to role-specific dashboard (in case onboardingStatus is undefined)
-    const fallbackRoute = `/dashboard/${
-      roleToDashboardRoute[role] || "student"
-    }`;
-    return fallbackRoute;
+  const getOnboardingRoute = (role: string, id: string) => {
+    switch (role) {
+      case "student":
+        return `/onboarding/student?userId=${id}${
+          redirectTo && redirectTo !== "/dashboard"
+            ? `&redirect=${encodeURIComponent(redirectTo)}`
+            : ""
+        }`;
+      case "recruiter":
+        return `/onboarding/recruiter?userId=${id}`;
+      case "institution":
+        return `/onboarding/institution?userId=${id}`;
+      case "individualTechProfessional":
+        return `/onboarding/tech-professional?userId=${id}`;
+      case "teamTechProfessional":
+        return `/onboarding/team-tech-professional?userId=${id}`;
+      default:
+        return `/onboarding?userId=${id}`;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -199,7 +248,7 @@ const LoginPage = () => {
       toast.success("Login successful!");
 
       // Use the getRedirectRoute function to properly handle onboarding status
-      const targetRoute = getRedirectRoute(user);
+      const targetRoute = await getRedirectRoute(user);
 
       // Small delay to ensure authentication state is updated
       setTimeout(() => {

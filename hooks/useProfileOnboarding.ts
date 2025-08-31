@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
-import { useProfile } from "@/contexts/ProfileContext";
+import { useProfileData } from "@/hooks/useProfileData";
 
 export const useProfileOnboarding = (
   token: string,
@@ -8,7 +8,7 @@ export const useProfileOnboarding = (
   stepFieldMapping: Record<number, string[]>
 ) => {
   const { getOnboardingProgress, completeStep } = useOnboardingStatus(token);
-  const { updateProfile } = useProfile();
+  const { updateProfile } = useProfileData();
 
   const [onboardingProgress, setOnboardingProgress] = useState<any>(null);
   const [skippedSteps, setSkippedSteps] = useState<Set<number>>(new Set());

@@ -172,6 +172,15 @@ export default function ForEmployers() {
               It’s not just another job form. It’s your first step to smarter
               graduate hiring.
             </p>
+
+            <div className="">
+              <Link
+                href="/career-connect/list-jobs"
+                className="bg-[#0D1140] hover:text-blue-400 text-white text-center px-6 py-4 rounded text-[1rem] font-medium transition "
+              >
+                Explore Jobs
+              </Link>
+            </div>
           </div>
 
           {/* Right Illustration */}

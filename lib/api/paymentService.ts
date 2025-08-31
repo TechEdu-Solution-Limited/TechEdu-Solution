@@ -21,9 +21,6 @@ export class PaymentService {
     data: CreatePaymentIntentRequest,
     token: string
   ): Promise<ApiResponse<PaymentResponse>> {
-    console.log("Creating payment intent with data:", data);
-    console.log("Using token:", token ? "Token present" : "No token");
-
     const response = await postApiRequest(
       `${this.baseUrl}/create-intent`,
       data,
@@ -31,8 +28,6 @@ export class PaymentService {
         Authorization: `Bearer ${token}`,
       }
     );
-
-    console.log("Payment intent response:", response);
     return response;
   }
 

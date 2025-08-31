@@ -76,7 +76,7 @@ export default function AcademicServices() {
         {/* Background Layer */}
         <div className="absolute inset-0 h-full xl:h-[80vh] z-0 bg-gradient-to-b from-[#011F72] to-[#ffffff] xl:bg-none xl:bg-[#0D1140]"></div>
         {/* Foreground Content */}
-        <div className="relative grid grid-cols-1 xl:grid-cols-2 gap-8 md:gap-24 z-10 pt-16">
+        <div className="relative grid grid-cols-1 xl:grid-cols-2 gap-8 md:gap-24 z-10 pt-12">
           {/* Left: Hero Content */}
           <div className="space-y-6 text-center md:pt-[6rem] xl:text-left xl:pt-12">
             <h1 className="text-4xl lg:text-5xl font-bold leading-tight xl:w-[63vw] text-white">
