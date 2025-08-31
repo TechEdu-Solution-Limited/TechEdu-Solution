@@ -60,7 +60,7 @@ export default function ContactForm() {
                     href="mailto:contact@techedusolution.com"
                     className="text-[1rem] text-black font-medium hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 ease-in-out"
                   >
-                    contact@techedusolution.com
+                    info@techedusolution.com
                   </Link>
                 </li>
                 <li className="flex items-center gap-4 sm:gap-6">
@@ -69,7 +69,7 @@ export default function ContactForm() {
                     href="tel:+442071234567"
                     className="text-[1rem] text-black font-medium hover:text-gray-900 hover:font-bold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    +44 20 7123 4567
+                    +44 78 4882 9768
                   </Link>
                 </li>
                 <li className="flex items-center gap-4 sm:gap-6">
@@ -78,12 +78,12 @@ export default function ContactForm() {
                     className="text-green-600 flex-shrink-0"
                   />
                   <Link
-                    href="https://wa.me/442071234567"
+                    href="https://wa.me/447848829768"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[1rem] text-black font-medium hover:text-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 ease-in-out"
                   >
-                    +44 20 7123 4567
+                    +44 78 4882 9768
                   </Link>
                 </li>
               </ul>
@@ -178,11 +178,10 @@ export default function ContactForm() {
               >
                 <option value="">Select your role</option>
                 <option value="student">Student</option>
-                <option value="parent">Parent</option>
-                <option value="teacher">Teacher</option>
-                <option value="school">School</option>
-                <option value="company">Company</option>
-                <option value="investor">Investor</option>
+                <option value="parent">Individual Tech Professional</option>
+                <option value="teacher">Team Tech Professional</option>
+                <option value="school">Institution</option>
+                <option value="company">Recruiter</option>
                 <option value="other">Other</option>
               </select>
             </div>

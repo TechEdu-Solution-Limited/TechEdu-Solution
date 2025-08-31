@@ -83,7 +83,7 @@ export default function CatalogPage({
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
 
-  const scrollRef = useRef(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftShadow, setShowLeftShadow] = useState(false);
   const [showRightShadow, setShowRightShadow] = useState(true); // assume can scroll right initially
 
@@ -98,11 +98,11 @@ export default function CatalogPage({
 
     updateShadows(); // initial check
 
-    el.addEventListener("scroll", updateShadows);
+    el?.addEventListener("scroll", updateShadows);
     window.addEventListener("resize", updateShadows); // update on resize too
 
     return () => {
-      el.removeEventListener("scroll", updateShadows);
+      el?.removeEventListener("scroll", updateShadows);
       window.removeEventListener("resize", updateShadows);
     };
   }, []);
@@ -234,6 +234,8 @@ export default function CatalogPage({
       const bookingUrl = `/bookings?productId=${
         product._id
       }&productName=${encodeURIComponent(
+        product.service
+      )}&service=${encodeURIComponent(
         product.service
       )}&productType=${encodeURIComponent(
         product.productType

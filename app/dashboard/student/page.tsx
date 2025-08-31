@@ -28,23 +28,23 @@ const MOCK_AVATAR = "/assets/placeholder-avatar.jpg";
 
 function StatusBadge({ status }: { status: string }) {
   const statusConfig = {
-    Active: {
+    confirmed: {
       color: "bg-emerald-100 text-emerald-700 border-emerald-200",
       icon: CheckCircle,
     },
-    Completed: {
+    completed: {
       color: "bg-blue-100 text-blue-700 border-blue-200",
       icon: CheckCircle,
     },
-    Pending: {
+    pending: {
       color: "bg-amber-100 text-amber-700 border-amber-200",
       icon: Clock,
     },
-    Rejected: { color: "bg-red-100 text-red-700 border-red-200", icon: Clock },
+    cancelled: { color: "bg-red-100 text-red-700 border-red-200", icon: Clock },
   };
 
   const config =
-    statusConfig[status as keyof typeof statusConfig] || statusConfig.Pending;
+    statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
   const IconComponent = config.icon;
 
   return (
@@ -72,6 +72,10 @@ export default function StudentDashboard() {
   const [error, setError] = useState("");
   const [data, setData] = useState<any>(null);
   const [onboardingProgress, setOnboardingProgress] = useState<any>(null);
+  const [activeServices, setActiveServices] = useState<any[]>([]);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [showAllServices, setShowAllServices] = useState(false);
   const [showAllAnnouncements, setShowAllAnnouncements] = useState(false);
 
@@ -107,13 +111,126 @@ export default function StudentDashboard() {
         if (response.status === 200 && response.data?.data) {
           setOnboardingProgress(response.data.data);
         }
-      } catch (error) {
-        console.error("Error fetching onboarding progress:", error);
+      } catch (error: any) {
+        // Enhanced error logging to help debug API issues
+        console.error("Error fetching onboarding progress details:", {
+          error: error,
+          message: error?.message,
+          status: error?.status,
+          data: error?.data,
+          stack: error?.stack,
+          response: error?.response,
+        });
         // Don't set error state here as it's not critical for dashboard display
       }
     }
 
     fetchOnboardingProgress();
+  }, [userData?.email]);
+
+  // Fetch active services from bookings API
+  useEffect(() => {
+    async function fetchActiveServices() {
+      if (!userData?.email) return;
+
+      try {
+        setServicesLoading(true);
+        const token = getTokenFromCookies();
+        if (!token) return;
+
+        const response = await getApiRequestWithRefresh(
+          "/api/bookings/user/my-bookings",
+          token
+        );
+
+        if (response.status === 200 && response.data?.data) {
+          const bookings = response.data.data;
+          // Filter for active services and transform data
+          const services = bookings
+            .filter(
+              (booking: any) =>
+                booking.status === "confirmed" ||
+                booking.status === "pending" ||
+                booking.status === "completed"
+            )
+            .map((booking: any) => ({
+              id: booking._id || booking.id,
+              name: booking.bookingPurpose || "Service",
+              status: booking.status,
+              bookedAt: new Date(
+                booking.createdAt || booking.scheduleAt
+              ).toLocaleDateString(),
+              link: `/dashboard/bookings/${booking._id || booking.id}`,
+            }));
+
+          setActiveServices(services);
+        }
+      } catch (error: any) {
+        // Enhanced error logging to help debug API issues
+        console.error("Error fetching active services details:", {
+          error: error,
+          message: error?.message,
+          status: error?.status,
+          data: error?.data,
+          stack: error?.stack,
+          response: error?.response,
+        });
+        setActiveServices([]);
+      } finally {
+        setServicesLoading(false);
+      }
+    }
+
+    fetchActiveServices();
+  }, [userData?.email]);
+
+  // Fetch notifications from notifications API
+  useEffect(() => {
+    async function fetchNotifications() {
+      if (!userData?.email) return;
+
+      try {
+        setNotificationsLoading(true);
+        const token = getTokenFromCookies();
+        if (!token) return;
+
+        const response = await getApiRequestWithRefresh(
+          "/api/notifications?page=1&limit=5&unreadOnly=true",
+          token
+        );
+
+        if (response.status === 200 && response.data?.data?.notifications) {
+          const notifications = response.data.data.notifications;
+          // Transform notifications data
+          const transformedNotifications = notifications
+            .filter((notification: any) => !notification.isRead)
+            .map((notification: any) => ({
+              title:
+                notification.title || notification.message || "Notification",
+              content: notification.message || "No content",
+              date: new Date(notification.createdAt).toLocaleDateString(),
+              id: notification._id || notification.id,
+            }));
+
+          setAnnouncements(transformedNotifications);
+        }
+      } catch (error: any) {
+        // Enhanced error logging to help debug API issues
+        console.error("Error fetching notifications details:", {
+          error: error,
+          message: error?.message,
+          status: error?.status,
+          data: error?.data,
+          stack: error?.stack,
+          response: error?.response,
+        });
+        setAnnouncements([]);
+      } finally {
+        setNotificationsLoading(false);
+      }
+    }
+
+    fetchNotifications();
   }, [userData?.email]);
 
   useEffect(() => {
@@ -145,7 +262,12 @@ export default function StudentDashboard() {
     () => [
       {
         label: "Courses Enrolled",
-        value: data?.courses?.length || 0,
+        value:
+          activeServices.filter(
+            (s: any) =>
+              s.name.toLowerCase().includes("course") ||
+              s.name.toLowerCase().includes("training")
+          ).length || 0,
         icon: <BookOpen className="text-blue-600" size={24} />,
         href: "/dashboard/booked-services",
         gradient: "from-blue-500 to-blue-600",
@@ -161,19 +283,14 @@ export default function StudentDashboard() {
       },
       {
         label: "Services Booked",
-        value: data?.services?.length || 0,
+        value: activeServices.length || 0,
         icon: <ClipboardList className="text-purple-600" size={24} />,
         href: "/dashboard/booked-services",
         gradient: "from-purple-500 to-purple-600",
         bgGradient: "from-purple-50 to-purple-100",
       },
     ],
-    [data]
-  );
-
-  const activeServices = useMemo(
-    () => (data?.services || []).filter((s: any) => s.status === "Active"),
-    [data]
+    [data, activeServices]
   );
 
   const servicesToShow = showAllServices
@@ -211,7 +328,6 @@ export default function StudentDashboard() {
     },
   ];
 
-  const announcements = data?.announcements || [];
   const announcementsToShow = showAllAnnouncements
     ? announcements
     : announcements.slice(0, 2);
@@ -392,7 +508,14 @@ export default function StudentDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {activeServices.length === 0 ? (
+            {servicesLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                <div className="text-gray-500 font-medium mb-2">
+                  Loading services...
+                </div>
+              </div>
+            ) : activeServices.length === 0 ? (
               <div className="text-center py-8">
                 <ClipboardList
                   size={48}
@@ -404,6 +527,41 @@ export default function StudentDashboard() {
                 <div className="text-sm text-gray-400">
                   Book a service to get started!
                 </div>
+                <Link
+                  href={(() => {
+                    switch (userData?.role) {
+                      case "student":
+                        return "/academic-services";
+                      case "individualTechProfessional":
+                      case "teamTechProfessional":
+                        return "/training/catalog";
+                      case "institution":
+                        return "/corporate-consultancy";
+                      case "recruiter":
+                        return "/career-connect";
+                      default:
+                        return "/academic-services"; // fallback for unknown roles
+                    }
+                  })()}
+                >
+                  <Button className="mt-4 text-white hover:text-black">
+                    {(() => {
+                      switch (userData?.role) {
+                        case "student":
+                          return "Book Academic Service";
+                        case "individualTechProfessional":
+                        case "teamTechProfessional":
+                          return "Book Training Program";
+                        case "institution":
+                          return "Corporate Consultancy";
+                        case "recruiter":
+                          return "Career Connect";
+                        default:
+                          return "Book a Service";
+                      }
+                    })()}
+                  </Button>
+                </Link>
               </div>
             ) : (
               <div className="space-y-3">
@@ -443,6 +601,16 @@ export default function StudentDashboard() {
                       : `Show ${activeServices.length - 2} More`}
                   </Button>
                 )}
+                {activeServices.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <Link
+                      href="/dashboard/bookings"
+                      className="w-full text-center text-purple-600 hover:text-purple-700 text-sm font-medium hover:bg-purple-50 py-2 rounded-lg transition-colors"
+                    >
+                      View All Bookings →
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
@@ -453,15 +621,22 @@ export default function StudentDashboard() {
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-xl">
               <Bell className="text-orange-600" size={24} />
-              Recent Announcements
+              Recent Notifications
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {announcements.length === 0 ? (
+            {notificationsLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-4"></div>
+                <div className="text-gray-500 font-medium mb-2">
+                  Loading notifications...
+                </div>
+              </div>
+            ) : announcements.length === 0 ? (
               <div className="text-center py-8">
                 <Bell size={48} className="text-gray-300 mx-auto mb-4" />
                 <div className="text-gray-500 font-medium mb-2">
-                  No announcements
+                  No notifications
                 </div>
                 <div className="text-sm text-gray-400">
                   Check back later for updates
@@ -503,6 +678,16 @@ export default function StudentDashboard() {
                       ? "Show Less"
                       : `Show ${announcements.length - 2} More`}
                   </Button>
+                )}
+                {announcements.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <Link
+                      href="/dashboard/notifications"
+                      className="w-full text-center text-orange-600 hover:text-orange-700 text-sm font-medium hover:bg-orange-50 py-2 rounded-lg transition-colors"
+                    >
+                      View All Notifications →
+                    </Link>
+                  </div>
                 )}
               </div>
             )}
