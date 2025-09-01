@@ -139,6 +139,7 @@ export const INavLinks: INavLink[] = [
       // { href: "/career-connect/graduates", label: "For Graduates" },
       // { href: "/career-connect/talents", label: "Browse Talent" },
       { href: "/career-connect/post-job", label: "Post a Job" },
+      { href: "/career-connect/list-jobs", label: "Explore Jobs" },
     ],
   },
   {
