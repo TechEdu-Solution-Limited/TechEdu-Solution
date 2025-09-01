@@ -205,7 +205,7 @@ const Footer = () => {
 
           <nav aria-label="Social Media" className="flex gap-3 ml-4">
             <Link
-              href="#"
+              href="https://www.linkedin.com/company/techedusolution"
               aria-label="LinkedIn"
               className="hover:text-blue-300 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
             >
