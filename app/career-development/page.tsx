@@ -176,7 +176,7 @@ export default function CareerDevelopment() {
 
             <div className="pt-10">
               <Link
-                href="/contact#discovery-call"
+                href="/contact"
                 className="bg-[#0D1140] hover:bg-blue-700 text-white text-center px-6 py-4 rounded text-[1rem] font-medium transition "
               >
                 Book a Free Discovery Call
@@ -228,7 +228,7 @@ export default function CareerDevelopment() {
           steps={steps}
           resultLink={{
             text: "Book a Free Discovery Call",
-            href: "/contact#discovery-call",
+            href: "/contact",
           }}
           primaryColor="green-600"
           secondaryColor="[#011F72]"
@@ -300,7 +300,7 @@ export default function CareerDevelopment() {
               title: "Final Year Student",
               desc: "",
               image: "",
-              url: "/contact#discovery-call",
+              url: "/contact",
               action: "Book Coaching →",
             },
             {
@@ -441,15 +441,14 @@ export default function CareerDevelopment() {
               <p className="text-sm md:text-base mb-4">
                 Calls are 15–30 minutes with a real strategist — not a bot.
               </p>
-              {/* <Link
-                href="/contact"
-                className="inline-block text-center bg-gray-200 text-[#011F72] font-semibold mt-4 px-6 py-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-800 hover:bg-gray-300 transition"
-              >
-                Book a Free Discovery Call
-              </Link> */}
+              <Link href="/contact#contact-form">
+          <button className="bg-[#0D1140] text-white px-6 py-4 rounded-[8px] hover:bg-blue-700 transition-colors duration-200">
+            Book a Free Consultation
+          </button>
+          </Link>
             </div>
 
-            <div className="bg-white rounded-[10px] shadow-sm p-4 mb-6">
+            {/* <div className="bg-white rounded-[10px] shadow-sm p-4 mb-6">
               <p className="text-gray-600 text-sm mb-4">
                 Use the calendar below to choose a time that works for you.
               </p>
@@ -530,7 +529,7 @@ export default function CareerDevelopment() {
                   )}
                 </div>
               )}
-            </div>
+            </div> */}
           </div>
         </div>
       </section>
@@ -551,7 +550,7 @@ export default function CareerDevelopment() {
                   href="mailto:career@techedusolution.com"
                   className="hover:underline"
                 >
-                  career@techedusolution.com
+                  info@techedusolution.com
                 </Link>
               </h3>
               <p className="text-sm md:text-base mb-6">

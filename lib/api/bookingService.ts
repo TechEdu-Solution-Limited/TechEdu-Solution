@@ -1,4 +1,9 @@
-import { postApiRequest, getApiRequest, deleteApiRequest } from "../apiFetch";
+import {
+  postApiRequest,
+  getApiRequest,
+  deleteApiRequest,
+  putApiRequest,
+} from "../apiFetch";
 import type {
   Booking,
   BookingRequest,
@@ -8,6 +13,9 @@ import type {
   ServiceCategory,
   ServiceLevel,
   ApiResponse,
+  RescheduleRequest,
+  RescheduleRequestResponse,
+  CreateRescheduleRequestData,
 } from "@/types";
 
 export class BookingService {
@@ -98,6 +106,102 @@ export class BookingService {
       `${this.baseUrl}/bookings/${bookingId}/reschedule`,
       { scheduledDate: newDate },
       { Authorization: `Bearer ${token}` }
+    );
+  }
+
+  /**
+   * Create a reschedule request
+   */
+  static async createRescheduleRequest(
+    data: CreateRescheduleRequestData,
+    token: string
+  ): Promise<ApiResponse<RescheduleRequestResponse>> {
+    return postApiRequest(`${this.baseUrl}/reschedule`, data, {
+      Authorization: `Bearer ${token}`,
+    });
+  }
+
+  /**
+   * Reject a reschedule request
+   */
+  static async rejectRescheduleRequest(
+    rescheduleId: string,
+    token: string,
+    reason?: string
+  ): Promise<ApiResponse<RescheduleRequestResponse>> {
+    return putApiRequest(
+      `${this.baseUrl}/reschedule/${rescheduleId}/reject`,
+      { reason },
+      token
+    );
+  }
+
+  /**
+   * Approve a reschedule request
+   */
+  static async approveRescheduleRequest(
+    rescheduleId: string,
+    token: string
+  ): Promise<ApiResponse<RescheduleRequestResponse>> {
+    return putApiRequest(
+      `${this.baseUrl}/reschedule/${rescheduleId}/approve`,
+      {},
+      token
+    );
+  }
+
+  /**
+   * Get reschedule request by ID
+   */
+  static async getRescheduleRequest(
+    rescheduleId: string,
+    token: string
+  ): Promise<ApiResponse<RescheduleRequestResponse>> {
+    return getApiRequest(`${this.baseUrl}/reschedule/${rescheduleId}`, token);
+  }
+
+  /**
+   * Get all reschedule requests for a user
+   */
+  static async getUserRescheduleRequests(
+    token: string,
+    params?: {
+      status?: string;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<
+    ApiResponse<{
+      requests: RescheduleRequest[];
+      totalCount: number;
+      totalPages: number;
+    }>
+  > {
+    return getApiRequest(`${this.baseUrl}/reschedule`, token, params);
+  }
+
+  /**
+   * Get reschedule requests for an instructor
+   */
+  static async getInstructorRescheduleRequests(
+    instructorId: string,
+    token: string,
+    params?: {
+      status?: string;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<
+    ApiResponse<{
+      requests: RescheduleRequest[];
+      totalCount: number;
+      totalPages: number;
+    }>
+  > {
+    return getApiRequest(
+      `${this.baseUrl}/instructors/${instructorId}/reschedule-requests`,
+      token,
+      params
     );
   }
 

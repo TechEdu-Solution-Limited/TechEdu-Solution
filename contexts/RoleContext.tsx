@@ -95,7 +95,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     teamTechProfessional: "/dashboard/team-tech-professional",
     recruiter: "/dashboard/company",
     institution: "/dashboard/institution",
-    admin: "/dashboard/admin",
+    // admin: "/dashboard/admin",
   };
 
   const redirectToRoleDashboard = (role?: UserRole) => {

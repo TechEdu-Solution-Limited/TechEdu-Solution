@@ -141,7 +141,7 @@ const serviceCategories: Record<TabType, ServiceCategory> = {
         name: "Leadership & Management",
         tier: "Executive Coaching",
         format: "In-person or online, full-day session with customized plan",
-        price: "£500/day",
+        price: "£500/individual",
         delivery: "Includes prep call + post-training handouts",
       },
       {
@@ -483,7 +483,7 @@ export default function Pricing() {
                   href="mailto:contact@techedusolution.com"
                   className="text-[1rem] text-black font-medium hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 ease-in-out"
                 >
-                  careerconnect@techedusolution.com
+                  info@techedusolution.com
                 </Link>
               </p>
             </div>
@@ -492,7 +492,7 @@ export default function Pricing() {
               {[
                 {
                   text: "Book a Free Discovery Call",
-                  href: "/contact#discovery-call",
+                  href: "/contact",
                 },
                 { text: "Browse FAQs", href: "/about" },
                 { text: "Chat With Us", href: "/contact" },

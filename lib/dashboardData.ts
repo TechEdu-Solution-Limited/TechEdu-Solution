@@ -47,7 +47,7 @@ export type UserRole =
   | "individualTechProfessional"
   | "teamTechProfessional"
   | "recruiter"
-  | "admin";
+  // | "admin";
 
 export interface DashboardMenuItem {
   id: string;
@@ -865,187 +865,187 @@ export const dashboardData: Record<UserRole, RoleDashboardData> = {
     ],
   },
 
-  admin: {
-    role: "admin",
-    displayName: "Admin Dashboard",
-    description: "System administration and user management",
-    sections: [
-      {
-        id: "overview",
-        title: "Overview",
-        items: [
-          {
-            id: "dashboard",
-            title: "Dashboard",
-            href: "/dashboard",
-            icon: LayoutDashboard,
-            isActive: true,
-          },
-          {
-            id: "profile",
-            title: "Admin Profile",
-            href: "/dashboard/profile",
-            icon: User,
-          },
-          {
-            id: "notifications",
-            title: "System Alerts",
-            href: "/dashboard/notifications",
-            icon: Bell,
-            badge: 12,
-          },
-        ],
-      },
-      {
-        id: "users",
-        title: "User Management",
-        items: [
-          {
-            id: "all-users",
-            title: "All Users",
-            href: "/dashboard/users",
-            icon: Users,
-          },
-          {
-            id: "user-roles",
-            title: "User Roles",
-            href: "/dashboard/user-roles",
-            icon: Shield,
-          },
-          {
-            id: "user-activity",
-            title: "User Activity",
-            href: "/dashboard/user-activity",
-            icon: BarChart3,
-          },
-        ],
-      },
-      {
-        id: "content",
-        title: "Content Management",
-        items: [
-          {
-            id: "courses",
-            title: "Courses",
-            href: "/dashboard/courses",
-            icon: BookOpen,
-          },
-          {
-            id: "certifications",
-            title: "Certifications",
-            href: "/dashboard/certifications",
-            icon: Award,
-          },
-          {
-            id: "mentors",
-            title: "Mentors",
-            href: "/dashboard/mentors",
-            icon: Users,
-          },
-          {
-            id: "jobs",
-            title: "Job Postings",
-            href: "/dashboard/jobs",
-            icon: Briefcase,
-          },
-        ],
-      },
-      {
-        id: "analytics",
-        title: "Analytics",
-        items: [
-          {
-            id: "system-stats",
-            title: "System Stats",
-            href: "/dashboard/system-stats",
-            icon: BarChart3,
-          },
-          {
-            id: "reports",
-            title: "Reports",
-            href: "/dashboard/reports",
-            icon: FileText,
-          },
-          {
-            id: "logs",
-            title: "System Logs",
-            href: "/dashboard/logs",
-            icon: FileText,
-          },
-        ],
-      },
-      {
-        id: "settings",
-        title: "Settings",
-        items: [
-          {
-            id: "system-settings",
-            title: "System Settings",
-            href: "/dashboard/system-settings",
-            icon: Settings,
-          },
-          {
-            id: "security",
-            title: "Security",
-            href: "/dashboard/security",
-            icon: Shield,
-          },
-          {
-            id: "backup",
-            title: "Backup & Restore",
-            href: "/dashboard/backup",
-            icon: Download,
-          },
-        ],
-      },
-    ],
-    quickActions: [
-      {
-        id: "add-user",
-        title: "Add User",
-        href: "/dashboard/users/new",
-        icon: Plus,
-      },
-      {
-        id: "create-course",
-        title: "Create Course",
-        href: "/dashboard/courses/new",
-        icon: BookOpen,
-      },
-      {
-        id: "system-backup",
-        title: "System Backup",
-        href: "/dashboard/backup",
-        icon: Download,
-      },
-    ],
-    stats: [
-      {
-        label: "Total Users",
-        value: 1247,
-        change: "+23",
-        icon: Users,
-      },
-      {
-        label: "Active Courses",
-        value: 45,
-        change: "+3",
-        icon: BookOpen,
-      },
-      {
-        label: "System Health",
-        value: "98%",
-        change: "+2%",
-        icon: CheckCircle,
-      },
-      {
-        label: "Revenue",
-        value: "$45.2K",
-        change: "+12%",
-        icon: TrendingUp,
-      },
-    ],
-  },
+  // admin: {
+  //   role: "admin",
+  //   displayName: "Admin Dashboard",
+  //   description: "System administration and user management",
+  //   sections: [
+  //     {
+  //       id: "overview",
+  //       title: "Overview",
+  //       items: [
+  //         {
+  //           id: "dashboard",
+  //           title: "Dashboard",
+  //           href: "/dashboard",
+  //           icon: LayoutDashboard,
+  //           isActive: true,
+  //         },
+  //         {
+  //           id: "profile",
+  //           title: "Admin Profile",
+  //           href: "/dashboard/profile",
+  //           icon: User,
+  //         },
+  //         {
+  //           id: "notifications",
+  //           title: "System Alerts",
+  //           href: "/dashboard/notifications",
+  //           icon: Bell,
+  //           badge: 12,
+  //         },
+  //       ],
+  //     },
+  //     {
+  //       id: "users",
+  //       title: "User Management",
+  //       items: [
+  //         {
+  //           id: "all-users",
+  //           title: "All Users",
+  //           href: "/dashboard/users",
+  //           icon: Users,
+  //         },
+  //         {
+  //           id: "user-roles",
+  //           title: "User Roles",
+  //           href: "/dashboard/user-roles",
+  //           icon: Shield,
+  //         },
+  //         {
+  //           id: "user-activity",
+  //           title: "User Activity",
+  //           href: "/dashboard/user-activity",
+  //           icon: BarChart3,
+  //         },
+  //       ],
+  //     },
+  //     {
+  //       id: "content",
+  //       title: "Content Management",
+  //       items: [
+  //         {
+  //           id: "courses",
+  //           title: "Courses",
+  //           href: "/dashboard/courses",
+  //           icon: BookOpen,
+  //         },
+  //         {
+  //           id: "certifications",
+  //           title: "Certifications",
+  //           href: "/dashboard/certifications",
+  //           icon: Award,
+  //         },
+  //         {
+  //           id: "mentors",
+  //           title: "Mentors",
+  //           href: "/dashboard/mentors",
+  //           icon: Users,
+  //         },
+  //         {
+  //           id: "jobs",
+  //           title: "Job Postings",
+  //           href: "/dashboard/jobs",
+  //           icon: Briefcase,
+  //         },
+  //       ],
+  //     },
+  //     {
+  //       id: "analytics",
+  //       title: "Analytics",
+  //       items: [
+  //         {
+  //           id: "system-stats",
+  //           title: "System Stats",
+  //           href: "/dashboard/system-stats",
+  //           icon: BarChart3,
+  //         },
+  //         {
+  //           id: "reports",
+  //           title: "Reports",
+  //           href: "/dashboard/reports",
+  //           icon: FileText,
+  //         },
+  //         {
+  //           id: "logs",
+  //           title: "System Logs",
+  //           href: "/dashboard/logs",
+  //           icon: FileText,
+  //         },
+  //       ],
+  //     },
+  //     {
+  //       id: "settings",
+  //       title: "Settings",
+  //       items: [
+  //         {
+  //           id: "system-settings",
+  //           title: "System Settings",
+  //           href: "/dashboard/system-settings",
+  //           icon: Settings,
+  //         },
+  //         {
+  //           id: "security",
+  //           title: "Security",
+  //           href: "/dashboard/security",
+  //           icon: Shield,
+  //         },
+  //         {
+  //           id: "backup",
+  //           title: "Backup & Restore",
+  //           href: "/dashboard/backup",
+  //           icon: Download,
+  //         },
+  //       ],
+  //     },
+  //   ],
+  //   quickActions: [
+  //     {
+  //       id: "add-user",
+  //       title: "Add User",
+  //       href: "/dashboard/users/new",
+  //       icon: Plus,
+  //     },
+  //     {
+  //       id: "create-course",
+  //       title: "Create Course",
+  //       href: "/dashboard/courses/new",
+  //       icon: BookOpen,
+  //     },
+  //     {
+  //       id: "system-backup",
+  //       title: "System Backup",
+  //       href: "/dashboard/backup",
+  //       icon: Download,
+  //     },
+  //   ],
+  //   stats: [
+  //     {
+  //       label: "Total Users",
+  //       value: 1247,
+  //       change: "+23",
+  //       icon: Users,
+  //     },
+  //     {
+  //       label: "Active Courses",
+  //       value: 45,
+  //       change: "+3",
+  //       icon: BookOpen,
+  //     },
+  //     {
+  //       label: "System Health",
+  //       value: "98%",
+  //       change: "+2%",
+  //       icon: CheckCircle,
+  //     },
+  //     {
+  //       label: "Revenue",
+  //       value: "$45.2K",
+  //       change: "+12%",
+  //       icon: TrendingUp,
+  //     },
+  //   ],
+  // },
 };
 
 export const getUserDashboardData = (role: UserRole): RoleDashboardData => {

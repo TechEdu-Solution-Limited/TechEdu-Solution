@@ -28,6 +28,9 @@ export type {
   Instructor,
   ServiceCategory,
   ServiceLevel,
+  RescheduleRequest,
+  RescheduleRequestResponse,
+  CreateRescheduleRequestData,
 } from "./booking";
 
 // Session & Classroom Types

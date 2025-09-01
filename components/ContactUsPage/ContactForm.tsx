@@ -168,21 +168,6 @@ export default function ContactForm() {
             className="space-y-6"
             aria-label="Contact form"
           >
-            {/* Submit Status Messages */}
-            {submitStatus === "success" && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                <p className="text-green-800 font-medium">{submitMessage}</p>
-              </div>
-            )}
-
-            {submitStatus === "error" && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 text-red-600" />
-                <p className="text-red-800 font-medium">{submitMessage}</p>
-              </div>
-            )}
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
@@ -352,6 +337,20 @@ export default function ContactForm() {
                 "Send Message →"
               )}
             </button>
+            {/* Submit Status Messages */}
+            {submitStatus === "success" && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <p className="text-green-800 font-medium">{submitMessage}</p>
+              </div>
+            )}
+
+            {submitStatus === "error" && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600" />
+                <p className="text-red-800 font-medium">{submitMessage}</p>
+              </div>
+            )}
           </form>
         </div>
       </div>

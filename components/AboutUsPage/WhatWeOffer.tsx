@@ -66,6 +66,7 @@ export default function WhatWeOffer() {
               "Career Coaching & Interview Prep",
               "Leadership and management consultancy",
               "Applied AI & Emerging Tech Masterclass",
+              "Business Analysis"
             ].map((item, idx) => (
               <li key={idx} className="flex items-center">
                 <span

@@ -18,11 +18,11 @@ type TeamMember = {
 };
 
 const team: TeamMember[] = [
-  {
-    name: "John S. Sergent",
-    role: "Head of Data Science",
-    image: "/team/developer.avif",
-  },
+  // {
+  //   name: "John S. Sergent",
+  //   role: "Head of Data Science",
+  //   image: "/team/developer.avif",
+  // },
   {
     name: "Precious Akaighe",
     role: "Founder & Principal Consultant",
@@ -43,11 +43,11 @@ const team: TeamMember[] = [
     role: "UX Design Mentor",
     image: "/team/researcher.webp",
   },
-  {
-    name: "Liam O. Walker",
-    role: "Backend Systems Lead",
-    image: "/team/developer.avif",
-  },
+  // {
+  //   name: "Liam O. Walker",
+  //   role: "Backend Systems Lead",
+  //   image: "/team/developer.avif",
+  // },
 ];
 
 const VISIBLE_CARDS = 4;

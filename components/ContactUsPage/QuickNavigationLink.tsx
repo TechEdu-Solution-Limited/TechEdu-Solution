@@ -86,9 +86,11 @@ export default function QuickNavigationLinks() {
             Book a free 15–30 minute discovery call with a member of our expert
             team.
           </p>
+          <Link href="/contact#contact-form">
           <button className="bg-[#0D1140] text-white px-6 py-4 rounded-[8px] hover:bg-blue-700 transition-colors duration-200">
             Book a Free Consultation
           </button>
+          </Link>
           {/* <div className="bg-white rounded-[10px] shadow-sm p-4 mb-6">
             <p className="text-gray-600 text-sm mb-4">
               Use the calendar below to choose a time that works for you.

@@ -241,3 +241,40 @@ export interface BookingEditForm {
   }>;
   attachments?: string[];
 }
+
+export interface RescheduleRequest {
+  _id: string;
+  attendanceId: string;
+  oldStartTime: Date;
+  oldEndTime: Date;
+  newStartTime: Date;
+  newEndTime: Date;
+  reason: string;
+  status: "pending" | "approved" | "rejected" | "completed";
+  instructorId: string;
+  requestorId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface RescheduleRequestResponse {
+  success: boolean;
+  message: string;
+  data?: RescheduleRequest;
+  error?: {
+    code: string;
+    message: string;
+    details?: any;
+  };
+}
+
+export interface CreateRescheduleRequestData {
+  attendanceId: string;
+  oldStartTime: string;
+  oldEndTime: string;
+  newStartTime: string;
+  newEndTime: string;
+  reason: string;
+  instructorId: string;
+  requestorId: string;
+}

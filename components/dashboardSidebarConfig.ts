@@ -218,11 +218,11 @@ export const dashboardSidebarConfig = {
             icon: Award,
             href: "/dashboard/certifications",
           },
-          {
-            label: "Team Management",
-            icon: Settings,
-            href: "/dashboard/team-management",
-          },
+          // {
+          //   label: "Team Management",
+          //   icon: Settings,
+          //   href: "/dashboard/team-management",
+          // },
           // {
           //   label: "My Classroom",
           //   icon: BookOpen,

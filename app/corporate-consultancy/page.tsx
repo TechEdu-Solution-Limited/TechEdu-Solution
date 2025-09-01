@@ -36,7 +36,7 @@ interface CaseStudy {
 const caseStudies: CaseStudy[] = [
   {
     icon: FaGraduationCap,
-    title: "Lead University, London",
+    title: "University of Leeds",
     challenge: "Low thesis completion rate",
     solution: "Mentorship and thesis editing support",
     result: "47% improvement in completion time",
@@ -78,7 +78,7 @@ const stats = [
 //     ],
 //     cta: {
 //       label: "Book a Demo →",
-//       href: "/contact#discovery-call",
+//       href: "/contact",
 //     },
 //   },
 //   {
@@ -238,7 +238,7 @@ const packages = [
     icon: Rocket,
     bullets: ["Talent systems", "Team analytics"],
     buttonLabel: "Book Consultation",
-    url: "/contact#discovery-call",
+    url: "/contact",
   },
   {
     id: 2,
@@ -283,7 +283,7 @@ export default function CorporateConsultancy() {
 
             <div className="">
               <Link
-                href="/contact#discovery-call"
+                href="/contact"
                 className="bg-[#0D1140] hover:bg-blue-700 text-white text-center px-6 py-4 rounded text-[1rem] font-medium transition "
               >
                 Book a Free Discovery Call
@@ -603,7 +603,7 @@ export default function CorporateConsultancy() {
         </div>
         <div className="flex justify-start md:justify-end">
           <Link
-            href="/contact#discovery-call"
+            href="/contact"
             className="inline-block text-center bg-gray-200 text-[#011F72] font-semibold px-6 py-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-800 hover:bg-gray-300 transition"
           >
             Book a Free Strategy Session

@@ -92,7 +92,7 @@ export default function Contact() {
               the digital future.
             </p>
             <p className="text-[1.2rem] font-semibold leading-4 mb-10">
-              Precious
+              Precious Akaighe
               <br />
               <span className="text-[12px] italic">
                 Founder & Principal Consultant

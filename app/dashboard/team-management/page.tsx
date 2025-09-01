@@ -56,6 +56,8 @@ import {
   getApiRequest,
   postApiRequest,
 } from "@/lib/apiFetch";
+import { getTokenFromCookies } from "@/lib/cookies";
+import { getCookie } from "@/lib/cookies";
 
 // Types
 interface TeamMember {
@@ -113,9 +115,15 @@ export default function TeamManagementPage() {
     async function fetchTeamData() {
       setLoading(true);
       try {
+        const token = getTokenFromCookies();
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+
         const [teamInfoRes, membersRes] = await Promise.all([
-          getApiRequest("/api/teams/me"),
-          getApiRequest("/api/teams/me/members"),
+          getApiRequest("/api/teams/me", token),
+          getApiRequest("/api/teams/me/members", token),
         ]);
         if (teamInfoRes.data) {
           setTeamInfo(teamInfoRes.data);
@@ -124,7 +132,8 @@ export default function TeamManagementPage() {
           setTeamMembers(membersRes.data || []);
         }
       } catch (error) {
-        // handle error
+        console.error("Error fetching team data:", error);
+        toast.error("Failed to fetch team data");
       } finally {
         setLoading(false);
       }
@@ -143,6 +152,14 @@ export default function TeamManagementPage() {
       </div>
     );
   }
+
+  // Check if user has a valid token
+  const token = getTokenFromCookies();
+  if (!token) {
+    router.push("/login");
+    return null;
+  }
+
   if (userRole !== "teamTechProfessional") {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -168,16 +185,54 @@ export default function TeamManagementPage() {
     );
   }
 
+  // If no team info is available, show a message
+  if (!teamInfo) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-yellow-600">
+              <AlertCircle className="h-5 w-5" />
+              No Team Found
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              You are not associated with any team yet.
+            </p>
+            <Button
+              onClick={() => router.push("/dashboard/team-tech-professional")}
+            >
+              Go to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const handleInviteMember = async () => {
     if (!inviteData.email || !inviteData.role) {
       toast.error("Please fill in all fields");
       return;
     }
 
+    if (!teamInfo?.teamId) {
+      toast.error("Team information not available");
+      return;
+    }
+
     try {
+      const token = getTokenFromCookies();
+      if (!token) {
+        toast.error("Authentication required. Please log in.");
+        return;
+      }
+
       const response = await postApiRequest(
-        `/api/teams/${teamInfo?.teamId}/invite`,
-        inviteData
+        `/api/teams/${teamInfo.teamId}/invite`,
+        inviteData,
+        { Authorization: `Bearer ${token}` }
       );
 
       if (response.data) {
@@ -201,10 +256,21 @@ export default function TeamManagementPage() {
   const handleRevokeInvitation = async (memberId: string) => {
     if (!confirm("Are you sure you want to revoke this invitation?")) return;
 
+    if (!teamInfo?.teamId) {
+      toast.error("Team information not available");
+      return;
+    }
+
     try {
+      const token = getTokenFromCookies();
+      if (!token) {
+        toast.error("Authentication required. Please log in.");
+        return;
+      }
+
       const response = await deleteApiRequest(
-        `/api/teams/${teamInfo?.teamId}/invite/${memberId}`,
-        "DELETE"
+        `/api/teams/${teamInfo.teamId}/invite/${memberId}`,
+        token
       );
 
       if (response.data) {
@@ -220,10 +286,22 @@ export default function TeamManagementPage() {
   };
 
   const handleUpdateTeamInfo = async (updatedData: Partial<TeamInfo>) => {
+    if (!teamInfo?.teamId) {
+      toast.error("Team information not available");
+      return;
+    }
+
     try {
+      const token = getTokenFromCookies();
+      if (!token) {
+        toast.error("Authentication required. Please log in.");
+        return;
+      }
+
       const response = await postApiRequest(
-        `/api/teams/${teamInfo?.teamId}`,
-        updatedData
+        `/api/teams/${teamInfo.teamId}`,
+        updatedData,
+        { Authorization: `Bearer ${token}` }
       );
 
       if (response.data) {
@@ -249,17 +327,6 @@ export default function TeamManagementPage() {
       filterStatus === "all" || member.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex items-center space-x-2">
-          <RefreshCw className="h-6 w-6 animate-spin" />
-          <span>Loading team data...</span>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto p-6 space-y-6">
