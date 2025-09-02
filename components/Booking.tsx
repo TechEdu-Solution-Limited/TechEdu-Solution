@@ -15,6 +15,13 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   ArrowLeft,
   Calendar,
   Clock,
@@ -48,6 +55,7 @@ export default function BookingPage() {
   const { userData, isAuthenticated, loading: authLoading } = useRole();
   const [loading, setLoading] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [showTimeSlotModal, setShowTimeSlotModal] = useState(false);
 
   // Get product details from URL parameters
   const productId = searchParams.get("productId");
@@ -74,6 +82,8 @@ export default function BookingPage() {
       isClassroom,
       isSession,
       hasInstructorId: !!instructorId,
+      instructorIdType: typeof instructorId,
+      instructorIdLength: instructorId?.length,
     });
   }, [
     instructorId,
@@ -167,6 +177,7 @@ export default function BookingPage() {
     }>
   >([]);
   const [isLoadingCalendly, setIsLoadingCalendly] = useState(false);
+  const [availabilityChecked, setAvailabilityChecked] = useState(false);
   const [selectedCalendlySlot, setSelectedCalendlySlot] = useState<{
     startTime: string;
     endTime: string;
@@ -225,6 +236,7 @@ export default function BookingPage() {
     }
 
     setIsLoadingCalendly(true);
+    setAvailabilityChecked(false);
     try {
       console.log("Fetching availability for instructor:", instructorId);
       console.log(
@@ -232,11 +244,16 @@ export default function BookingPage() {
         token ? `${token.substring(0, 20)}...` : "NO TOKEN"
       );
 
+      // Calculate date range for the next 15 days
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setDate(startDate.getDate() + 15);
+
       // First, get instructor availability to check if they're active
-      const availabilityResponse = await getApiRequest(
-        `/api/instructors/${instructorId}/availability`,
-        token
-      );
+      const availabilityUrl = `/api/instructors/${instructorId}/availability?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
+      console.log("Fetching instructor availability from:", availabilityUrl);
+
+      const availabilityResponse = await getApiRequest(availabilityUrl, token);
 
       console.log("Availability response:", availabilityResponse);
       console.log("Availability response status:", availabilityResponse.status);
@@ -247,6 +264,19 @@ export default function BookingPage() {
           availabilityResponse.status,
           availabilityResponse.message
         );
+
+        // Handle 404 specifically - instructor availability not found
+        if (availabilityResponse.status === 404) {
+          console.log(
+            "Instructor availability not found, skipping availability check"
+          );
+          setCalendlyAvailability([]);
+          setAvailabilityChecked(true);
+          toast.info(
+            "Instructor availability not configured. Please contact support for scheduling."
+          );
+          return;
+        }
 
         // Check if the response contains error details
         if (availabilityResponse.data && availabilityResponse.data.error) {
@@ -288,10 +318,10 @@ export default function BookingPage() {
 
       // Then, get available time slots for the next 15 days
       console.log("Fetching available time slots...");
-      const slotsResponse = await getApiRequest(
-        `/api/instructors/${instructorId}/availability/available-slots`,
-        token
-      );
+      const slotsUrl = `/api/instructors/${instructorId}/availability/available-slots?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
+      console.log("Fetching available slots from:", slotsUrl);
+
+      const slotsResponse = await getApiRequest(slotsUrl, token);
 
       console.log("Slots response:", slotsResponse);
       console.log("Slots response status:", slotsResponse.status);
@@ -302,6 +332,17 @@ export default function BookingPage() {
           slotsResponse.status,
           slotsResponse.message
         );
+
+        // Handle 404 specifically - no available slots found
+        if (slotsResponse.status === 404) {
+          console.log("No available slots found for instructor");
+          setCalendlyAvailability([]);
+          setAvailabilityChecked(true);
+          toast.info(
+            "No available time slots found for this instructor. Please contact support for scheduling."
+          );
+          return;
+        }
 
         // Check if the response contains error details
         if (slotsResponse.data && slotsResponse.data.error) {
@@ -318,13 +359,13 @@ export default function BookingPage() {
       }
 
       const slotsData = slotsResponse.data;
-      console.log("Slots data:", slotsData);
-      console.log("Slots data type:", typeof slotsData);
-      console.log("Slots data is array:", Array.isArray(slotsData));
+      // console.log("Slots data:", slotsData);
+      // console.log("Slots data type:", typeof slotsData);
+      // console.log("Slots data is array:", Array.isArray(slotsData));
 
       // Transform the API response to match our component state
       const transformedSlots = slotsData.map((slot: any) => {
-        console.log("Processing slot:", slot);
+        // console.log("Processing slot:", slot);
         return {
           startTime: slot.startTime,
           endTime: slot.endTime,
@@ -333,9 +374,10 @@ export default function BookingPage() {
         };
       });
 
-      console.log("Transformed slots:", transformedSlots);
-      console.log("Transformed slots length:", transformedSlots.length);
+      // console.log("Transformed slots:", transformedSlots);
+      // console.log("Transformed slots length:", transformedSlots.length);
       setCalendlyAvailability(transformedSlots);
+      setAvailabilityChecked(true);
 
       if (transformedSlots.length === 0) {
         toast.info("No available time slots found for this instructor");
@@ -361,7 +403,7 @@ export default function BookingPage() {
 
       // Fallback to mock data for development/testing
       if (process.env.NODE_ENV === "development") {
-        console.log("Using fallback mock data for development");
+        // console.log("Using fallback mock data for development");
         const mockAvailability = [
           {
             startTime: "09:00",
@@ -389,9 +431,11 @@ export default function BookingPage() {
           },
         ];
         setCalendlyAvailability(mockAvailability);
+        setAvailabilityChecked(true);
         toast.info("Using demo time slots for testing purposes");
       } else {
         setCalendlyAvailability([]);
+        setAvailabilityChecked(true);
       }
     } finally {
       setIsLoadingCalendly(false);
@@ -1372,7 +1416,7 @@ export default function BookingPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Calendly Integration - Show available time slots */}
+              {/* Calendly Integration - Time Slot Selection Button */}
               {instructorId && !isClassroom && (
                 <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="flex items-center justify-between">
@@ -1395,94 +1439,198 @@ export default function BookingPage() {
                           <span className="ml-2">Clear</span>
                         </Button>
                       )}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={fetchCalendlyAvailability}
-                        disabled={isLoadingCalendly}
-                        className="text-blue-600 border-blue-200 hover:bg-blue-100"
-                      >
-                        {isLoadingCalendly ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <RefreshCw className="w-4 h-4" />
-                        )}
-                        <span className="ml-2">Refresh</span>
-                      </Button>
                     </div>
                   </div>
-                  <p className="text-sm text-blue-700">
-                    Select from the instructor's available time slots:
-                  </p>
 
-                  {isLoadingCalendly ? (
-                    <div className="flex items-center justify-center py-4">
-                      <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-                      <span className="ml-2 text-blue-700">
-                        Loading available slots...
-                      </span>
-                    </div>
-                  ) : calendlyAvailability.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {calendlyAvailability.map((slot, index) => (
-                        <button
-                          key={index}
-                          type="button"
-                          onClick={() => handleCalendlySlotSelect(slot)}
-                          className={`p-3 text-left rounded-lg border transition-all ${
-                            selectedCalendlySlot?.date === slot.date &&
-                            selectedCalendlySlot?.startTime === slot.startTime
-                              ? "border-blue-500 bg-blue-100 ring-2 ring-blue-200"
-                              : "border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50"
-                          }`}
-                        >
-                          <div className="font-medium text-slate-900">
-                            {new Date(slot.date).toLocaleDateString("en-US", {
-                              weekday: "short",
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </div>
-                          <div className="text-sm text-slate-600">
-                            {slot.startTime} - {slot.endTime}
-                          </div>
-                          {selectedCalendlySlot?.date === slot.date &&
-                            selectedCalendlySlot?.startTime ===
-                              slot.startTime && (
-                              <div className="text-xs text-blue-600 mt-1">
-                                ✓ Selected
-                              </div>
-                            )}
-                        </button>
-                      ))}
+                  {selectedCalendlySlot ? (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center gap-2 text-green-800">
+                        <Calendar className="w-4 h-4" />
+                        <span className="font-medium">Selected Time Slot:</span>
+                      </div>
+                      <div className="mt-1 text-green-700">
+                        <div className="font-medium">
+                          {new Date(
+                            selectedCalendlySlot.date
+                          ).toLocaleDateString("en-US", {
+                            weekday: "long",
+                            month: "long",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </div>
+                        <div className="text-sm">
+                          {selectedCalendlySlot.startTime} -{" "}
+                          {selectedCalendlySlot.endTime}
+                        </div>
+                      </div>
                     </div>
                   ) : (
-                    <div className="text-center py-4 text-slate-600">
-                      <p>No available time slots found.</p>
-                      <p className="text-sm">
-                        Please contact the instructor for scheduling.
+                    <div className="text-center py-4">
+                      <p className="text-sm text-blue-700 mb-3">
+                        Click the button below to view and select from available
+                        time slots:
                       </p>
+                      <Dialog
+                        open={showTimeSlotModal}
+                        onOpenChange={setShowTimeSlotModal}
+                      >
+                        <DialogTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="text-blue-600 border-blue-200 hover:bg-blue-100"
+                          >
+                            <Calendar className="w-4 h-4 mr-2" />
+                            View Available Time Slots
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-white">
+                          <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                              <Calendar className="w-5 h-5 text-blue-600" />
+                              Available Time Slots
+                            </DialogTitle>
+                          </DialogHeader>
+
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm text-gray-600">
+                                Select from the instructor's available time
+                                slots:
+                              </p>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={fetchCalendlyAvailability}
+                                disabled={isLoadingCalendly}
+                                className="text-blue-600 border-blue-200 hover:bg-blue-100"
+                              >
+                                {isLoadingCalendly ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="w-4 h-4" />
+                                )}
+                                <span className="ml-2">Refresh</span>
+                              </Button>
+                            </div>
+
+                            {isLoadingCalendly ? (
+                              <div className="flex items-center justify-center py-8">
+                                <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                                <span className="ml-2 text-blue-700">
+                                  Loading available slots...
+                                </span>
+                              </div>
+                            ) : calendlyAvailability.length > 0 ? (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {calendlyAvailability.map((slot, index) => {
+                                  const isSelected =
+                                    selectedCalendlySlot !== null &&
+                                    (selectedCalendlySlot as any).date ===
+                                      slot.date &&
+                                    (selectedCalendlySlot as any).startTime ===
+                                      slot.startTime;
+
+                                  return (
+                                    <button
+                                      key={index}
+                                      type="button"
+                                      onClick={() => {
+                                        handleCalendlySlotSelect(slot);
+                                        setShowTimeSlotModal(false);
+                                      }}
+                                      className={`p-4 text-left rounded-lg border transition-all ${
+                                        isSelected
+                                          ? "border-blue-500 bg-blue-100 ring-2 ring-blue-200"
+                                          : "border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50"
+                                      }`}
+                                    >
+                                      <div className="font-medium text-slate-900">
+                                        {new Date(slot.date).toLocaleDateString(
+                                          "en-US",
+                                          {
+                                            weekday: "short",
+                                            month: "short",
+                                            day: "numeric",
+                                          }
+                                        )}
+                                      </div>
+                                      <div className="text-sm text-slate-600">
+                                        {slot.startTime} - {slot.endTime}
+                                      </div>
+                                      {isSelected && (
+                                        <div className="text-xs text-blue-600 mt-1">
+                                          ✓ Selected
+                                        </div>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <div className="text-center py-8 text-slate-600">
+                                <Calendar className="w-12 h-12 mx-auto mb-4 text-slate-400" />
+                                <p className="font-medium">
+                                  No available time slots found.
+                                </p>
+                                <p className="text-sm">
+                                  Please contact the instructor for scheduling.
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Message when instructorId is missing */}
-              {!instructorId && !isClassroom && (
-                <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-                  <div className="flex items-center gap-2 text-amber-700">
-                    <Calendar className="w-4 h-4" />
-                    <span className="text-sm font-medium">
-                      Instructor Information Missing
-                    </span>
+              {/* Message when instructorId is missing or availability not configured */}
+              {(!instructorId ||
+                (availabilityChecked && calendlyAvailability.length === 0)) &&
+                !isClassroom && (
+                  <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                    <div className="flex items-center gap-2 text-amber-700 mb-2">
+                      <Calendar className="w-5 h-5" />
+                      <span className="text-sm font-medium">
+                        {!instructorId
+                          ? "Instructor Information Missing"
+                          : "Scheduling Not Available"}
+                      </span>
+                    </div>
+                    <p className="text-sm text-amber-600 mb-3">
+                      {!instructorId
+                        ? "This product doesn't have an assigned instructor. Please contact support or choose a different product."
+                        : "The instructor's availability is not configured yet. Please contact support to schedule your session."}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-amber-700 border-amber-300 hover:bg-amber-100"
+                        onClick={() => {
+                          // You can add a contact support action here
+                          toast.info(
+                            "Please contact support for scheduling assistance"
+                          );
+                        }}
+                      >
+                        Contact Support
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-amber-700 border-amber-300 hover:bg-amber-100"
+                        onClick={() => router.push("/training/catalog")}
+                      >
+                        Browse Other Options
+                      </Button>
+                    </div>
                   </div>
-                  <p className="text-xs text-amber-600 mt-1">
-                    This product doesn't have an assigned instructor. Please
-                    contact support or choose a different product.
-                  </p>
-                </div>
-              )}
+                )}
 
               {/* Note for classroom bookings */}
               {instructorId && isClassroom && (
