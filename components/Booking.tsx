@@ -249,7 +249,7 @@ export default function BookingPage() {
       const endDate = new Date();
       endDate.setDate(startDate.getDate() + 15);
 
-      // First, get instructor availability to check if they're active
+      // Then, get available time slots for the next 15 days
       const availabilityUrl = `/api/instructors/${instructorId}/availability?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
       console.log("Fetching instructor availability from:", availabilityUrl);
 
@@ -316,9 +316,9 @@ export default function BookingPage() {
         return;
       }
 
-      // Then, get available time slots for the next 15 days
+      // First, get instructor availability to check if they're active
       console.log("Fetching available time slots...");
-      const slotsUrl = `/api/instructors/${instructorId}/availability/available-slots?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
+      const slotsUrl = `/api/instructor-availability/${instructorId}/available-slots`;
       console.log("Fetching available slots from:", slotsUrl);
 
       const slotsResponse = await getApiRequest(slotsUrl, token);
