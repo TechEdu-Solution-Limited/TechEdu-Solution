@@ -1373,8 +1373,9 @@ export default function BookingPage() {
                                 {availableSlots.map((slot, index) => {
                                   const isSelected = Boolean(
                                     selectedTimeSlot &&
-                                      selectedTimeSlot.date === slot.date &&
-                                      selectedTimeSlot.startTime ===
+                                      (selectedTimeSlot as any).date ===
+                                        slot.date &&
+                                      (selectedTimeSlot as any).startTime ===
                                         slot.startTime
                                   );
 
