@@ -122,7 +122,7 @@ export const dashboardSidebarConfig = {
           {
             label: "Classroom",
             icon: HiViewBoards,
-            href: "/dashboard/classroom",
+            href: "/dashboard/my-classroom",
           },
           {
             label: "My Sessions",
@@ -198,16 +198,16 @@ export const dashboardSidebarConfig = {
           //   icon: Target,
           //   href: "/dashboard/career-snapshot",
           // },
-          {
-            label: "My Bookings",
-            icon: BookOpen,
-            href: "/dashboard/bookings",
-          },
-          {
-            label: "My Attendance",
-            icon: FileText,
-            href: "/dashboard/attendance/my-attendance",
-          },
+          // {
+          //   label: "My Bookings",
+          //   icon: BookOpen,
+          //   href: "/dashboard/bookings",
+          // },
+          // {
+          //   label: "My Attendance",
+          //   icon: FileText,
+          //   href: "/dashboard/attendance/my-attendance",
+          // },
           {
             label: "Training Programs",
             icon: BookOpen,

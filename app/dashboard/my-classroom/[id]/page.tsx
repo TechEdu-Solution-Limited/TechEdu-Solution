@@ -531,7 +531,8 @@ export default function SingleClassroomPage() {
                 </div>
 
                 {/* Meeting Link */}
-                {classroom.meetingLink && (
+                {classroom.meetingLink &&
+                classroom.meetingLink.trim() !== "" ? (
                   <div className="p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl border border-emerald-200">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -575,18 +576,33 @@ export default function SingleClassroomPage() {
                       </div>
                     </div>
                   </div>
+                ) : (
+                  <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-200">
+                    <div className="flex items-center gap-3">
+                      <AlertCircle className="w-5 h-5 text-amber-600" />
+                      <div>
+                        <div className="font-semibold text-amber-800">
+                          Meeting Link Not Available
+                        </div>
+                        <div className="text-sm text-amber-700">
+                          The meeting link will be provided by your instructor
+                          before the session starts.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 {/* Session Progress */}
-                {(classroom.sessionsCompleted !== undefined ||
-                  classroom.sessionsRemaining !== undefined) && (
-                  <div className="p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl border border-indigo-200">
-                    <div className="flex items-center gap-3 mb-3">
-                      <TrendingUp className="w-5 h-5 text-indigo-600" />
-                      <span className="font-semibold text-indigo-800">
-                        Session Progress
-                      </span>
-                    </div>
+                <div className="p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl border border-indigo-200">
+                  <div className="flex items-center gap-3 mb-3">
+                    <TrendingUp className="w-5 h-5 text-indigo-600" />
+                    <span className="font-semibold text-indigo-800">
+                      Session Progress
+                    </span>
+                  </div>
+                  {(classroom.sessionsCompleted ?? 0) > 0 ||
+                  (classroom.sessionsRemaining ?? 0) > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="text-center">
                         <div className="text-lg font-bold text-indigo-700">
@@ -608,48 +624,79 @@ export default function SingleClassroomPage() {
                         <div className="text-xs text-indigo-600">Total</div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="text-center py-4">
+                      <div className="text-sm text-indigo-600">
+                        Session details will be updated by your instructor
+                      </div>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
             {/* Schedule Details */}
-            {classroom.actualDaysAndTime &&
-              classroom.actualDaysAndTime.length > 0 && (
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-3">
-                      <Calendar className="w-5 h-5 text-blue-600" />
-                      Recurring Schedule
-                    </CardTitle>
-                    <CardDescription>
-                      {classroom.actualDaysAndTime.length} scheduled sessions
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {classroom.actualDaysAndTime.map((session, index) => (
-                        <div
-                          key={index}
-                          className="p-4 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl border border-slate-200 hover:border-blue-300 transition-all duration-300"
-                        >
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-blue-100 rounded-full">
-                              <Clock className="w-4 h-4 text-blue-600" />
-                            </div>
-                            <span className="font-semibold text-slate-800">
-                              {session.day}
-                            </span>
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                  Schedule Information
+                </CardTitle>
+                <CardDescription>
+                  {classroom.actualDaysAndTime &&
+                  classroom.actualDaysAndTime.length > 0
+                    ? `${classroom.actualDaysAndTime.length} scheduled sessions`
+                    : "Single session schedule"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {classroom.actualDaysAndTime &&
+                classroom.actualDaysAndTime.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {classroom.actualDaysAndTime.map((session, index) => (
+                      <div
+                        key={index}
+                        className="p-4 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl border border-slate-200 hover:border-blue-300 transition-all duration-300"
+                      >
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="p-2 bg-blue-100 rounded-full">
+                            <Clock className="w-4 h-4 text-blue-600" />
                           </div>
-                          <div className="text-sm text-slate-600">
-                            {session.time}
-                          </div>
+                          <span className="font-semibold text-slate-800">
+                            {session.day}
+                          </span>
                         </div>
-                      ))}
+                        <div className="text-sm text-slate-600">
+                          {session.time}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl border border-slate-200">
+                    <div className="flex items-center justify-center gap-3 mb-3">
+                      <div className="p-3 bg-blue-100 rounded-full">
+                        <Calendar className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-800">
+                          Single Session
+                        </h3>
+                        <p className="text-sm text-slate-600">
+                          This is a one-time session scheduled for{" "}
+                          {formatDate(classroom.scheduleAt)}
+                        </p>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+                    {classroom.endAt && (
+                      <div className="text-sm text-slate-500">
+                        Duration: {classroom.minutesPerSession || 60} minutes
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Participants Information */}
             {classroom.participants && classroom.participants.length > 0 && (
@@ -859,7 +906,8 @@ export default function SingleClassroomPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {classroom.meetingLink && (
+                {classroom.meetingLink &&
+                classroom.meetingLink.trim() !== "" ? (
                   <Button
                     className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
                     asChild
@@ -873,6 +921,19 @@ export default function SingleClassroomPage() {
                       Join Meeting
                     </Link>
                   </Button>
+                ) : (
+                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">
+                    <div className="flex items-center gap-2 text-amber-700">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm font-medium">
+                        Meeting link pending
+                      </span>
+                    </div>
+                    <p className="text-xs text-amber-600 mt-1">
+                      Your instructor will provide the meeting link before the
+                      session
+                    </p>
+                  </div>
                 )}
 
                 <Button variant="outline" className="w-full">

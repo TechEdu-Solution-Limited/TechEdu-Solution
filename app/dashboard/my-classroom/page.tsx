@@ -78,7 +78,7 @@ export default function StudentClassroomsPage() {
       }
 
       try {
-        const endpoint = "/api/classrooms/student/classroomm";
+        const endpoint = "/api/classrooms/student/my-classrooms";
         const response = await getApiRequest(endpoint, token);
 
         if (response?.data?.success) {
@@ -145,6 +145,9 @@ export default function StudentClassroomsPage() {
   };
 
   const getStatusColor = (status: string) => {
+    if (!status) {
+      return "bg-gradient-to-r from-slate-100 to-gray-100 text-slate-800 border-slate-200";
+    }
     switch (status.toLowerCase()) {
       case "upcoming":
         return "bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border-blue-200";
@@ -160,6 +163,9 @@ export default function StudentClassroomsPage() {
   };
 
   const getStatusIcon = (status: string) => {
+    if (!status) {
+      return <Clock className="w-4 h-4" />;
+    }
     switch (status.toLowerCase()) {
       case "upcoming":
         return <Calendar className="w-4 h-4" />;
@@ -303,174 +309,164 @@ export default function StudentClassroomsPage() {
           </div>
         )}
 
-        {/* Classrooms Table */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden">
+        {/* Classrooms Cards */}
+        <div className="space-y-6">
           {loading ? (
-            <div className="p-12 text-center">
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-12 text-center">
               <div className="inline-flex items-center gap-3">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 <p className="text-slate-600 text-lg">Loading classrooms...</p>
               </div>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gradient-to-r from-slate-50 to-blue-50">
-                  <tr>
-                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                      Session
-                    </th>
-                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                      Product Type
-                    </th>
-                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                      Session Type
-                    </th>
-                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                      Schedule
-                    </th>
-                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                      Progress
-                    </th>
-                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                      Participants
-                    </th>
-                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                      Meeting Link
-                    </th>
-                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white/50 divide-y divide-slate-200">
-                  {paginatedClassrooms.length > 0 ? (
-                    paginatedClassrooms.map((classroom) => (
-                      <tr
-                        key={classroom._id}
-                        className="hover:bg-blue-50/50 transition-all duration-300 group"
-                      >
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors duration-300">
-                              {classroom.bookingPurpose || "Training Session"}
-                            </div>
-                            <div className="text-sm text-slate-500">
-                              ID: {classroom._id.slice(-8)}
-                              {classroom.bookingId && (
-                                <span className="ml-2">
-                                  Booking:{" "}
-                                  {String(classroom.bookingId).slice(-8)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border border-blue-200">
-                            {classroom.productType}
-                          </span>
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-200">
-                            {classroom.sessionType || "N/A"}
-                          </span>
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          <div className="text-sm text-slate-900">
-                            {formatDate(classroom.scheduleAt)}
-                          </div>
-                          {classroom.actualDaysAndTime &&
-                            classroom.actualDaysAndTime.length > 0 && (
-                              <div className="text-xs text-slate-500 mt-1">
-                                {classroom.actualDaysAndTime.length} recurring
-                                sessions
-                              </div>
-                            )}
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border ${getStatusColor(
-                              classroom.status
-                            )}`}
-                          >
-                            {getStatusIcon(classroom.status)}
-                            {classroom.status}
-                          </span>
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          <div className="text-sm text-slate-900">
-                            {getSessionProgress(classroom)}
-                          </div>
-                          {classroom.sessionsCompleted !== undefined &&
-                            classroom.sessionsRemaining !== undefined && (
-                              <div className="text-xs text-slate-500">
-                                {classroom.sessionsRemaining} remaining
-                              </div>
-                            )}
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          <div className="text-sm text-slate-900">
-                            {getParticipantInfo(classroom).count} participant(s)
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            {getParticipantInfo(classroom).type}
-                          </div>
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          {classroom.meetingLink ? (
-                            <a
-                              href={classroom.meetingLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200 hover:from-green-200 hover:to-emerald-200 transition-all duration-300"
-                            >
-                              <Video className="w-4 h-4" />
-                              Join Meeting
-                            </a>
-                          ) : (
-                            <span className="text-sm text-slate-500">
-                              No link available
+          ) : paginatedClassrooms.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {paginatedClassrooms.map((classroom) => (
+                <div
+                  key={classroom._id}
+                  className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-6 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 group"
+                >
+                  {/* Card Header */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors duration-300 mb-1">
+                        {classroom.bookingPurpose || "Training Session"}
+                      </h3>
+                      <div className="flex items-center gap-2 text-sm text-slate-500">
+                        <span>ID: {classroom._id.slice(-8)}</span>
+                        {classroom.bookingId && (
+                          <>
+                            <span>•</span>
+                            <span>
+                              Booking: {String(classroom.bookingId).slice(-8)}
                             </span>
-                          )}
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <Link
-                              href={`/dashboard/classrooms/${classroom._id}`}
-                            >
-                              <button className="p-2 rounded-full hover:bg-blue-100 transition-all duration-300 group-hover:bg-blue-100">
-                                <Eye className="w-4 h-4 text-slate-600 group-hover:text-blue-600 transition-colors duration-300" />
-                              </button>
-                            </Link>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={9} className="px-8 py-16 text-center">
-                        <div className="flex flex-col items-center gap-4">
-                          <div className="w-20 h-20 bg-gradient-to-r from-slate-100 to-blue-100 rounded-full flex items-center justify-center">
-                            <BookOpen className="w-10 h-10 text-slate-400" />
-                          </div>
-                          <div>
-                            <h3 className="text-2xl font-bold text-slate-900 mb-2">
-                              No classrooms found
-                            </h3>
-                            <p className="text-slate-600">
-                              You haven't joined any classrooms yet
-                            </p>
-                          </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <Link href={`/dashboard/classrooms/${classroom._id}`}>
+                      <button className="p-2 rounded-full hover:bg-blue-100 transition-all duration-300">
+                        <Eye className="w-5 h-5 text-slate-600 hover:text-blue-600 transition-colors duration-300" />
+                      </button>
+                    </Link>
+                  </div>
+
+                  {/* Status and Type Badges */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <span
+                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border ${getStatusColor(
+                        classroom.status
+                      )}`}
+                    >
+                      {getStatusIcon(classroom.status)}
+                      {classroom.status || "Unknown"}
+                    </span>
+                    <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border border-blue-200">
+                      {classroom.productType}
+                    </span>
+                    {classroom.sessionType && (
+                      <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-200">
+                        {classroom.sessionType}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Schedule Information */}
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 text-slate-600 mb-2">
+                      <Calendar className="w-4 h-4" />
+                      <span className="text-sm font-medium">Schedule</span>
+                    </div>
+                    <div className="text-sm text-slate-900">
+                      {formatDate(classroom.scheduleAt)}
+                    </div>
+                    {classroom.actualDaysAndTime &&
+                    classroom.actualDaysAndTime.length > 0 ? (
+                      <div className="text-xs text-slate-500 mt-1">
+                        {classroom.actualDaysAndTime.length} recurring sessions
+                      </div>
+                    ) : (
+                      <div className="text-xs text-slate-500 mt-1">
+                        Single session
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Progress Information */}
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 text-slate-600 mb-2">
+                      <Clock className="w-4 h-4" />
+                      <span className="text-sm font-medium">Progress</span>
+                    </div>
+                    <div className="text-sm text-slate-900">
+                      {getSessionProgress(classroom)}
+                    </div>
+                    {((classroom.sessionsCompleted ?? 0) > 0 ||
+                      (classroom.sessionsRemaining ?? 0) > 0) && (
+                      <div className="text-xs text-slate-500">
+                        {classroom.sessionsRemaining || 0} remaining
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Participants Information */}
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 text-slate-600 mb-2">
+                      <BookOpen className="w-4 h-4" />
+                      <span className="text-sm font-medium">Participants</span>
+                    </div>
+                    <div className="text-sm text-slate-900">
+                      {getParticipantInfo(classroom).count} participant(s)
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      {getParticipantInfo(classroom).type}
+                    </div>
+                  </div>
+
+                  {/* Meeting Link */}
+                  <div className="pt-4 border-t border-slate-200">
+                    {classroom.meetingLink &&
+                    classroom.meetingLink.trim() !== "" ? (
+                      <a
+                        href={classroom.meetingLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-medium bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200 hover:from-green-200 hover:to-emerald-200 transition-all duration-300 w-full justify-center"
+                      >
+                        <Video className="w-4 h-4" />
+                        Join Meeting
+                      </a>
+                    ) : (
+                      <div className="text-center py-2">
+                        <div className="flex items-center justify-center gap-2 text-amber-600 mb-1">
+                          <Clock className="w-4 h-4" />
+                          <span className="text-sm font-medium">
+                            Link Pending
+                          </span>
                         </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                        <span className="text-xs text-slate-500">
+                          Instructor will provide link before session
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-16 text-center">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-20 h-20 bg-gradient-to-r from-slate-100 to-blue-100 rounded-full flex items-center justify-center">
+                  <BookOpen className="w-10 h-10 text-slate-400" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-slate-900 mb-2">
+                    No classrooms found
+                  </h3>
+                  <p className="text-slate-600">
+                    You haven't joined any classrooms yet
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>

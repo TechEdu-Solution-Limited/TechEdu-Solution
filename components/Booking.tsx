@@ -444,10 +444,10 @@ export default function BookingPage() {
 
   // Fetch Calendly availability when component mounts
   useEffect(() => {
-    if (instructorId && !isClassroom) {
+    if (instructorId) {
       fetchCalendlyAvailability();
     }
-  }, [instructorId, isClassroom, fetchCalendlyAvailability]);
+  }, [instructorId, fetchCalendlyAvailability]);
 
   // Handle Calendly slot selection
   const handleCalendlySlotSelect = useCallback(
@@ -906,11 +906,12 @@ export default function BookingPage() {
           <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <div className="flex items-center gap-2">
               <GraduationCap className="w-5 h-5 text-blue-600" />
-              <h4 className="font-medium text-blue-900">Classroom Booking</h4>
+              <h4 className="font-medium text-blue-900">Classroom Program</h4>
             </div>
             <p className="text-sm text-blue-700">
-              This is a recurring classroom program. You'll be able to set up
-              your schedule after the initial booking.
+              This is a recurring classroom program. Select your preferred time
+              slot below, and the instructor will confirm the final schedule
+              after payment.
             </p>
           </div>
         )}
@@ -1417,7 +1418,7 @@ export default function BookingPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Calendly Integration - Time Slot Selection Button */}
-              {instructorId && !isClassroom && (
+              {instructorId && (
                 <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -1590,60 +1591,60 @@ export default function BookingPage() {
 
               {/* Message when instructorId is missing or availability not configured */}
               {(!instructorId ||
-                (availabilityChecked && calendlyAvailability.length === 0)) &&
-                !isClassroom && (
-                  <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-                    <div className="flex items-center gap-2 text-amber-700 mb-2">
-                      <Calendar className="w-5 h-5" />
-                      <span className="text-sm font-medium">
-                        {!instructorId
-                          ? "Instructor Information Missing"
-                          : "Scheduling Not Available"}
-                      </span>
-                    </div>
-                    <p className="text-sm text-amber-600 mb-3">
+                (availabilityChecked && calendlyAvailability.length === 0)) && (
+                <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                  <div className="flex items-center gap-2 text-amber-700 mb-2">
+                    <Calendar className="w-5 h-5" />
+                    <span className="text-sm font-medium">
                       {!instructorId
-                        ? "This product doesn't have an assigned instructor. Please contact support or choose a different product."
-                        : "The instructor's availability is not configured yet. Please contact support to schedule your session."}
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-amber-700 border-amber-300 hover:bg-amber-100"
-                        onClick={() => {
-                          // You can add a contact support action here
-                          toast.info(
-                            "Please contact support for scheduling assistance"
-                          );
-                        }}
-                      >
-                        Contact Support
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-amber-700 border-amber-300 hover:bg-amber-100"
-                        onClick={() => router.push("/training/catalog")}
-                      >
-                        Browse Other Options
-                      </Button>
-                    </div>
+                        ? "Instructor Information Missing"
+                        : "Scheduling Not Available"}
+                    </span>
                   </div>
-                )}
+                  <p className="text-sm text-amber-600 mb-3">
+                    {!instructorId
+                      ? "This product doesn't have an assigned instructor. Please contact support or choose a different product."
+                      : "The instructor's availability is not configured yet. Please contact support to schedule your session."}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-amber-700 border-amber-300 hover:bg-amber-100"
+                      onClick={() => {
+                        // You can add a contact support action here
+                        toast.info(
+                          "Please contact support for scheduling assistance"
+                        );
+                      }}
+                    >
+                      Contact Support
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-amber-700 border-amber-300 hover:bg-amber-100"
+                      onClick={() => router.push("/training/catalog")}
+                    >
+                      Browse Other Options
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* Note for classroom bookings */}
               {instructorId && isClassroom && (
-                <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-                  <div className="flex items-center gap-2 text-amber-700">
-                    <Calendar className="w-4 h-4" />
+                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-2 text-green-700">
+                    <GraduationCap className="w-4 h-4" />
                     <span className="text-sm font-medium">
-                      Classroom Booking
+                      Classroom Program
                     </span>
                   </div>
-                  <p className="text-xs text-amber-600 mt-1">
-                    For classroom bookings, the instructor will set the actual
-                    schedule after payment confirmation.
+                  <p className="text-xs text-green-600 mt-1">
+                    This is a recurring classroom program. You can select your
+                    preferred time slot above, and the instructor will confirm
+                    the final schedule after payment.
                   </p>
                 </div>
               )}
