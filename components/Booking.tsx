@@ -160,15 +160,13 @@ export default function BookingPage() {
       endTime: string;
     }>,
 
-    // Calendly integration fields
-    calendlyEventUri: "", // Calendly event type URI
-    calendlyInviteeUri: "", // Calendly invitee URI
-    scheduledStart: "", // Actual scheduled start time from Calendly
-    scheduledEnd: "", // Actual scheduled end time from Calendly
+    // Scheduling fields
+    scheduledStart: "", // Actual scheduled start time
+    scheduledEnd: "", // Actual scheduled end time
   });
 
-  // Calendly integration state
-  const [calendlyAvailability, setCalendlyAvailability] = useState<
+  // Time slot selection state
+  const [availableSlots, setAvailableSlots] = useState<
     Array<{
       startTime: string;
       endTime: string;
@@ -176,9 +174,9 @@ export default function BookingPage() {
       available: boolean;
     }>
   >([]);
-  const [isLoadingCalendly, setIsLoadingCalendly] = useState(false);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [availabilityChecked, setAvailabilityChecked] = useState(false);
-  const [selectedCalendlySlot, setSelectedCalendlySlot] = useState<{
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<{
     startTime: string;
     endTime: string;
     date: string;
@@ -216,7 +214,7 @@ export default function BookingPage() {
   };
 
   // Fetch instructor availability and available time slots
-  const fetchCalendlyAvailability = useCallback(async () => {
+  const fetchInstructorAvailability = useCallback(async () => {
     if (!instructorId) {
       console.warn("No instructorId provided, cannot fetch availability");
       toast.warning("No instructor assigned to this product");
@@ -235,7 +233,7 @@ export default function BookingPage() {
       return;
     }
 
-    setIsLoadingCalendly(true);
+    setIsLoadingSlots(true);
     setAvailabilityChecked(false);
     try {
       console.log("Fetching availability for instructor:", instructorId);
@@ -249,7 +247,7 @@ export default function BookingPage() {
       const endDate = new Date();
       endDate.setDate(startDate.getDate() + 15);
 
-      // Then, get available time slots for the next 15 days
+      // Get instructor availability for the next 15 days
       const availabilityUrl = `/api/instructors/${instructorId}/availability?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
       console.log("Fetching instructor availability from:", availabilityUrl);
 
@@ -270,7 +268,7 @@ export default function BookingPage() {
           console.log(
             "Instructor availability not found, skipping availability check"
           );
-          setCalendlyAvailability([]);
+          setAvailableSlots([]);
           setAvailabilityChecked(true);
           toast.info(
             "Instructor availability not configured. Please contact support for scheduling."
@@ -296,87 +294,39 @@ export default function BookingPage() {
       console.log("Availability data:", availabilityData);
       console.log("Availability data keys:", Object.keys(availabilityData));
 
-      // Check if instructor is active - try different possible property names
-      const isActive =
-        availabilityData.isActive ||
-        availabilityData.active ||
-        availabilityData.status === "active";
+      // Check if instructor is active
+      const isActive = availabilityData.isActive;
       if (!isActive) {
-        console.log(
-          "Instructor is not active, isActive property:",
-          availabilityData.isActive
-        );
-        console.log("Alternative active properties:", {
-          isActive: availabilityData.isActive,
-          active: availabilityData.active,
-          status: availabilityData.status,
-        });
-        setCalendlyAvailability([]);
+        console.log("Instructor is not active:", availabilityData.isActive);
+        setAvailableSlots([]);
+        setAvailabilityChecked(true);
         toast.info("Instructor is currently not available for scheduling");
         return;
       }
 
-      // First, get instructor availability to check if they're active
-      console.log("Fetching available time slots...");
-      const slotsUrl = `/api/instructor-availability/${instructorId}/available-slots`;
-      console.log("Fetching available slots from:", slotsUrl);
+      // Use availableSlots from the instructor availability response
+      const availableSlots = availabilityData.availableSlots || [];
+      console.log(
+        "Available slots from instructor availability:",
+        availableSlots
+      );
 
-      const slotsResponse = await getApiRequest(slotsUrl, token);
+      // Transform the availableSlots to match our component state
+      const transformedSlots = availableSlots.map((slot: any) => {
+        // Convert ISO datetime to date and time format
+        const startDateTime = new Date(slot.startTime);
+        const endDateTime = new Date(slot.endTime);
 
-      console.log("Slots response:", slotsResponse);
-      console.log("Slots response status:", slotsResponse.status);
-
-      if (slotsResponse.status >= 400) {
-        console.error(
-          "Slots API error:",
-          slotsResponse.status,
-          slotsResponse.message
-        );
-
-        // Handle 404 specifically - no available slots found
-        if (slotsResponse.status === 404) {
-          console.log("No available slots found for instructor");
-          setCalendlyAvailability([]);
-          setAvailabilityChecked(true);
-          toast.info(
-            "No available time slots found for this instructor. Please contact support for scheduling."
-          );
-          return;
-        }
-
-        // Check if the response contains error details
-        if (slotsResponse.data && slotsResponse.data.error) {
-          throw new Error(
-            `Failed to fetch available time slots: ${slotsResponse.data.error}`
-          );
-        }
-
-        throw new Error(
-          `Failed to fetch available time slots: ${slotsResponse.status} - ${
-            slotsResponse.message || "Unknown error"
-          }`
-        );
-      }
-
-      const slotsData = slotsResponse.data;
-      // console.log("Slots data:", slotsData);
-      // console.log("Slots data type:", typeof slotsData);
-      // console.log("Slots data is array:", Array.isArray(slotsData));
-
-      // Transform the API response to match our component state
-      const transformedSlots = slotsData.map((slot: any) => {
-        // console.log("Processing slot:", slot);
         return {
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-          date: slot.date,
+          startTime: startDateTime.toTimeString().slice(0, 5), // HH:MM format
+          endTime: endDateTime.toTimeString().slice(0, 5), // HH:MM format
+          date: startDateTime.toISOString().split("T")[0], // YYYY-MM-DD format
           available: slot.isAvailable,
         };
       });
 
-      // console.log("Transformed slots:", transformedSlots);
-      // console.log("Transformed slots length:", transformedSlots.length);
-      setCalendlyAvailability(transformedSlots);
+      console.log("Transformed slots:", transformedSlots);
+      setAvailableSlots(transformedSlots);
       setAvailabilityChecked(true);
 
       if (transformedSlots.length === 0) {
@@ -401,60 +351,27 @@ export default function BookingPage() {
         toast.error("Failed to load available time slots");
       }
 
-      // Fallback to mock data for development/testing
-      if (process.env.NODE_ENV === "development") {
-        // console.log("Using fallback mock data for development");
-        const mockAvailability = [
-          {
-            startTime: "09:00",
-            endTime: "10:00",
-            date: new Date(Date.now() + 24 * 60 * 60 * 1000)
-              .toISOString()
-              .split("T")[0], // Tomorrow
-            available: true,
-          },
-          {
-            startTime: "10:00",
-            endTime: "11:00",
-            date: new Date(Date.now() + 24 * 60 * 60 * 1000)
-              .toISOString()
-              .split("T")[0], // Tomorrow
-            available: true,
-          },
-          {
-            startTime: "14:00",
-            endTime: "15:00",
-            date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
-              .toISOString()
-              .split("T")[0], // Day after tomorrow
-            available: true,
-          },
-        ];
-        setCalendlyAvailability(mockAvailability);
-        setAvailabilityChecked(true);
-        toast.info("Using demo time slots for testing purposes");
-      } else {
-        setCalendlyAvailability([]);
-        setAvailabilityChecked(true);
-      }
+      // Set empty availability when API fails
+      setAvailableSlots([]);
+      setAvailabilityChecked(true);
     } finally {
-      setIsLoadingCalendly(false);
+      setIsLoadingSlots(false);
     }
   }, [instructorId]);
 
-  // Fetch Calendly availability when component mounts
+  // Fetch instructor availability when component mounts
   useEffect(() => {
     if (instructorId) {
-      fetchCalendlyAvailability();
+      fetchInstructorAvailability();
     }
-  }, [instructorId, fetchCalendlyAvailability]);
+  }, [instructorId, fetchInstructorAvailability]);
 
-  // Handle Calendly slot selection
-  const handleCalendlySlotSelect = useCallback(
+  // Handle time slot selection
+  const handleTimeSlotSelect = useCallback(
     async (slot: { startTime: string; endTime: string; date: string }) => {
-      setSelectedCalendlySlot(slot);
+      setSelectedTimeSlot(slot);
 
-      // Update form data with Calendly times
+      // Update form data with selected times
       const startDateTime = new Date(`${slot.date}T${slot.startTime}`);
       const endDateTime = new Date(`${slot.date}T${slot.endTime}`);
 
@@ -466,77 +383,7 @@ export default function BookingPage() {
         preferredTime: slot.startTime,
       }));
 
-      // Create Calendly event for this slot
-      try {
-        // Get authentication token
-        const token = getTokenFromCookies();
-        console.log(
-          "Calendly event creation - Token retrieved:",
-          token ? `${token.substring(0, 20)}...` : "NO TOKEN"
-        );
-
-        if (!token) {
-          toast.error("Authentication token not found. Please login again.");
-          return;
-        }
-
-        console.log("Creating Calendly event with data:", {
-          instructorId,
-          startTime: startDateTime.toISOString(),
-          endTime: endDateTime.toISOString(),
-          timezone: formData.timezone,
-          participantEmail: formData.email,
-          participantName: formData.fullName,
-          bookingPurpose: service,
-        });
-
-        const calendlyResponse = await postApiRequest(
-          "/api/calendly/create-event",
-          token, // Pass token as second parameter
-          {
-            instructorId,
-            startTime: startDateTime.toISOString(),
-            endTime: endDateTime.toISOString(),
-            timezone: formData.timezone,
-            participantEmail: formData.email,
-            participantName: formData.fullName,
-            bookingPurpose: service,
-          }
-        );
-
-        console.log("Calendly response:", calendlyResponse);
-
-        if (calendlyResponse.status < 400) {
-          const calendlyData = calendlyResponse.data;
-
-          // Update form data with Calendly event details
-          setFormData((prev) => ({
-            ...prev,
-            calendlyEventUri: calendlyData.eventUri,
-            calendlyInviteeUri: calendlyData.inviteeUri,
-          }));
-
-          toast.success("Time slot confirmed! Calendly event created.");
-        } else {
-          console.error("Failed to create Calendly event:", calendlyResponse);
-
-          // Check if the response contains error details
-          if (calendlyResponse.data && calendlyResponse.data.error) {
-            toast.warning(
-              `Calendly event creation failed: ${calendlyResponse.data.error}`
-            );
-          } else {
-            toast.warning(
-              "Time slot selected, but Calendly event creation failed."
-            );
-          }
-        }
-      } catch (error) {
-        console.error("Error creating Calendly event:", error);
-        toast.warning(
-          "Time slot selected, but Calendly event creation failed."
-        );
-      }
+      toast.success("Time slot selected successfully!");
     },
     [
       instructorId,
@@ -547,17 +394,15 @@ export default function BookingPage() {
     ]
   );
 
-  // Clear selected Calendly slot
-  const clearCalendlySelection = useCallback(() => {
-    setSelectedCalendlySlot(null);
+  // Clear selected time slot
+  const clearTimeSlotSelection = useCallback(() => {
+    setSelectedTimeSlot(null);
     setFormData((prev) => ({
       ...prev,
       scheduledStart: "",
       scheduledEnd: "",
       preferredDate: undefined,
       preferredTime: "",
-      calendlyEventUri: "",
-      calendlyInviteeUri: "",
     }));
     toast.info("Time slot selection cleared. You can choose a different time.");
   }, []);
@@ -677,9 +522,7 @@ export default function BookingPage() {
         fullName: userData?.fullName || formData.fullName,
         schedulingStatus: "awaiting-payment",
 
-        // Calendly integration fields
-        calendlyEventUri: formData.calendlyEventUri,
-        calendlyInviteeUri: formData.calendlyInviteeUri,
+        // Scheduling fields
         scheduledStart: formData.scheduledStart,
         scheduledEnd: formData.scheduledEnd,
       };
@@ -1428,12 +1271,12 @@ export default function BookingPage() {
                       </h4>
                     </div>
                     <div className="flex items-center gap-2">
-                      {selectedCalendlySlot && (
+                      {selectedTimeSlot && (
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={clearCalendlySelection}
+                          onClick={clearTimeSlotSelection}
                           className="text-red-600 border-red-200 hover:bg-red-50"
                         >
                           <X className="w-4 h-4" />
@@ -1443,7 +1286,7 @@ export default function BookingPage() {
                     </div>
                   </div>
 
-                  {selectedCalendlySlot ? (
+                  {selectedTimeSlot ? (
                     <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                       <div className="flex items-center gap-2 text-green-800">
                         <Calendar className="w-4 h-4" />
@@ -1451,18 +1294,19 @@ export default function BookingPage() {
                       </div>
                       <div className="mt-1 text-green-700">
                         <div className="font-medium">
-                          {new Date(
-                            selectedCalendlySlot.date
-                          ).toLocaleDateString("en-US", {
-                            weekday: "long",
-                            month: "long",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
+                          {new Date(selectedTimeSlot.date).toLocaleDateString(
+                            "en-US",
+                            {
+                              weekday: "long",
+                              month: "long",
+                              day: "numeric",
+                              year: "numeric",
+                            }
+                          )}
                         </div>
                         <div className="text-sm">
-                          {selectedCalendlySlot.startTime} -{" "}
-                          {selectedCalendlySlot.endTime}
+                          {selectedTimeSlot.startTime} -{" "}
+                          {selectedTimeSlot.endTime}
                         </div>
                       </div>
                     </div>
@@ -1504,11 +1348,11 @@ export default function BookingPage() {
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={fetchCalendlyAvailability}
-                                disabled={isLoadingCalendly}
+                                onClick={fetchInstructorAvailability}
+                                disabled={isLoadingSlots}
                                 className="text-blue-600 border-blue-200 hover:bg-blue-100"
                               >
-                                {isLoadingCalendly ? (
+                                {isLoadingSlots ? (
                                   <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
                                   <RefreshCw className="w-4 h-4" />
@@ -1517,29 +1361,29 @@ export default function BookingPage() {
                               </Button>
                             </div>
 
-                            {isLoadingCalendly ? (
+                            {isLoadingSlots ? (
                               <div className="flex items-center justify-center py-8">
                                 <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
                                 <span className="ml-2 text-blue-700">
                                   Loading available slots...
                                 </span>
                               </div>
-                            ) : calendlyAvailability.length > 0 ? (
+                            ) : availableSlots.length > 0 ? (
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {calendlyAvailability.map((slot, index) => {
-                                  const isSelected =
-                                    selectedCalendlySlot !== null &&
-                                    (selectedCalendlySlot as any).date ===
-                                      slot.date &&
-                                    (selectedCalendlySlot as any).startTime ===
-                                      slot.startTime;
+                                {availableSlots.map((slot, index) => {
+                                  const isSelected = Boolean(
+                                    selectedTimeSlot &&
+                                      selectedTimeSlot.date === slot.date &&
+                                      selectedTimeSlot.startTime ===
+                                        slot.startTime
+                                  );
 
                                   return (
                                     <button
                                       key={index}
                                       type="button"
                                       onClick={() => {
-                                        handleCalendlySlotSelect(slot);
+                                        handleTimeSlotSelect(slot);
                                         setShowTimeSlotModal(false);
                                       }}
                                       className={`p-4 text-left rounded-lg border transition-all ${
@@ -1591,7 +1435,7 @@ export default function BookingPage() {
 
               {/* Message when instructorId is missing or availability not configured */}
               {(!instructorId ||
-                (availabilityChecked && calendlyAvailability.length === 0)) && (
+                (availabilityChecked && availableSlots.length === 0)) && (
                 <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
                   <div className="flex items-center gap-2 text-amber-700 mb-2">
                     <Calendar className="w-5 h-5" />
@@ -1655,8 +1499,7 @@ export default function BookingPage() {
                     htmlFor="preferredDate"
                     className="text-sm font-semibold text-slate-700"
                   >
-                    {selectedCalendlySlot ? "Selected Date" : "Preferred Date"}{" "}
-                    *
+                    {selectedTimeSlot ? "Selected Date" : "Preferred Date"} *
                   </Label>
                   <Input
                     id="preferredDate"
@@ -1667,14 +1510,14 @@ export default function BookingPage() {
                     }
                     min={new Date().toISOString().split("T")[0]}
                     className={`mt-1 border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      selectedCalendlySlot
+                      selectedTimeSlot
                         ? "bg-blue-50 border-blue-200"
                         : "bg-white/50 border-slate-200"
                     }`}
                     required
-                    disabled={!!selectedCalendlySlot}
+                    disabled={!!selectedTimeSlot}
                   />
-                  {selectedCalendlySlot && (
+                  {selectedTimeSlot && (
                     <p className="text-xs text-blue-600 mt-1">
                       ✓ Date selected from available slots
                     </p>
@@ -1686,8 +1529,7 @@ export default function BookingPage() {
                     htmlFor="preferredTime"
                     className="text-sm font-semibold text-slate-700"
                   >
-                    {selectedCalendlySlot ? "Selected Time" : "Preferred Time"}{" "}
-                    *
+                    {selectedTimeSlot ? "Selected Time" : "Preferred Time"} *
                   </Label>
                   <Input
                     id="preferredTime"
@@ -1697,14 +1539,14 @@ export default function BookingPage() {
                       handleInputChange("preferredTime", e.target.value)
                     }
                     className={`mt-1 border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      selectedCalendlySlot
+                      selectedTimeSlot
                         ? "bg-blue-50 border-blue-200"
                         : "bg-white/50 border-slate-200"
                     }`}
                     required
-                    disabled={!!selectedCalendlySlot}
+                    disabled={!!selectedTimeSlot}
                   />
-                  {selectedCalendlySlot && (
+                  {selectedTimeSlot && (
                     <p className="text-xs text-blue-600 mt-1">
                       ✓ Time selected from available slots
                     </p>
