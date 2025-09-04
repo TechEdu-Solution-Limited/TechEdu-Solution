@@ -57,10 +57,10 @@ interface Calendar {
 
 interface Attendance {
   _id: string;
-  sessionId?: string;
-  classroomId?: string;
+  sessionId?: string | any; // Can be object or "[object Object]" string
+  classroomId?: string | any; // Can be object or "[object Object]" string
   productType: string;
-  ledBy?: LedBy | string; // Can be object or string "[object Object]"
+  ledBy?: LedBy | string | any; // Can be object, string "[object Object]", or other
   scheduleAt: string;
   endAt: string;
   durationInMinutes: number;
@@ -178,24 +178,20 @@ export default function InstructorAttendancePage() {
         : `/api/attendance/my-attendances`;
       const response = await getApiRequest(endpoint, token);
 
-      // Debug: Log the response structure
-      console.log("API Response:", response);
-
       if (response?.data?.success) {
-        const attendancesData =
-          response.data.data?.data || response.data.data || [];
+        const attendancesData = response.data.data?.data || [];
         setAttendances(attendancesData);
-        setMeta(response.data.data?.meta || response.data.meta);
+        setMeta(response.data.data?.meta);
 
         // Extract unique instructors for filter dropdown
         const uniqueInstructors = [
           ...new Set(
-            attendancesData?.map((attendance: Attendance) =>
-              typeof attendance?.ledBy === "object" &&
-              attendance?.ledBy?.fullName
-                ? attendance.ledBy.fullName
-                : attendance?.bookerFullName || "Unknown Instructor"
-            ) || []
+            attendancesData?.map((attendance: Attendance) => {
+              const ledBy = safeParseObject(attendance?.ledBy);
+              return ledBy && typeof ledBy === "object" && ledBy?.fullName
+                ? ledBy.fullName
+                : attendance?.bookerFullName || "Unknown Instructor";
+            }) || []
           ),
         ] as string[];
         setInstructors(uniqueInstructors);
@@ -243,6 +239,17 @@ export default function InstructorAttendancePage() {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  // Helper function to safely parse object fields that might be "[object Object]" strings
+  const safeParseObject = (field: any): any => {
+    if (typeof field === "string" && field === "[object Object]") {
+      return null;
+    }
+    if (typeof field === "object" && field !== null) {
+      return field;
+    }
+    return null;
   };
 
   const getStatusColor = (status: string) => {
@@ -382,12 +389,13 @@ export default function InstructorAttendancePage() {
       ? "current.user@example.com"
       : ""; // Replace with actual current user email
 
-    if (typeof attendance.ledBy === "object" && attendance.ledBy?.email) {
-      return attendance.ledBy.email === currentUserEmail;
+    const ledBy = safeParseObject(attendance?.ledBy);
+    if (ledBy && typeof ledBy === "object" && ledBy?.email) {
+      return ledBy.email === currentUserEmail;
     }
 
     // Fallback to booker email if ledBy is not available
-    return attendance.bookerEmail === currentUserEmail;
+    return attendance?.bookerEmail === currentUserEmail;
   };
 
   return (
@@ -661,12 +669,15 @@ export default function InstructorAttendancePage() {
                         </span>
                         <span className="flex items-center gap-1">
                           <GraduationCap className="w-4 h-4" />
-                          {attendance?.ledBy &&
-                          typeof attendance.ledBy === "object" &&
-                          attendance.ledBy?.fullName
-                            ? attendance.ledBy.fullName
-                            : attendance?.bookerFullName ||
-                              "Unknown Instructor"}
+                          {(() => {
+                            const ledBy = safeParseObject(attendance?.ledBy);
+                            return ledBy &&
+                              typeof ledBy === "object" &&
+                              ledBy?.fullName
+                              ? ledBy.fullName
+                              : attendance?.bookerFullName ||
+                                  "Unknown Instructor";
+                          })()}
                         </span>
                       </div>
                     </div>
