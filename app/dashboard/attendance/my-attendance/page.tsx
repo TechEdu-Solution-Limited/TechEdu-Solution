@@ -178,17 +178,23 @@ export default function InstructorAttendancePage() {
         : `/api/attendance/my-attendances`;
       const response = await getApiRequest(endpoint, token);
 
+      // Debug: Log the response structure
+      console.log("API Response:", response);
+
       if (response?.data?.success) {
-        setAttendances(response.data.data.data || []);
-        setMeta(response.data.data.meta);
+        const attendancesData =
+          response.data.data?.data || response.data.data || [];
+        setAttendances(attendancesData);
+        setMeta(response.data.data?.meta || response.data.meta);
 
         // Extract unique instructors for filter dropdown
         const uniqueInstructors = [
           ...new Set(
-            response.data.data.data?.map((attendance: Attendance) =>
-              typeof attendance.ledBy === "object" && attendance.ledBy?.fullName
+            attendancesData?.map((attendance: Attendance) =>
+              typeof attendance?.ledBy === "object" &&
+              attendance?.ledBy?.fullName
                 ? attendance.ledBy.fullName
-                : attendance.bookerFullName || "Unknown Instructor"
+                : attendance?.bookerFullName || "Unknown Instructor"
             ) || []
           ),
         ] as string[];
@@ -613,16 +619,16 @@ export default function InstructorAttendancePage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-xl font-semibold text-slate-900">
-                          {attendance.title}
+                          {attendance?.title || "Untitled Session"}
                         </h3>
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-                            attendance.status
+                            attendance?.status || ""
                           )}`}
                         >
                           <span className="flex items-center gap-1">
-                            {getStatusIcon(attendance.status)}
-                            {attendance.status
+                            {getStatusIcon(attendance?.status || "")}
+                            {attendance?.status
                               ? attendance.status.charAt(0).toUpperCase() +
                                 attendance.status.slice(1).replace("_", " ")
                               : "Unknown"}
@@ -630,32 +636,37 @@ export default function InstructorAttendancePage() {
                         </span>
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium border ${getProductTypeColor(
-                            attendance.productType
+                            attendance?.productType || ""
                           )}`}
                         >
-                          {attendance.productType}
+                          {attendance?.productType || "Unknown Type"}
                         </span>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-slate-600">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
-                          {formatDate(attendance.scheduleAt)}
+                          {attendance?.scheduleAt
+                            ? formatDate(attendance.scheduleAt)
+                            : "TBD"}
                         </span>
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          {attendance.durationInMinutes} minutes
+                          {attendance?.durationInMinutes || 0} minutes
                         </span>
                         <span className="flex items-center gap-1">
                           <Users className="w-4 h-4" />
-                          {attendance.participants.length}/
-                          {attendance.numberOfExpectedParticipants} participants
+                          {attendance?.participants?.length || 0}/
+                          {attendance?.numberOfExpectedParticipants || 0}{" "}
+                          participants
                         </span>
                         <span className="flex items-center gap-1">
                           <GraduationCap className="w-4 h-4" />
-                          {typeof attendance.ledBy === "object" &&
+                          {attendance?.ledBy &&
+                          typeof attendance.ledBy === "object" &&
                           attendance.ledBy?.fullName
                             ? attendance.ledBy.fullName
-                            : attendance.bookerFullName || "Unknown Instructor"}
+                            : attendance?.bookerFullName ||
+                              "Unknown Instructor"}
                         </span>
                       </div>
                     </div>
@@ -697,75 +708,79 @@ export default function InstructorAttendancePage() {
                       Participants
                     </h4>
                     <div className="grid gap-3">
-                      {attendance.participants.map((participant, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-3 bg-slate-50 rounded-xl"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                              <span className="text-sm font-medium text-blue-600">
-                                {participant.fullName.charAt(0)}
-                              </span>
+                      {(attendance?.participants || []).map(
+                        (participant, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 bg-slate-50 rounded-xl"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <span className="text-sm font-medium text-blue-600">
+                                  {participant?.fullName?.charAt(0) || "?"}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="font-medium text-slate-900">
+                                  {participant?.fullName ||
+                                    "Unknown Participant"}
+                                </p>
+                                <p className="text-sm text-slate-600">
+                                  {participant?.email || "No email"} •{" "}
+                                  {participant?.platformRole || "Unknown role"}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium text-slate-900">
-                                {participant.fullName}
-                              </p>
-                              <p className="text-sm text-slate-600">
-                                {participant.email} • {participant.platformRole}
-                              </p>
-                            </div>
-                          </div>
 
-                          <div className="flex items-center gap-2">
-                            {/* View Details Button */}
-                            <Link
-                              href={`/dashboard/attendance/my-attendance/${attendance._id}`}
-                              className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-                              title="View Details"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Link>
+                            <div className="flex items-center gap-2">
+                              {/* View Details Button */}
+                              <Link
+                                href={`/dashboard/attendance/my-attendance/${attendance._id}`}
+                                className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                                title="View Details"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Link>
 
-                            {/* Attendance Marking (for completed sessions) */}
-                            {attendance.status === "completed" && (
+                              {/* Attendance Marking (for completed sessions) */}
+                              {attendance.status === "completed" && (
+                                <button
+                                  onClick={() =>
+                                    handleMarkAttendance(
+                                      attendance._id,
+                                      participant.email,
+                                      true
+                                    )
+                                  }
+                                  className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                                  title="Mark Present"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                </button>
+                              )}
+
+                              {/* Feedback Button */}
                               <button
                                 onClick={() =>
-                                  handleMarkAttendance(
+                                  handleAddFeedback(
                                     attendance._id,
-                                    participant.email,
-                                    true
+                                    participant.email
                                   )
                                 }
-                                className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
-                                title="Mark Present"
+                                className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                                title="Add Feedback"
                               >
-                                <CheckCircle className="w-4 h-4" />
+                                <MessageSquare className="w-4 h-4" />
                               </button>
-                            )}
-
-                            {/* Feedback Button */}
-                            <button
-                              onClick={() =>
-                                handleAddFeedback(
-                                  attendance._id,
-                                  participant.email
-                                )
-                              }
-                              className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
-                              title="Add Feedback"
-                            >
-                              <MessageSquare className="w-4 h-4" />
-                            </button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        )
+                      )}
                     </div>
                   </div>
 
                   {/* Session Notes */}
-                  {attendance.remarks && (
+                  {attendance?.remarks && (
                     <div className="border-t border-slate-200 pt-4 mt-4">
                       <h4 className="text-lg font-semibold text-slate-900 mb-2">
                         Session Notes
