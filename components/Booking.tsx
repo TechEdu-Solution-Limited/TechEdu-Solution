@@ -306,35 +306,72 @@ export default function BookingPage() {
         return;
       }
 
-      // Use availableSlots from the instructor availability response
-      const availableSlots = availabilityData.availableSlots || [];
-      console.log(
-        "Available slots from instructor availability:",
-        availableSlots
-      );
+      // Generate time slots from working hours since availableSlots is empty
+      const workingHours = availabilityData.workingHours || [];
+      const generatedSlots = [];
 
-      // Transform the availableSlots to match our component state
-      const transformedSlots = availableSlots.map((slot: any) => {
-        // Convert ISO datetime to date and time format
-        const startDateTime = new Date(slot.startTime);
-        const endDateTime = new Date(slot.endTime);
+      // Generate slots for the next 15 days
+      for (let i = 0; i < 15; i++) {
+        const currentDate = new Date(startDate);
+        currentDate.setUTCDate(startDate.getUTCDate() + i);
+        const dayOfWeek = currentDate.getUTCDay(); // 0 = Sunday, 1 = Monday, etc.
 
-        return {
-          startTime: startDateTime.toTimeString().slice(0, 5), // HH:MM format
-          endTime: endDateTime.toTimeString().slice(0, 5), // HH:MM format
-          date: startDateTime.toISOString().split("T")[0], // YYYY-MM-DD format
-          available: slot.isAvailable,
-        };
-      });
+        // Find working hours for this day
+        const dayWorkingHours = workingHours.find(
+          (wh: {
+            dayOfWeek: number;
+            isAvailable: boolean;
+            startTime: string;
+            endTime: string;
+          }) => wh.dayOfWeek === dayOfWeek
+        );
 
-      console.log("Transformed slots:", transformedSlots);
-      setAvailableSlots(transformedSlots);
+        if (dayWorkingHours && dayWorkingHours.isAvailable) {
+          // Generate hourly slots within working hours
+          const startTime = dayWorkingHours.startTime; // "09:00"
+          const endTime = dayWorkingHours.endTime; // "17:00"
+
+          const [startHour, startMin] = startTime.split(":").map(Number);
+          const [endHour, endMin] = endTime.split(":").map(Number);
+
+          const startMinutes = startHour * 60 + startMin;
+          const endMinutes = endHour * 60 + endMin;
+
+          // Generate slots every hour
+          for (
+            let slotStart = startMinutes;
+            slotStart < endMinutes;
+            slotStart += 60
+          ) {
+            const slotEnd = slotStart + 60;
+
+            const slotStartHour = Math.floor(slotStart / 60);
+            const slotStartMin = slotStart % 60;
+            const slotEndHour = Math.floor(slotEnd / 60);
+            const slotEndMin = slotEnd % 60;
+
+            generatedSlots.push({
+              startTime: `${slotStartHour
+                .toString()
+                .padStart(2, "0")}:${slotStartMin.toString().padStart(2, "0")}`,
+              endTime: `${slotEndHour.toString().padStart(2, "0")}:${slotEndMin
+                .toString()
+                .padStart(2, "0")}`,
+              date: currentDate.toISOString().split("T")[0],
+              available: true,
+            });
+          }
+        }
+      }
+
+      console.log("Generated slots from working hours:", generatedSlots);
+      setAvailableSlots(generatedSlots);
       setAvailabilityChecked(true);
 
-      if (transformedSlots.length === 0) {
+      if (generatedSlots.length === 0) {
         toast.info("No available time slots found for this instructor");
       } else {
-        toast.success(`Found ${transformedSlots.length} available time slots`);
+        toast.success(`Found ${generatedSlots.length} available time slots`);
       }
     } catch (error) {
       console.error("Failed to fetch instructor availability:", error);
