@@ -54,12 +54,12 @@ function NotificationsPage() {
   ) => {
     setLoading(true);
     try {
-      console.log("Fetching notifications with:", {
-        page,
-        limit,
-        unread,
-        typeFilter,
-      });
+      // console.log("Fetching notifications with:", {
+      //   page,
+      //   limit,
+      //   unread,
+      //   typeFilter,
+      // });
       let res;
       if (typeFilter && typeFilter !== "") {
         res = await getApiRequest(
@@ -79,14 +79,14 @@ function NotificationsPage() {
           token
         );
       }
-      console.log("Notifications response:", res);
+      // console.log("Notifications response:", res);
       setNotifications(res.data?.data?.notifications || []);
-      console.log("Notifications:", res.data?.data?.notifications);
+      // console.log("Notifications:", res.data?.data?.notifications);
       setPagination(
         res.data?.data?.pagination || { page: 1, limit: 20, total: 0, pages: 1 }
       );
     } catch (error) {
-      console.error("Error fetching notifications:", error);
+      // console.error("Error fetching notifications:", error);
     } finally {
       setLoading(false);
     }
@@ -100,7 +100,7 @@ function NotificationsPage() {
         setUnreadCount(res.data.data.unreadCount);
       }
     } catch (error) {
-      console.error("Error fetching unread count:", error);
+      // console.error("Error fetching unread count:", error);
       setUnreadCount(0);
     }
   };

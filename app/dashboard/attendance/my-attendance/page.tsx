@@ -60,7 +60,7 @@ interface Attendance {
   sessionId?: string;
   classroomId?: string;
   productType: string;
-  ledBy: LedBy;
+  ledBy?: LedBy | string; // Can be object or string "[object Object]"
   scheduleAt: string;
   endAt: string;
   durationInMinutes: number;
@@ -79,6 +79,12 @@ interface Attendance {
   rescheduledMeetingLink?: string;
   createdAt: string;
   updatedAt: string;
+  // Additional fields from API response
+  bookerType?: string;
+  bookerPlatformRole?: string;
+  bookerProfileId?: string;
+  bookerEmail?: string;
+  bookerFullName?: string;
 }
 
 interface Meta {
@@ -173,14 +179,16 @@ export default function InstructorAttendancePage() {
       const response = await getApiRequest(endpoint, token);
 
       if (response?.data?.success) {
-        setAttendances(response.data.data.attendances || []);
+        setAttendances(response.data.data.data || []);
         setMeta(response.data.data.meta);
 
         // Extract unique instructors for filter dropdown
         const uniqueInstructors = [
           ...new Set(
-            response.data.data.attendances?.map(
-              (attendance: Attendance) => attendance.ledBy.fullName
+            response.data.data.data?.map((attendance: Attendance) =>
+              typeof attendance.ledBy === "object" && attendance.ledBy?.fullName
+                ? attendance.ledBy.fullName
+                : attendance.bookerFullName || "Unknown Instructor"
             ) || []
           ),
         ] as string[];
@@ -325,11 +333,11 @@ export default function InstructorAttendancePage() {
     present: boolean
   ) => {
     // TODO: Implement attendance marking functionality
-    console.log(
-      `Marking ${participantEmail} as ${
-        present ? "present" : "absent"
-      } for attendance ${attendanceId}`
-    );
+    // console.log(
+    //   `Marking ${participantEmail} as ${
+    //     present ? "present" : "absent"
+    //   } for attendance ${attendanceId}`
+    // );
   };
 
   const handleAddFeedback = async (
@@ -337,9 +345,9 @@ export default function InstructorAttendancePage() {
     participantEmail: string
   ) => {
     // TODO: Implement feedback functionality
-    console.log(
-      `Adding feedback for ${participantEmail} in attendance ${attendanceId}`
-    );
+    // console.log(
+    //   `Adding feedback for ${participantEmail} in attendance ${attendanceId}`
+    // );
   };
 
   const clearFilters = () => {
@@ -358,7 +366,13 @@ export default function InstructorAttendancePage() {
     const currentUserEmail = getTokenFromCookies()
       ? "current.user@example.com"
       : ""; // Replace with actual current user email
-    return attendance.ledBy.email === currentUserEmail;
+
+    if (typeof attendance.ledBy === "object" && attendance.ledBy?.email) {
+      return attendance.ledBy.email === currentUserEmail;
+    }
+
+    // Fallback to booker email if ledBy is not available
+    return attendance.bookerEmail === currentUserEmail;
   };
 
   return (
@@ -627,7 +641,10 @@ export default function InstructorAttendancePage() {
                         </span>
                         <span className="flex items-center gap-1">
                           <GraduationCap className="w-4 h-4" />
-                          {attendance.ledBy.fullName}
+                          {typeof attendance.ledBy === "object" &&
+                          attendance.ledBy?.fullName
+                            ? attendance.ledBy.fullName
+                            : attendance.bookerFullName || "Unknown Instructor"}
                         </span>
                       </div>
                     </div>

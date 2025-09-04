@@ -24,19 +24,13 @@ import {
 import {
   ArrowLeft,
   Calendar,
-  Clock,
   User,
   BookOpen,
   Video,
-  Users,
   FileText,
   Send,
   Loader2,
   GraduationCap,
-  Building,
-  Mail,
-  Phone,
-  MapPin,
   Target,
   X,
   RefreshCw,
@@ -64,7 +58,6 @@ export default function BookingPage() {
   const service = searchParams.get("service");
   const deliveryMode = searchParams.get("deliveryMode");
   const sessionType = searchParams.get("sessionType");
-  const duration = searchParams.get("duration");
   const minutesPerSession = searchParams.get("minutesPerSession");
   const price = searchParams.get("price");
   const instructorId = searchParams.get("instructorId");
@@ -72,46 +65,16 @@ export default function BookingPage() {
   const isSession = searchParams.get("isSession") === "true";
   const durationInMinutes = searchParams.get("durationInMinutes");
 
-  // Debug logging for instructor ID
-  useEffect(() => {
-    console.log("Booking Component Debug Info:", {
-      instructorId,
-      productId,
-      productName,
-      productType,
-      isClassroom,
-      isSession,
-      hasInstructorId: !!instructorId,
-      instructorIdType: typeof instructorId,
-      instructorIdLength: instructorId?.length,
-    });
-  }, [
-    instructorId,
-    productId,
-    productName,
-    productType,
-    isClassroom,
-    isSession,
-  ]);
-
-  // Determine if this is an academic or training service
-  // const isAcademicService = productType === "Academic Support Services";
-  // const isTrainingService =
-  //   productType === "Training & Certification" ||
-  //   productType === "Training & Certfication";
-
-  // Determine if this is an academic or training service
+  // Determine service types
   const isAcademicService = productType?.includes("Academic Support Services");
   const isTrainingService = productType?.includes("Training & Certification");
 
-  // Add debugging
-  // console.log("Product Type from URL:", productType);
-  // console.log("Is Academic Service:", isAcademicService);
-  // console.log("Is Training Service:", isTrainingService);
+  // Product data state
+  const [productData, setProductData] = useState<any>(null);
+  const [loadingProduct, setLoadingProduct] = useState(false);
 
-  // Dynamic form state based on product type
+  // Form state
   const [formData, setFormData] = useState({
-    // Common fields
     fullName: userData?.fullName || "",
     email: userData?.email || "",
     phone: "",
@@ -126,27 +89,11 @@ export default function BookingPage() {
       | "recruiter"
       | "visitor",
     userNotes: "",
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, // Auto-detect user timezone
-
-    // Academic-specific fields
-    attachments: [] as Array<{
-      id: number;
-      file: File;
-      name: string;
-      size: number;
-      type: string;
-      cloudinaryUrl?: string;
-      publicId?: string;
-      format?: string;
-      uploadProgress?: number; // Add upload progress tracking
-      uploadStartTime?: number; // Track upload start time for speed calculation
-    }>,
-
-    // Training-specific fields
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     bookingPurpose: "",
     numberOfExpectedParticipants: 1,
-
-    // Classroom-specific fields
+    scheduledStart: "",
+    scheduledEnd: "",
     actualDaysAndTime: [] as Array<{
       dayOfWeek:
         | "Monday"
@@ -159,13 +106,21 @@ export default function BookingPage() {
       startTime: string;
       endTime: string;
     }>,
-
-    // Scheduling fields
-    scheduledStart: "", // Actual scheduled start time
-    scheduledEnd: "", // Actual scheduled end time
+    attachments: [] as Array<{
+      id: number;
+      file: File;
+      name: string;
+      size: number;
+      type: string;
+      cloudinaryUrl?: string;
+      publicId?: string;
+      format?: string;
+      uploadProgress?: number;
+      uploadStartTime?: number;
+    }>,
   });
 
-  // Time slot selection state
+  // Time slot state
   const [availableSlots, setAvailableSlots] = useState<
     Array<{
       startTime: string;
@@ -176,6 +131,8 @@ export default function BookingPage() {
   >([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [availabilityChecked, setAvailabilityChecked] = useState(false);
+  const [hasPrefetchedAvailability, setHasPrefetchedAvailability] =
+    useState(false);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<{
     startTime: string;
     endTime: string;
@@ -213,21 +170,14 @@ export default function BookingPage() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Fetch instructor availability and available time slots
+  // Fetch instructor availability
   const fetchInstructorAvailability = useCallback(async () => {
     if (!instructorId) {
-      console.warn("No instructorId provided, cannot fetch availability");
       toast.warning("No instructor assigned to this product");
       return;
     }
 
-    // Get authentication token
     const token = getTokenFromCookies();
-    console.log(
-      "Token retrieved:",
-      token ? `${token.substring(0, 20)}...` : "NO TOKEN"
-    );
-
     if (!token) {
       toast.error("Authentication token not found. Please login again.");
       return;
@@ -235,41 +185,33 @@ export default function BookingPage() {
 
     setIsLoadingSlots(true);
     setAvailabilityChecked(false);
+
     try {
-      console.log("Fetching availability for instructor:", instructorId);
-      console.log(
-        "Using token:",
-        token ? `${token.substring(0, 20)}...` : "NO TOKEN"
+      // Calculate date range for the next 15 days (strictly future in UTC)
+      const now = new Date();
+      const startDate = new Date(
+        Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth(),
+          now.getUTCDate() + 1, // start from tomorrow to avoid "past" validation
+          0,
+          0,
+          0,
+          0
+        )
       );
+      const endDate = new Date(startDate);
+      endDate.setUTCDate(startDate.getUTCDate() + 14); // inclusive 15-day window
+      endDate.setUTCHours(23, 59, 59, 999);
 
-      // Calculate date range for the next 15 days (using UTC to avoid timezone issues)
-      const startDate = new Date();
-      startDate.setUTCHours(0, 0, 0, 0); // Set to start of today in UTC
-      const endDate = new Date();
-      endDate.setUTCDate(startDate.getUTCDate() + 14); // Add 14 days to stay within 15-day limit
-      endDate.setUTCHours(23, 59, 59, 999); // Set to end of day in UTC
-
-      // Get instructor availability for the next 15 days
-      const availabilityUrl = `/api/instructors/${instructorId}/availability?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
-      console.log("Fetching instructor availability from:", availabilityUrl);
-
+      const query = `?startDate=${encodeURIComponent(
+        startDate.toISOString()
+      )}&endDate=${encodeURIComponent(endDate.toISOString())}`;
+      const availabilityUrl = `/api/instructors/${instructorId}/availability${query}`;
       const availabilityResponse = await getApiRequest(availabilityUrl, token);
 
-      console.log("Availability response:", availabilityResponse);
-      console.log("Availability response status:", availabilityResponse.status);
-
       if (availabilityResponse.status >= 400) {
-        console.error(
-          "Availability API error:",
-          availabilityResponse.status,
-          availabilityResponse.message
-        );
-
-        // Handle 404 specifically - instructor availability not found
         if (availabilityResponse.status === 404) {
-          console.log(
-            "Instructor availability not found, skipping availability check"
-          );
           setAvailableSlots([]);
           setAvailabilityChecked(true);
           toast.info(
@@ -278,100 +220,52 @@ export default function BookingPage() {
           return;
         }
 
-        // Check if the response contains error details
-        if (availabilityResponse.data && availabilityResponse.data.error) {
-          throw new Error(
-            `Failed to fetch instructor availability: ${availabilityResponse.data.error}`
-          );
-        }
-
-        throw new Error(
-          `Failed to fetch instructor availability: ${
-            availabilityResponse.status
-          } - ${availabilityResponse.message || "Unknown error"}`
-        );
+        // Gracefully handle validation errors like "Start date cannot be in the past"
+        const apiError = availabilityResponse.data?.error;
+        const details = availabilityResponse.data?.details;
+        const validationMsg = Array.isArray(details) ? details[0] : undefined;
+        const message =
+          validationMsg ||
+          apiError ||
+          availabilityResponse.message ||
+          "Unknown error";
+        // Avoid spamming users with validation errors during initial attempts
+        console.warn("Availability fetch error:", message);
+        setAvailableSlots([]);
+        setAvailabilityChecked(true);
+        return;
       }
 
       const availabilityData = availabilityResponse.data;
-      console.log("Availability data:", availabilityData);
-      console.log("Availability data keys:", Object.keys(availabilityData));
+      const isActive = availabilityData.data?.isActive;
 
-      // Check if instructor is active
-      const isActive = availabilityData.isActive;
       if (!isActive) {
-        console.log("Instructor is not active:", availabilityData.isActive);
         setAvailableSlots([]);
         setAvailabilityChecked(true);
         toast.info("Instructor is currently not available for scheduling");
         return;
       }
 
-      // Generate time slots from working hours since availableSlots is empty
-      const workingHours = availabilityData.workingHours || [];
-      const generatedSlots = [];
+      const availableSlots = availabilityData.data?.availableSlots || [];
+      const transformedSlots = availableSlots.map((slot: any) => {
+        const startDateTime = new Date(slot.startTime);
+        const endDateTime = new Date(slot.endTime);
 
-      // Generate slots for the next 15 days
-      for (let i = 0; i < 15; i++) {
-        const currentDate = new Date(startDate);
-        currentDate.setUTCDate(startDate.getUTCDate() + i);
-        const dayOfWeek = currentDate.getUTCDay(); // 0 = Sunday, 1 = Monday, etc.
+        return {
+          startTime: startDateTime.toTimeString().slice(0, 5),
+          endTime: endDateTime.toTimeString().slice(0, 5),
+          date: startDateTime.toISOString().split("T")[0],
+          available: slot.isAvailable,
+        };
+      });
 
-        // Find working hours for this day
-        const dayWorkingHours = workingHours.find(
-          (wh: {
-            dayOfWeek: number;
-            isAvailable: boolean;
-            startTime: string;
-            endTime: string;
-          }) => wh.dayOfWeek === dayOfWeek
-        );
-
-        if (dayWorkingHours && dayWorkingHours.isAvailable) {
-          // Generate hourly slots within working hours
-          const startTime = dayWorkingHours.startTime; // "09:00"
-          const endTime = dayWorkingHours.endTime; // "17:00"
-
-          const [startHour, startMin] = startTime.split(":").map(Number);
-          const [endHour, endMin] = endTime.split(":").map(Number);
-
-          const startMinutes = startHour * 60 + startMin;
-          const endMinutes = endHour * 60 + endMin;
-
-          // Generate slots every hour
-          for (
-            let slotStart = startMinutes;
-            slotStart < endMinutes;
-            slotStart += 60
-          ) {
-            const slotEnd = slotStart + 60;
-
-            const slotStartHour = Math.floor(slotStart / 60);
-            const slotStartMin = slotStart % 60;
-            const slotEndHour = Math.floor(slotEnd / 60);
-            const slotEndMin = slotEnd % 60;
-
-            generatedSlots.push({
-              startTime: `${slotStartHour
-                .toString()
-                .padStart(2, "0")}:${slotStartMin.toString().padStart(2, "0")}`,
-              endTime: `${slotEndHour.toString().padStart(2, "0")}:${slotEndMin
-                .toString()
-                .padStart(2, "0")}`,
-              date: currentDate.toISOString().split("T")[0],
-              available: true,
-            });
-          }
-        }
-      }
-
-      console.log("Generated slots from working hours:", generatedSlots);
-      setAvailableSlots(generatedSlots);
+      setAvailableSlots(transformedSlots);
       setAvailabilityChecked(true);
 
-      if (generatedSlots.length === 0) {
+      if (transformedSlots.length === 0) {
         toast.info("No available time slots found for this instructor");
       } else {
-        toast.success(`Found ${generatedSlots.length} available time slots`);
+        toast.success(`Found ${transformedSlots.length} available time slots`);
       }
     } catch (error) {
       console.error("Failed to fetch instructor availability:", error);
@@ -390,7 +284,6 @@ export default function BookingPage() {
         toast.error("Failed to load available time slots");
       }
 
-      // Set empty availability when API fails
       setAvailableSlots([]);
       setAvailabilityChecked(true);
     } finally {
@@ -398,19 +291,52 @@ export default function BookingPage() {
     }
   }, [instructorId]);
 
-  // Fetch instructor availability when component mounts
+  // Fetch product data when component mounts
   useEffect(() => {
-    if (instructorId) {
+    const fetchProduct = async () => {
+      if (!productId) return;
+
+      setLoadingProduct(true);
+      try {
+        const token = getTokenFromCookies();
+        if (!token) {
+          toast.error("Authentication token not found. Please login again.");
+          return;
+        }
+
+        const response = await getApiRequest(
+          `/api/products/public/${productId}`,
+          token
+        );
+        if (response.status >= 400) {
+          throw new Error(`Failed to fetch product: ${response.message}`);
+        }
+
+        setProductData(response.data);
+      } catch (error) {
+        console.error("Failed to fetch product:", error);
+        toast.error("Failed to load product details. Please try again.");
+      } finally {
+        setLoadingProduct(false);
+      }
+    };
+
+    fetchProduct();
+  }, [productId]);
+
+  // Prefetch availability once after mount when instructorId is ready
+  useEffect(() => {
+    if (instructorId && !hasPrefetchedAvailability) {
+      setHasPrefetchedAvailability(true);
       fetchInstructorAvailability();
     }
-  }, [instructorId, fetchInstructorAvailability]);
+  }, [instructorId, hasPrefetchedAvailability, fetchInstructorAvailability]);
 
   // Handle time slot selection
   const handleTimeSlotSelect = useCallback(
-    async (slot: { startTime: string; endTime: string; date: string }) => {
+    (slot: { startTime: string; endTime: string; date: string }) => {
       setSelectedTimeSlot(slot);
 
-      // Update form data with selected times
       const startDateTime = new Date(`${slot.date}T${slot.startTime}`);
       const endDateTime = new Date(`${slot.date}T${slot.endTime}`);
 
@@ -424,13 +350,7 @@ export default function BookingPage() {
 
       toast.success("Time slot selected successfully!");
     },
-    [
-      instructorId,
-      formData.timezone,
-      formData.email,
-      formData.fullName,
-      service,
-    ]
+    []
   );
 
   // Clear selected time slot
@@ -473,24 +393,20 @@ export default function BookingPage() {
     setShowSummaryModal(true);
   };
 
-  // ... existing code ...
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Validate required fields based on product type
+      // Validate required fields
       const requiredFields = [
         "fullName",
         "email",
         "preferredDate",
         "preferredTime",
       ];
-
-      if (isAcademicService) {
-      } else if (isTrainingService) {
-        requiredFields.push("preferredDate", "preferredTime");
+      if (isTrainingService) {
+        requiredFields.push("bookingPurpose");
       }
 
       const missingFields = requiredFields.filter(
@@ -505,29 +421,21 @@ export default function BookingPage() {
         return;
       }
 
-      // Get authentication token
       const token = getTokenFromCookies();
-      console.log(
-        "Final booking creation - Token retrieved:",
-        token ? `${token.substring(0, 20)}...` : "NO TOKEN"
-      );
-
       if (!token) {
         toast.error("Authentication token not found. Please login again.");
         router.push("/login");
         return;
       }
 
-      // Use Calendly scheduled times if available, otherwise calculate
+      // Calculate schedule times
       let scheduleDate: Date;
       let endDate: Date;
 
       if (formData.scheduledStart && formData.scheduledEnd) {
-        // Use Calendly confirmed times
         scheduleDate = new Date(formData.scheduledStart);
         endDate = new Date(formData.scheduledEnd);
       } else {
-        // Fallback to calculated times
         scheduleDate = new Date(
           `${formData.preferredDate}T${formData.preferredTime}`
         );
@@ -537,7 +445,7 @@ export default function BookingPage() {
         );
       }
 
-      // Create booking payload based on product type
+      // Create booking payload
       let bookingPayload: any = {
         productId,
         instructorId: instructorId || undefined,
@@ -546,9 +454,7 @@ export default function BookingPage() {
         endAt: endDate.toISOString(),
         timezone: formData.timezone,
         minutesPerSession: parseInt(minutesPerSession || "60"),
-        durationInMinutes: parseInt(
-          durationInMinutes || minutesPerSession || "60"
-        ),
+        durationInMinutes: parseInt(durationInMinutes || "60"),
         numberOfExpectedParticipants: isTrainingService
           ? formData.numberOfExpectedParticipants
           : formData.numberOfParticipants,
@@ -560,79 +466,75 @@ export default function BookingPage() {
         email: userData?.email || formData.email,
         fullName: userData?.fullName || formData.fullName,
         schedulingStatus: "awaiting-payment",
-
-        // Scheduling fields
         scheduledStart: formData.scheduledStart,
         scheduledEnd: formData.scheduledEnd,
+
+        // Required fields that were missing:
+        createdBy: (userData as any)?._id,
+        profileId: (userData as any)?.profileId,
+
+        // Participants array (denormalized data)
+        participants: [
+          {
+            participantType: formData.participantType,
+            platformRole: userData?.role || "student",
+            profileId: (userData as any)?.profileId,
+            email: userData?.email || formData.email,
+            fullName: userData?.fullName || formData.fullName,
+          },
+        ],
+
+        // Classroom-specific fields
+        actualDaysAndTime: formData.actualDaysAndTime || [],
       };
 
       // Add product type specific fields
       if (isAcademicService) {
-        if (formData.attachments.length > 0) {
-          // Check if all files are uploaded to Cloudinary
-          const unuploadedFiles = formData.attachments.filter(
-            (att) => !att.cloudinaryUrl
+        const unuploadedFiles = formData.attachments.filter(
+          (att) => !att.cloudinaryUrl
+        );
+        if (unuploadedFiles.length > 0) {
+          toast.error(
+            "Please wait for all files to finish uploading before creating the booking."
           );
-          if (unuploadedFiles.length > 0) {
-            toast.error(
-              `Please wait for all files to finish uploading before creating the booking.`
-            );
-            setLoading(false);
-            return;
-          }
-
-          // Process attachments - send only the Cloudinary URLs
-          const processedAttachments = formData.attachments.map(
-            (fileObj) => fileObj.cloudinaryUrl!
-          );
-          bookingPayload = {
-            ...bookingPayload,
-            productType: "Academic Support Services",
-            attachments: processedAttachments,
-          };
-        } else {
-          bookingPayload = {
-            ...bookingPayload,
-            productType: "Academic Support Services",
-            attachments: [],
-          };
+          setLoading(false);
+          return;
         }
+
+        const processedAttachments = formData.attachments.map(
+          (fileObj) => fileObj.cloudinaryUrl!
+        );
+        bookingPayload = {
+          ...bookingPayload,
+          productType: "Academic Support Services",
+          attachments: processedAttachments,
+        };
       } else if (isTrainingService) {
         bookingPayload = {
           ...bookingPayload,
           productType: "Training & Certification",
         };
       }
-      let response;
-      try {
-        console.log("Creating booking with payload:", bookingPayload);
-        response = await postApiRequest("/api/bookings", token, bookingPayload);
-        console.log("Booking response:", response);
 
-        if (response.status >= 400) {
-          console.error("Booking creation failed:", response);
+      // Create booking
+      const response = await postApiRequest(
+        "/api/bookings",
+        token,
+        bookingPayload
+      );
 
-          // Check if the response contains error details
-          if (response.data && response.data.error) {
-            throw new Error(`Failed to create booking: ${response.data.error}`);
-          } else if (response.data && response.data.message) {
-            throw new Error(
-              `Failed to create booking: ${response.data.message}`
-            );
-          } else {
-            throw new Error("Failed to create booking");
-          }
+      if (response.status >= 400) {
+        if (response.data?.error) {
+          throw new Error(`Failed to create booking: ${response.data.error}`);
+        } else if (response.data?.message) {
+          throw new Error(`Failed to create booking: ${response.data.message}`);
+        } else {
+          throw new Error("Failed to create booking");
         }
-      } catch (apiError: any) {
-        throw apiError;
       }
 
-      // Extract the created booking ID from the response
       const createdBookingId =
-        response.data?.data?._id ||
-        response.data?._id ||
-        response.data?.id ||
-        (response as any)._id;
+        response.data?.data?._id || response.data?._id || response.data?.id;
 
       if (!createdBookingId) {
         throw new Error(
@@ -640,41 +542,44 @@ export default function BookingPage() {
         );
       }
 
-      // Create cart item for payment
+      // Create cart item from product data
       const cartItem = {
         id: productId!,
-        title: productName!,
-        description: `${productName} - ${
+        title: productData?.title || productName!,
+        description: `${productData?.title || productName} - ${
           formData.sessionType || sessionType
         } Session`,
-        price: parseFloat(price || "50"),
-        discountPercentage: 0,
-        category: productType || "Service",
-        productType: productType || "Training & Certfication",
-        image: "/assets/default-product.png",
-        duration: duration || "1 Session",
-        certificate: false,
-        status: "active",
+        price: parseFloat(productData?.price || price || "50"),
+        discountPercentage: productData?.discountPercentage || 0,
+        category: productData?.category || productType || "Service",
+        productType:
+          productData?.productType || productType || "Training & Certification",
+        image: productData?.image || "/assets/default-product.png",
+        certificate: productData?.certificate || false,
+        status: productData?.status || "active",
         level: formData.sessionType || sessionType || "1-on-1",
-        requiresBooking: true,
-        deliveryMode: deliveryMode || "Virtual",
+        requiresBooking: productData?.requiresBooking || true,
+        deliveryMode: productData?.deliveryMode || deliveryMode || "Virtual",
         sessionType: (formData.sessionType ||
           sessionType ||
           "1-on-1") as string,
-        isRecurring: false,
-        programLength: 1,
-        mode: "session",
+        isRecurring: productData?.isRecurring || false,
+        programLength: productData?.programLength || 1,
+        mode: productData?.mode || "session",
+        duration: productData?.duration || durationInMinutes || "60",
         durationInMinutes: parseInt(
-          durationInMinutes || minutesPerSession || "60"
+          productData?.durationInMinutes || durationInMinutes || "60"
         ),
-        minutesPerSession: parseInt(minutesPerSession || "60"),
-        hasClassroom: isClassroom,
-        hasSession: isSession,
-        hasAssessment: false,
-        hasCertificate: false,
-        requiresEnrollment: false,
-        isBookableService: true,
-        instructorId: instructorId || undefined,
+        minutesPerSession: parseInt(
+          productData?.minutesPerSession || minutesPerSession || "60"
+        ),
+        hasClassroom: productData?.hasClassroom || isClassroom,
+        hasSession: productData?.hasSession || isSession,
+        hasAssessment: productData?.hasAssessment || false,
+        hasCertificate: productData?.hasCertificate || false,
+        requiresEnrollment: productData?.requiresEnrollment || false,
+        isBookableService: productData?.isBookableService || true,
+        instructorId: productData?.instructorId || instructorId || undefined,
         bookingDetails: {
           fullName: userData?.fullName,
           email: userData?.email,
@@ -686,9 +591,13 @@ export default function BookingPage() {
           numberOfParticipants: formData.numberOfParticipants,
           participantType: formData.participantType,
           userNotes: formData.userNotes,
-          bookingId: createdBookingId, // Use the correct booking ID
+          bookingId: createdBookingId,
           bookingData: bookingPayload,
           attachments: formData.attachments.map((att) => att.cloudinaryUrl),
+          // Additional fields for payment intent
+          profileId: (userData as any)?.profileId,
+          platformRole: userData?.role || "student",
+          customerId: (userData as any)?.stripeCustomerId,
         },
       };
 
@@ -708,6 +617,17 @@ export default function BookingPage() {
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
           <p>Loading booking form...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadingProduct) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p>Loading product details...</p>
         </div>
       </div>
     );
@@ -743,45 +663,6 @@ export default function BookingPage() {
             </div>
           </div>
         </div>
-
-        {/* Debug Information - Remove in production */}
-        {/* {process.env.NODE_ENV === "development" && (
-          <Card className="bg-yellow-50 border-yellow-200">
-            <CardHeader>
-              <CardTitle className="text-yellow-800 text-sm">
-                Debug Info (Development Only)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <strong>Product ID:</strong> {productId}
-                </div>
-                <div>
-                  <strong>Instructor ID:</strong> {instructorId || "MISSING"}
-                </div>
-                <div>
-                  <strong>Is Classroom:</strong> {isClassroom.toString()}
-                </div>
-                <div>
-                  <strong>Is Session:</strong> {isSession.toString()}
-                </div>
-                <div>
-                  <strong>Product Type:</strong> {productType}
-                </div>
-                <div>
-                  <strong>Service:</strong> {service}
-                </div>
-              </div>
-              {!instructorId && (
-                <div className="mt-2 p-2 bg-red-100 rounded text-red-800 text-xs">
-                  ⚠️ Instructor ID is missing! This will prevent Calendly
-                  integration from working.
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )} */}
 
         {/* Smart Scheduling Interface */}
         {isClassroom && (
@@ -1085,10 +966,6 @@ export default function BookingPage() {
                       Supported formats: PDF, DOC, DOCX, TXT, JPG, PNG (Max 10MB
                       per file)
                     </p>
-                    {/* <p className="text-xs text-amber-600 font-medium">
-                      💡 Tip: Large files may cause upload delays. Consider
-                      compressing PDFs or using smaller files.
-                    </p> */}
 
                     {/* Overall Upload Progress */}
                     {formData.attachments.length > 0 && (
@@ -1357,7 +1234,13 @@ export default function BookingPage() {
                       </p>
                       <Dialog
                         open={showTimeSlotModal}
-                        onOpenChange={setShowTimeSlotModal}
+                        onOpenChange={(open) => {
+                          setShowTimeSlotModal(open);
+                          if (open) {
+                            // Lazy-load availability when user opens the modal
+                            fetchInstructorAvailability();
+                          }
+                        }}
                       >
                         <DialogTrigger asChild>
                           <Button
@@ -1408,57 +1291,67 @@ export default function BookingPage() {
                                 </span>
                               </div>
                             ) : availableSlots.length > 0 ? (
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {availableSlots.map((slot, index) => {
-                                  const isSelected = Boolean(
-                                    selectedTimeSlot &&
-                                      (selectedTimeSlot as any).date ===
-                                        slot.date &&
-                                      (selectedTimeSlot as any).startTime ===
-                                        slot.startTime
-                                  );
+                              <div className="space-y-4">
+                                <div className="text-sm text-gray-600">
+                                  Found {availableSlots.length} available time
+                                  slots
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                  {availableSlots.map((slot, index) => {
+                                    const isSelected = Boolean(
+                                      selectedTimeSlot &&
+                                        (selectedTimeSlot as any).date ===
+                                          slot.date &&
+                                        (selectedTimeSlot as any).startTime ===
+                                          slot.startTime
+                                    );
 
-                                  return (
-                                    <button
-                                      key={index}
-                                      type="button"
-                                      onClick={() => {
-                                        handleTimeSlotSelect(slot);
-                                        setShowTimeSlotModal(false);
-                                      }}
-                                      className={`p-4 text-left rounded-lg border transition-all ${
-                                        isSelected
-                                          ? "border-blue-500 bg-blue-100 ring-2 ring-blue-200"
-                                          : "border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50"
-                                      }`}
-                                    >
-                                      <div className="font-medium text-slate-900">
-                                        {new Date(slot.date).toLocaleDateString(
-                                          "en-US",
-                                          {
+                                    return (
+                                      <button
+                                        key={index}
+                                        type="button"
+                                        onClick={() => {
+                                          handleTimeSlotSelect(slot);
+                                          setShowTimeSlotModal(false);
+                                        }}
+                                        className={`p-4 text-left rounded-lg border transition-all ${
+                                          isSelected
+                                            ? "border-blue-500 bg-blue-100 ring-2 ring-blue-200"
+                                            : "border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50"
+                                        }`}
+                                      >
+                                        <div className="font-medium text-slate-900">
+                                          {new Date(
+                                            slot.date
+                                          ).toLocaleDateString("en-US", {
                                             weekday: "short",
                                             month: "short",
                                             day: "numeric",
-                                          }
-                                        )}
-                                      </div>
-                                      <div className="text-sm text-slate-600">
-                                        {slot.startTime} - {slot.endTime}
-                                      </div>
-                                      {isSelected && (
-                                        <div className="text-xs text-blue-600 mt-1">
-                                          ✓ Selected
+                                          })}
                                         </div>
-                                      )}
-                                    </button>
-                                  );
-                                })}
+                                        <div className="text-sm text-slate-600">
+                                          {slot.startTime} - {slot.endTime}
+                                        </div>
+                                        {isSelected && (
+                                          <div className="text-xs text-blue-600 mt-1">
+                                            ✓ Selected
+                                          </div>
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
                               </div>
                             ) : (
                               <div className="text-center py-8 text-slate-600">
                                 <Calendar className="w-12 h-12 mx-auto mb-4 text-slate-400" />
                                 <p className="font-medium">
                                   No available time slots found.
+                                </p>
+                                <p className="text-sm">
+                                  Available slots: {availableSlots.length} |
+                                  Loading: {isLoadingSlots ? "Yes" : "No"} |
+                                  Checked: {availabilityChecked ? "Yes" : "No"}
                                 </p>
                                 <p className="text-sm">
                                   Please contact the instructor for scheduling.
@@ -1797,9 +1690,19 @@ export default function BookingPage() {
                     </p>
                   </div>
                   <div>
-                    <p className="font-medium text-slate-700">Duration:</p>
+                    <p className="font-medium text-slate-700">
+                      Total Duration:
+                    </p>
                     <p className="text-slate-600">
-                      {durationInMinutes || minutesPerSession} minutes
+                      {durationInMinutes || "60"} minutes
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-700">
+                      Minutes per Session:
+                    </p>
+                    <p className="text-slate-600">
+                      {minutesPerSession || "60"} minutes
                     </p>
                   </div>
                   <div>

@@ -289,7 +289,7 @@ export default function UserManagementPage() {
 
   const handleBulkAction = (action: string) => {
     // Handle bulk actions
-    console.log(`Bulk action: ${action} for users:`, selectedUsers);
+    // console.log(`Bulk action: ${action} for users:`, selectedUsers);
     setSelectedUsers([]);
   };
 

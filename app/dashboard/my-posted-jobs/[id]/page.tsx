@@ -240,7 +240,7 @@ export default function JobDetailPage() {
 
   const handleStatusChange = (newStatus: string) => {
     // TODO: Implement status change API call
-    console.log(`Changing status to: ${newStatus}`);
+    // console.log(`Changing status to: ${newStatus}`);
   };
 
   return (

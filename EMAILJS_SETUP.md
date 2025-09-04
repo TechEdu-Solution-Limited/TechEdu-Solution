@@ -104,8 +104,8 @@ Enable debug logging by adding this to your component:
 
 ```typescript
 // Add this before the emailjs.sendForm call
-console.log("EmailJS Config:", EMAILJS_CONFIG);
-console.log("Form Data:", new FormData(formRef.current!));
+// console.log("EmailJS Config:", EMAILJS_CONFIG);
+// console.log("Form Data:", new FormData(formRef.current!));
 ```
 
 ## Security Considerations
