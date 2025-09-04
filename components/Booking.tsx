@@ -246,7 +246,7 @@ export default function BookingPage() {
       const startDate = new Date();
       startDate.setUTCHours(0, 0, 0, 0); // Set to start of today in UTC
       const endDate = new Date();
-      endDate.setUTCDate(startDate.getUTCDate() + 15);
+      endDate.setUTCDate(startDate.getUTCDate() + 14); // Add 14 days to stay within 15-day limit
       endDate.setUTCHours(23, 59, 59, 999); // Set to end of day in UTC
 
       // Get instructor availability for the next 15 days
