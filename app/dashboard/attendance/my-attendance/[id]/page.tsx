@@ -29,17 +29,26 @@ import { toast } from "react-toastify";
 
 interface AttendanceRecord {
   _id: string;
-  sessionId: string;
+  sessionId: string | any; // Can be object or "[object Object]" string
   productType: string;
-  ledBy: {
-    _id: string;
-    fullName: string;
-    email: string;
-  };
+  ledBy:
+    | {
+        _id: string;
+        fullName: string;
+        email: string;
+      }
+    | string
+    | any; // Can be object, string "[object Object]", or other
   scheduleAt: string;
   endAt: string;
   durationInMinutes: number;
-  status: "upcoming" | "ongoing" | "completed" | "cancelled" | "postponed";
+  status:
+    | "upcoming"
+    | "ongoing"
+    | "completed"
+    | "cancelled"
+    | "postponed"
+    | string;
   title: string;
   calendar?: {
     eventId: string;
@@ -117,6 +126,9 @@ export default function AttendanceDetailPage() {
   }, [attendanceId]);
 
   const getStatusColor = (status: string) => {
+    if (!status) {
+      return "bg-gray-100 text-gray-800 border-gray-200";
+    }
     switch (status.toLowerCase()) {
       case "upcoming":
         return "bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border-blue-200";
@@ -134,6 +146,9 @@ export default function AttendanceDetailPage() {
   };
 
   const getStatusIcon = (status: string) => {
+    if (!status) {
+      return <AlertCircle className="w-4 h-4" />;
+    }
     switch (status.toLowerCase()) {
       case "upcoming":
         return <Calendar className="w-4 h-4" />;
@@ -146,7 +161,7 @@ export default function AttendanceDetailPage() {
       case "postponed":
         return <AlertCircle className="w-4 h-4" />;
       default:
-        return <Calendar className="w-4 h-4" />;
+        return <AlertCircle className="w-4 h-4" />;
     }
   };
 
@@ -174,6 +189,17 @@ export default function AttendanceDetailPage() {
       return `${hours}h ${mins}m`;
     }
     return `${mins}m`;
+  };
+
+  // Helper function to safely parse object fields that might be "[object Object]" strings
+  const safeParseObject = (field: any): any => {
+    if (typeof field === "string" && field === "[object Object]") {
+      return null;
+    }
+    if (typeof field === "object" && field !== null) {
+      return field;
+    }
+    return null;
   };
 
   if (loading) {
@@ -265,10 +291,10 @@ export default function AttendanceDetailPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {attendance.title}
+              {attendance?.title || "Untitled Session"}
             </h1>
             <p className="text-gray-600">
-              Attendance Record • {attendance.productType}
+              Attendance Record • {attendance?.productType || "Unknown Type"}
             </p>
           </div>
 
@@ -287,12 +313,14 @@ export default function AttendanceDetailPage() {
 
             <Badge
               className={`${getStatusColor(
-                attendance.status
+                attendance?.status || ""
               )} flex items-center gap-1`}
             >
-              {getStatusIcon(attendance.status)}
-              {attendance.status.charAt(0).toUpperCase() +
-                attendance.status.slice(1)}
+              {getStatusIcon(attendance?.status || "")}
+              {attendance?.status
+                ? attendance.status.charAt(0).toUpperCase() +
+                  attendance.status.slice(1)
+                : "Unknown"}
             </Badge>
           </div>
         </div>
@@ -314,7 +342,9 @@ export default function AttendanceDetailPage() {
                   Date
                 </label>
                 <p className="text-lg font-semibold">
-                  {formatDate(attendance.scheduleAt)}
+                  {attendance?.scheduleAt
+                    ? formatDate(attendance.scheduleAt)
+                    : "TBD"}
                 </p>
               </div>
 
@@ -323,8 +353,10 @@ export default function AttendanceDetailPage() {
                   Time
                 </label>
                 <p className="text-lg font-semibold">
-                  {formatTime(attendance.scheduleAt)} -{" "}
-                  {formatTime(attendance.endAt)}
+                  {attendance?.scheduleAt
+                    ? formatTime(attendance.scheduleAt)
+                    : "TBD"}{" "}
+                  - {attendance?.endAt ? formatTime(attendance.endAt) : "TBD"}
                 </p>
               </div>
 
@@ -334,7 +366,9 @@ export default function AttendanceDetailPage() {
                 </label>
                 <p className="text-lg font-semibold flex items-center gap-1">
                   <Clock className="w-4 h-4" />
-                  {formatDuration(attendance.durationInMinutes)}
+                  {attendance?.durationInMinutes
+                    ? formatDuration(attendance.durationInMinutes)
+                    : "TBD"}
                 </p>
               </div>
 
@@ -343,12 +377,12 @@ export default function AttendanceDetailPage() {
                   Session ID
                 </label>
                 <p className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
-                  {attendance.sessionId}
+                  {attendance?.sessionId || "N/A"}
                 </p>
               </div>
             </div>
 
-            {attendance.remarks && (
+            {attendance?.remarks && (
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-500">
                   Remarks
@@ -372,16 +406,34 @@ export default function AttendanceDetailPage() {
           <CardContent>
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
-                {attendance.ledBy.fullName
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")}
+                {(() => {
+                  const ledBy = safeParseObject(attendance?.ledBy);
+                  if (ledBy && typeof ledBy === "object" && ledBy?.fullName) {
+                    return ledBy.fullName
+                      .split(" ")
+                      .map((n: string) => n[0])
+                      .join("");
+                  }
+                  return "?";
+                })()}
               </div>
               <div>
                 <h3 className="font-semibold text-lg">
-                  {attendance.ledBy.fullName}
+                  {(() => {
+                    const ledBy = safeParseObject(attendance?.ledBy);
+                    return ledBy && typeof ledBy === "object" && ledBy?.fullName
+                      ? ledBy.fullName
+                      : "Unknown Instructor";
+                  })()}
                 </h3>
-                <p className="text-gray-600">{attendance.ledBy.email}</p>
+                <p className="text-gray-600">
+                  {(() => {
+                    const ledBy = safeParseObject(attendance?.ledBy);
+                    return ledBy && typeof ledBy === "object" && ledBy?.email
+                      ? ledBy.email
+                      : "No email available";
+                  })()}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -392,37 +444,41 @@ export default function AttendanceDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5" />
-              Participants ({attendance.participants.length}/
-              {attendance.numberOfExpectedParticipants})
+              Participants ({attendance?.participants?.length || 0}/
+              {attendance?.numberOfExpectedParticipants || 0})
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {attendance.participants.map((participant, index) => (
+              {(attendance?.participants || []).map((participant, index) => (
                 <div
                   key={index}
                   className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                      {participant.fullName
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
+                      {participant?.fullName
+                        ? participant.fullName
+                            .split(" ")
+                            .map((n: string) => n[0])
+                            .join("")
+                        : "?"}
                     </div>
                     <div>
-                      <p className="font-medium">{participant.fullName}</p>
+                      <p className="font-medium">
+                        {participant?.fullName || "Unknown Participant"}
+                      </p>
                       <p className="text-sm text-gray-600">
-                        {participant.email}
+                        {participant?.email || "No email"}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <Badge variant="secondary" className="text-xs">
-                      {participant.platformRole}
+                      {participant?.platformRole || "Unknown"}
                     </Badge>
                     <p className="text-xs text-gray-500 mt-1">
-                      {participant.participantType}
+                      {participant?.participantType || "Unknown"}
                     </p>
                   </div>
                 </div>
@@ -432,7 +488,7 @@ export default function AttendanceDetailPage() {
         </Card>
 
         {/* Calendar Integration */}
-        {attendance.calendar ? (
+        {attendance?.calendar ? (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -448,21 +504,21 @@ export default function AttendanceDetailPage() {
                       Meeting Link Available
                     </p>
                     <p className="text-sm text-blue-700">
-                      Event ID: {attendance.calendar.eventId}
+                      Event ID: {attendance.calendar?.eventId || "N/A"}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge
                       variant={
-                        attendance.calendar.synced ? "default" : "secondary"
+                        attendance.calendar?.synced ? "default" : "secondary"
                       }
                       className={
-                        attendance.calendar.synced
+                        attendance.calendar?.synced
                           ? "bg-green-100 text-green-800"
                           : ""
                       }
                     >
-                      {attendance.calendar.synced ? "Synced" : "Not Synced"}
+                      {attendance.calendar?.synced ? "Synced" : "Not Synced"}
                     </Badge>
                     <Button
                       size="sm"
@@ -505,7 +561,7 @@ export default function AttendanceDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-3">
-              {attendance.calendar?.joinUrl && (
+              {attendance?.calendar?.joinUrl && (
                 <Button
                   onClick={() =>
                     window.open(attendance.calendar?.joinUrl, "_blank")
@@ -519,7 +575,7 @@ export default function AttendanceDetailPage() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  navigator.clipboard.writeText(attendance.sessionId);
+                  navigator.clipboard.writeText(attendance?.sessionId || "");
                   toast.success("Session ID copied to clipboard");
                 }}
                 className="flex items-center gap-2"
@@ -531,12 +587,18 @@ export default function AttendanceDetailPage() {
                 variant="outline"
                 onClick={() => {
                   const meetingInfo = `Session: ${
-                    attendance.title
-                  }\nDate: ${formatDate(
-                    attendance.scheduleAt
-                  )}\nTime: ${formatTime(attendance.scheduleAt)} - ${formatTime(
-                    attendance.endAt
-                  )}\nSession ID: ${attendance.sessionId}`;
+                    attendance?.title || "Untitled"
+                  }\nDate: ${
+                    attendance?.scheduleAt
+                      ? formatDate(attendance.scheduleAt)
+                      : "TBD"
+                  }\nTime: ${
+                    attendance?.scheduleAt
+                      ? formatTime(attendance.scheduleAt)
+                      : "TBD"
+                  } - ${
+                    attendance?.endAt ? formatTime(attendance.endAt) : "TBD"
+                  }\nSession ID: ${attendance?.sessionId || "N/A"}`;
                   navigator.clipboard.writeText(meetingInfo);
                   toast.success("Session details copied to clipboard");
                 }}
@@ -562,8 +624,13 @@ export default function AttendanceDetailPage() {
               <div>
                 <label className="font-medium text-gray-500">Created</label>
                 <p>
-                  {formatDate(attendance.createdAt)} at{" "}
-                  {formatTime(attendance.createdAt)}
+                  {attendance?.createdAt
+                    ? formatDate(attendance.createdAt)
+                    : "TBD"}{" "}
+                  at{" "}
+                  {attendance?.createdAt
+                    ? formatTime(attendance.createdAt)
+                    : "TBD"}
                 </p>
               </div>
               <div>
@@ -571,26 +638,31 @@ export default function AttendanceDetailPage() {
                   Last Updated
                 </label>
                 <p>
-                  {formatDate(attendance.updatedAt)} at{" "}
-                  {formatTime(attendance.updatedAt)}
+                  {attendance?.updatedAt
+                    ? formatDate(attendance.updatedAt)
+                    : "TBD"}{" "}
+                  at{" "}
+                  {attendance?.updatedAt
+                    ? formatTime(attendance.updatedAt)
+                    : "TBD"}
                 </p>
               </div>
               <div>
                 <label className="font-medium text-gray-500">Postponed</label>
                 <p
                   className={
-                    attendance.isPostponed
+                    attendance?.isPostponed
                       ? "text-yellow-600 font-medium"
                       : "text-gray-600"
                   }
                 >
-                  {attendance.isPostponed ? "Yes" : "No"}
+                  {attendance?.isPostponed ? "Yes" : "No"}
                 </p>
               </div>
               <div>
                 <label className="font-medium text-gray-500">Record ID</label>
                 <p className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
-                  {attendance._id}
+                  {attendance?._id || "N/A"}
                 </p>
               </div>
             </div>
