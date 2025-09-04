@@ -240,6 +240,9 @@ export default function InstructorAttendancePage() {
   };
 
   const getStatusColor = (status: string) => {
+    if (!status) {
+      return "bg-gradient-to-r from-slate-100 to-gray-100 text-slate-800 border-slate-200";
+    }
     switch (status.toLowerCase()) {
       case "upcoming":
         return "bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border-blue-200";
@@ -257,6 +260,9 @@ export default function InstructorAttendancePage() {
   };
 
   const getStatusIcon = (status: string) => {
+    if (!status) {
+      return <AlertCircle className="w-4 h-4" />;
+    }
     switch (status.toLowerCase()) {
       case "upcoming":
         return <Calendar className="w-4 h-4" />;
@@ -274,6 +280,9 @@ export default function InstructorAttendancePage() {
   };
 
   const getProductTypeColor = (productType: string) => {
+    if (!productType) {
+      return "bg-gradient-to-r from-slate-100 to-gray-100 text-slate-800 border-slate-200";
+    }
     switch (productType) {
       case "TrainingProgram":
         return "bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border-purple-200";
@@ -613,8 +622,10 @@ export default function InstructorAttendancePage() {
                         >
                           <span className="flex items-center gap-1">
                             {getStatusIcon(attendance.status)}
-                            {attendance.status.charAt(0).toUpperCase() +
-                              attendance.status.slice(1).replace("_", " ")}
+                            {attendance.status
+                              ? attendance.status.charAt(0).toUpperCase() +
+                                attendance.status.slice(1).replace("_", " ")
+                              : "Unknown"}
                           </span>
                         </span>
                         <span
