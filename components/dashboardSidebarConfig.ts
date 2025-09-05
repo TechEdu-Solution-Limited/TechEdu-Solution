@@ -164,7 +164,7 @@ export const dashboardSidebarConfig = {
       {
         title: "Communication & Support",
         items: [
-          { label: "Mentors", icon: User, href: "/dashboard/mentors" },
+          // { label: "Mentors", icon: User, href: "/dashboard/mentors" },
           {
             label: "Notifications",
             icon: Bell,
