@@ -187,27 +187,7 @@ export default function BookingPage() {
     setAvailabilityChecked(false);
 
     try {
-      // Calculate date range for the next 15 days (strictly future in UTC)
-      const now = new Date();
-      const startDate = new Date(
-        Date.UTC(
-          now.getUTCFullYear(),
-          now.getUTCMonth(),
-          now.getUTCDate() + 1, // start from tomorrow to avoid "past" validation
-          0,
-          0,
-          0,
-          0
-        )
-      );
-      const endDate = new Date(startDate);
-      endDate.setUTCDate(startDate.getUTCDate() + 14); // inclusive 15-day window
-      endDate.setUTCHours(23, 59, 59, 999);
-
-      const query = `?startDate=${encodeURIComponent(
-        startDate.toISOString()
-      )}&endDate=${encodeURIComponent(endDate.toISOString())}`;
-      const availabilityUrl = `/api/instructors/${instructorId}/availability${query}`;
+      const availabilityUrl = `/api/instructor-availability/${instructorId}`;
       const availabilityResponse = await getApiRequest(availabilityUrl, token);
 
       if (availabilityResponse.status >= 400) {
@@ -247,17 +227,55 @@ export default function BookingPage() {
       }
 
       const availableSlots = availabilityData.data?.availableSlots || [];
-      const transformedSlots = availableSlots.map((slot: any) => {
-        const startDateTime = new Date(slot.startTime);
-        const endDateTime = new Date(slot.endTime);
+      const durationMinutes =
+        availabilityData.data?.slotsInfo?.durationMinutes || 60;
 
-        return {
-          startTime: startDateTime.toTimeString().slice(0, 5),
-          endTime: endDateTime.toTimeString().slice(0, 5),
-          date: startDateTime.toISOString().split("T")[0],
-          available: slot.isAvailable,
-        };
-      });
+      console.log(
+        "Processing available slots:",
+        availableSlots.length,
+        "slots"
+      );
+      console.log("Duration minutes:", durationMinutes);
+
+      const transformedSlots = availableSlots
+        .map((slotTime: string, index: number) => {
+          try {
+            // Debug first few slots
+            if (index < 3) {
+              console.log(`Processing slot ${index}:`, slotTime);
+            }
+
+            const startDateTime = new Date(slotTime);
+
+            // Validate the date is valid
+            if (isNaN(startDateTime.getTime())) {
+              console.warn("Invalid date string:", slotTime);
+              return null;
+            }
+
+            const endDateTime = new Date(
+              startDateTime.getTime() + durationMinutes * 60000
+            );
+
+            const result = {
+              startTime: startDateTime.toTimeString().slice(0, 5),
+              endTime: endDateTime.toTimeString().slice(0, 5),
+              date: startDateTime.toISOString().split("T")[0],
+              available: true, // All slots in the array are available
+            };
+
+            // Debug first few results
+            if (index < 3) {
+              console.log(`Result for slot ${index}:`, result);
+            }
+
+            return result;
+          } catch (error) {
+            console.warn("Error processing slot:", slotTime, error);
+            return null;
+          }
+        })
+        .filter(Boolean); // Remove null entries
 
       setAvailableSlots(transformedSlots);
       setAvailabilityChecked(true);
