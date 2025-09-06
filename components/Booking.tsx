@@ -230,12 +230,12 @@ export default function BookingPage() {
       const durationMinutes =
         availabilityData.data?.slotsInfo?.durationMinutes || 60;
 
-      console.log(
-        "Processing available slots:",
-        availableSlots.length,
-        "slots"
-      );
-      console.log("Duration minutes:", durationMinutes);
+      // console.log(
+      //   "Processing available slots:",
+      //   availableSlots.length,
+      //   "slots"
+      // );
+      // console.log("Duration minutes:", durationMinutes);
 
       const transformedSlots = availableSlots
         .map((slotTime: string, index: number) => {
@@ -249,7 +249,7 @@ export default function BookingPage() {
 
             // Validate the date is valid
             if (isNaN(startDateTime.getTime())) {
-              console.warn("Invalid date string:", slotTime);
+              // console.warn("Invalid date string:", slotTime);
               return null;
             }
 
@@ -265,9 +265,9 @@ export default function BookingPage() {
             };
 
             // Debug first few results
-            if (index < 3) {
-              console.log(`Result for slot ${index}:`, result);
-            }
+            // if (index < 3) {
+            //   console.log(`Result for slot ${index}:`, result);
+            // }
 
             return result;
           } catch (error) {
@@ -1329,7 +1329,7 @@ export default function BookingPage() {
                             </div>
                           </DialogHeader>
 
-                          <div className="flex-1 overflow-y-auto">
+                          <div className="flex-1 overflow-y-auto max-h-[60vh]">
                             {isLoadingSlots ? (
                               <div className="flex flex-col items-center justify-center py-16">
                                 <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
