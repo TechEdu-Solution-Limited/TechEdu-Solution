@@ -51,6 +51,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 
+import { logger } from "@/lib/logger";
 interface User {
   id: string;
   name: string;
@@ -289,7 +290,7 @@ export default function UserManagementPage() {
 
   const handleBulkAction = (action: string) => {
     // Handle bulk actions
-    // console.log(`Bulk action: ${action} for users:`, selectedUsers);
+    // logger.log(`Bulk action: ${action} for users:`, selectedUsers);
     setSelectedUsers([]);
   };
 

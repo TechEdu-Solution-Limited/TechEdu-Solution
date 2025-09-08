@@ -13,6 +13,7 @@ import {
 import { getCookie } from "@/lib/cookies";
 import { useRole } from "@/contexts/RoleContext";
 
+import { logger } from "@/lib/logger";
 const NOTIFICATION_TYPES = [
   { label: "All Types", value: "" },
   { label: "Payment Success", value: "payment_success" },
@@ -54,7 +55,7 @@ function NotificationsPage() {
   ) => {
     setLoading(true);
     try {
-      // console.log("Fetching notifications with:", {
+      // logger.log("Fetching notifications with:", {
       //   page,
       //   limit,
       //   unread,
@@ -79,14 +80,14 @@ function NotificationsPage() {
           token
         );
       }
-      // console.log("Notifications response:", res);
+      // logger.log("Notifications response:", res);
       setNotifications(res.data?.data?.notifications || []);
-      // console.log("Notifications:", res.data?.data?.notifications);
+      // logger.log("Notifications:", res.data?.data?.notifications);
       setPagination(
         res.data?.data?.pagination || { page: 1, limit: 20, total: 0, pages: 1 }
       );
     } catch (error) {
-      // console.error("Error fetching notifications:", error);
+      // logger.error("Error fetching notifications:", error);
     } finally {
       setLoading(false);
     }
@@ -100,7 +101,7 @@ function NotificationsPage() {
         setUnreadCount(res.data.data.unreadCount);
       }
     } catch (error) {
-      // console.error("Error fetching unread count:", error);
+      // logger.error("Error fetching unread count:", error);
       setUnreadCount(0);
     }
   };

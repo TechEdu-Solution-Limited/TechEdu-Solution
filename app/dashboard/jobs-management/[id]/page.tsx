@@ -56,6 +56,7 @@ import { Job } from "@/types/jobs";
 import { getApiRequest, deleteApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 
+import { logger } from "@/lib/logger";
 export default function JobDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -95,7 +96,7 @@ export default function JobDetailPage() {
           setError(response.message || "Failed to fetch job details");
         }
       } catch (error: any) {
-        console.error("Error fetching job:", error);
+        logger.error("Error fetching job:", error);
         setError(
           error.message || "An error occurred while fetching job details"
         );

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { CartItem } from "@/types/cart";
 
+import { logger } from "@/lib/logger";
 interface CartContextType {
   cartItems: CartItem[];
   addToCart: (item: CartItem) => void;
@@ -29,7 +30,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       try {
         setCartItems(JSON.parse(savedCart));
       } catch (error) {
-        console.error("Error loading cart from localStorage:", error);
+        logger.error("Error loading cart from localStorage:", error);
       }
     }
   }, []);

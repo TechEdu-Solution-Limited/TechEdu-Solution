@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getTokenFromCookies } from "@/lib/cookies";
 import { getApiRequestWithRefresh } from "@/lib/apiFetch";
+import { logger } from "@/lib/logger";
 import {
   StudentDashboardData,
   DashboardStats,
@@ -56,7 +57,7 @@ export function useStudentDashboard(
         setError(response.message || "Failed to fetch dashboard data");
       }
     } catch (err: any) {
-      console.error("Error fetching dashboard data:", err);
+      logger.error("Error fetching dashboard data:", err);
       setError(err.message || "An error occurred while fetching data");
     } finally {
       setLoading(false);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { logger } from "@/lib/logger";
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { userId: string } }
@@ -92,7 +93,7 @@ export async function PATCH(
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error completing onboarding step:", error);
+    logger.error("Error completing onboarding step:", error);
     return NextResponse.json(
       {
         success: false,

@@ -31,6 +31,7 @@ import { Team, TeamInvitation, UserTeam } from "@/types";
 import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
+import { logger } from "@/lib/logger";
 export default function TeamsPage() {
   const { userData } = useRole();
   const router = useRouter();
@@ -55,7 +56,7 @@ export default function TeamsPage() {
         setTeams(response.data.data.teams);
       }
     } catch (error) {
-      console.error("Error fetching teams:", error);
+      logger.error("Error fetching teams:", error);
       toast.error("Failed to fetch teams");
     } finally {
       setLoading(false);
@@ -71,7 +72,7 @@ export default function TeamsPage() {
         setMyTeams(response.data.data.teams);
       }
     } catch (error) {
-      console.error("Error fetching my teams:", error);
+      logger.error("Error fetching my teams:", error);
     }
   };
 
@@ -84,7 +85,7 @@ export default function TeamsPage() {
         setInvitations(response.data.data.invitations);
       }
     } catch (error) {
-      console.error("Error fetching invitations:", error);
+      logger.error("Error fetching invitations:", error);
     }
   };
 
@@ -110,7 +111,7 @@ export default function TeamsPage() {
         fetchMyTeams();
       }
     } catch (error) {
-      console.error("Error accepting invitation:", error);
+      logger.error("Error accepting invitation:", error);
       toast.error("Failed to accept invitation");
     }
   };
@@ -128,7 +129,7 @@ export default function TeamsPage() {
         fetchInvitations();
       }
     } catch (error) {
-      console.error("Error declining invitation:", error);
+      logger.error("Error declining invitation:", error);
       toast.error("Failed to decline invitation");
     }
   };
@@ -145,7 +146,7 @@ export default function TeamsPage() {
         fetchMyTeams();
       }
     } catch (error) {
-      console.error("Error leaving team:", error);
+      logger.error("Error leaving team:", error);
       toast.error("Failed to leave team");
     }
   };

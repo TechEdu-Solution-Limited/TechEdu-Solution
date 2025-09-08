@@ -26,6 +26,7 @@ import {
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useProfileData } from "@/hooks/useProfileData";
 
+import { logger } from "@/lib/logger";
 interface TeamTechProfessionalProfileProps {
   userProfile: any;
   onUpdate: (data: any) => Promise<{ success: boolean; error?: string }>;
@@ -85,7 +86,7 @@ export default function TeamTechProfessionalProfile({
           setCompletedSteps(completed);
         }
       } catch (error) {
-        console.error("Failed to fetch onboarding progress:", error);
+        logger.error("Failed to fetch onboarding progress:", error);
       }
     };
     fetchOnboardingProgress();
@@ -170,7 +171,7 @@ export default function TeamTechProfessionalProfile({
           await completeStep(userId, stepNumber, stepData);
           updateProfile(stepData);
         } catch (error) {
-          console.error(`Failed to complete step ${stepNumber}:`, error);
+          logger.error(`Failed to complete step ${stepNumber}:`, error);
         }
       }
       setEditMode(false);

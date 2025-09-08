@@ -11,6 +11,7 @@ import { getUserMe } from "@/lib/apiFetch";
 import { getCookie } from "@/lib/cookies";
 import { UserProfile, ProfileContextType } from "@/types/profile";
 
+import { logger } from "@/lib/logger";
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export const useProfile = () => {
@@ -51,7 +52,7 @@ export const ProfileProvider: React.FC<ProfileProviderProps> = ({
         throw new Error(response?.data?.message || "Failed to fetch profile");
       }
     } catch (err: any) {
-      console.error("Error fetching profile:", err);
+      logger.error("Error fetching profile:", err);
       setError(err.message || "Failed to fetch profile");
     } finally {
       setLoading(false);
@@ -69,7 +70,7 @@ export const ProfileProvider: React.FC<ProfileProviderProps> = ({
         setProfile({ ...profile, ...data });
       }
     } catch (err: any) {
-      console.error("Error updating profile:", err);
+      logger.error("Error updating profile:", err);
       setError(err.message || "Failed to update profile");
     } finally {
       setLoading(false);

@@ -40,6 +40,7 @@ import { useRole } from "@/contexts/RoleContext";
 import { BookingListSkeleton } from "@/components/BookingSkeletons";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { UserBooking } from "@/types/booking";
+import { logger } from "@/lib/logger";
 import {
   formatTimeRange,
   getDurationText,
@@ -160,14 +161,14 @@ export default function UserBookingsPage() {
 
         setBookings(processedBookings);
       } else {
-        console.error(
+        logger.error(
           "Failed to fetch user bookings:",
           response?.data?.message
         );
         toast.error("Failed to fetch your bookings");
       }
     } catch (error) {
-      console.error("Error fetching user bookings:", error);
+      logger.error("Error fetching user bookings:", error);
       toast.error("Error fetching your bookings");
     } finally {
       setLoading(false);
@@ -201,7 +202,7 @@ export default function UserBookingsPage() {
         toast.error(response?.data?.message || "Failed to cancel booking");
       }
     } catch (error) {
-      console.error("Error cancelling booking:", error);
+      logger.error("Error cancelling booking:", error);
       toast.error("Error cancelling booking");
     } finally {
       setCancellingId(null);

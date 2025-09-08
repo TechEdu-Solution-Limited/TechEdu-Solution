@@ -42,6 +42,7 @@ import { getApiRequest, postApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 import { uploadFileToCloudinary } from "@/lib/cloudinary";
 
+import { logger } from "@/lib/logger";
 export default function BookingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -210,7 +211,7 @@ export default function BookingPage() {
           availabilityResponse.message ||
           "Unknown error";
         // Avoid spamming users with validation errors during initial attempts
-        console.warn("Availability fetch error:", message);
+        logger.warn("Availability fetch error:", message);
         setAvailableSlots([]);
         setAvailabilityChecked(true);
         return;
@@ -230,26 +231,26 @@ export default function BookingPage() {
       const durationMinutes =
         availabilityData.data?.slotsInfo?.durationMinutes || 60;
 
-      // console.log(
+      // logger.log(
       //   "Processing available slots:",
       //   availableSlots.length,
       //   "slots"
       // );
-      // console.log("Duration minutes:", durationMinutes);
+      // logger.log("Duration minutes:", durationMinutes);
 
       const transformedSlots = availableSlots
         .map((slotTime: string, index: number) => {
           try {
             // Debug first few slots
             if (index < 3) {
-              console.log(`Processing slot ${index}:`, slotTime);
+              logger.log(`Processing slot ${index}:`, slotTime);
             }
 
             const startDateTime = new Date(slotTime);
 
             // Validate the date is valid
             if (isNaN(startDateTime.getTime())) {
-              // console.warn("Invalid date string:", slotTime);
+              // logger.warn("Invalid date string:", slotTime);
               return null;
             }
 
@@ -266,12 +267,12 @@ export default function BookingPage() {
 
             // Debug first few results
             // if (index < 3) {
-            //   console.log(`Result for slot ${index}:`, result);
+            //   logger.log(`Result for slot ${index}:`, result);
             // }
 
             return result;
           } catch (error) {
-            console.warn("Error processing slot:", slotTime, error);
+            logger.warn("Error processing slot:", slotTime, error);
             return null;
           }
         })
@@ -286,7 +287,7 @@ export default function BookingPage() {
         toast.success(`Found ${transformedSlots.length} available time slots`);
       }
     } catch (error) {
-      console.error("Failed to fetch instructor availability:", error);
+      logger.error("Failed to fetch instructor availability:", error);
 
       if (error instanceof Error) {
         if (error.message.includes("404")) {
@@ -332,7 +333,7 @@ export default function BookingPage() {
 
         setProductData(response.data);
       } catch (error) {
-        console.error("Failed to fetch product:", error);
+        logger.error("Failed to fetch product:", error);
         toast.error("Failed to load product details. Please try again.");
       } finally {
         setLoadingProduct(false);
@@ -958,7 +959,7 @@ export default function BookingPage() {
                                 `${file.name} uploaded successfully!`
                               );
                             } catch (error) {
-                              console.error(
+                              logger.error(
                                 `Failed to upload ${file.name}:`,
                                 error
                               );

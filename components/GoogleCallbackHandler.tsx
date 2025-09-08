@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { saveTokenToCookies, setCookie } from "@/lib/cookies";
 import { toast } from "react-toastify";
 
+import { logger } from "@/lib/logger";
 // Function to determine redirect route based on user role and onboarding status
 const getRedirectRoute = (userData: any) => {
   const { role, onboardingStatus, id } = userData;
@@ -78,7 +79,7 @@ export default function GoogleCallbackHandler() {
           const redirectRoute = getRedirectRoute(user);
           router.push(redirectRoute);
         } catch (error) {
-          console.error("Failed to parse user data:", error);
+          logger.error("Failed to parse user data:", error);
           router.push("/login");
         }
       } else {

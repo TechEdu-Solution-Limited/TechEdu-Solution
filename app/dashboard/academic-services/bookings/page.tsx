@@ -59,6 +59,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "react-toastify";
 
+import { logger } from "@/lib/logger";
 type Service = {
   _id: string;
   title: string;
@@ -232,13 +233,13 @@ export default function AcademicServicesBookingsPage() {
             response.data.data?.users || response.data.users || [];
           setInstructors(instructorData);
         } else {
-          console.error(
+          logger.error(
             "Failed to fetch instructors:",
             response?.data?.message
           );
         }
       } catch (err: any) {
-        console.error("Error fetching instructors:", err);
+        logger.error("Error fetching instructors:", err);
       } finally {
         setInstructorsLoading(false);
       }

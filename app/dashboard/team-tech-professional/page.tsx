@@ -63,6 +63,7 @@ import { useRole } from "@/contexts/RoleContext";
 import { getApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 
+import { logger } from "@/lib/logger";
 interface TeamMember {
   id: string;
   name: string;
@@ -304,7 +305,7 @@ export default function TeamTechProfessionalDashboard() {
 
         setTasks(mockTasks);
       } catch (error: any) {
-        console.error("Error fetching team data:", error);
+        logger.error("Error fetching team data:", error);
         // Fallback to mock data if API fails
         setTeamData({
           teamId: "fallback",

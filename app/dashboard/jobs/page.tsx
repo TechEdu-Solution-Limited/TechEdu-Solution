@@ -42,6 +42,7 @@ import { getApiRequest } from "@/lib/apiFetch";
 import { getCookie } from "@/lib/cookies";
 import Link from "next/link";
 
+import { logger } from "@/lib/logger";
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [appliedJobs, setAppliedJobs] = useState<AppliedJob[]>([]);
@@ -117,7 +118,7 @@ export default function JobsPage() {
         setError(response.message || "Failed to fetch jobs");
       }
     } catch (error: any) {
-      console.error("❌ Error fetching jobs:", error);
+      logger.error("❌ Error fetching jobs:", error);
       setError(error.message || "Failed to fetch jobs");
     } finally {
       setLoading(false);

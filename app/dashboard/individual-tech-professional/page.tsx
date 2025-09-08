@@ -39,6 +39,7 @@ import { getApiRequest, getApiRequestWithRefresh } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 import { toast } from "react-toastify";
 
+import { logger } from "@/lib/logger";
 // Types for dashboard data
 interface DashboardStats {
   totalBookings: number;
@@ -205,7 +206,7 @@ export default function TalentDashboard() {
       // Calculate stats
       updateStats();
     } catch (error) {
-      console.error("Error fetching dashboard data:", error);
+      logger.error("Error fetching dashboard data:", error);
       setError("Failed to load dashboard data");
       toast.error("Failed to load dashboard data");
     } finally {

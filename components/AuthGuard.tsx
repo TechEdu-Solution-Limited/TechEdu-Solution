@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getTokenFromCookies } from "@/lib/cookies";
 
+import { logger } from "@/lib/logger";
 interface AuthGuardProps {
   children: React.ReactNode;
 }
@@ -26,7 +27,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
 
         setIsAuthenticated(true);
       } catch (error) {
-        console.error("Error checking authentication:", error);
+        logger.error("Error checking authentication:", error);
         setIsAuthenticated(false);
         router.push("/login");
       } finally {

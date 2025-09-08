@@ -26,22 +26,23 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 
+import { logger } from "@/lib/logger";
 // Validate Stripe publishable key
 const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE;
 const stripeAccountId = process.env.NEXT_PUBLIC_STRIPE_ACCOUNT_ID;
 
 if (!stripePublishableKey) {
-  console.error("NEXT_PUBLIC_STRIPE_PUBLISHABLE is not set");
+  logger.error("NEXT_PUBLIC_STRIPE_PUBLISHABLE is not set");
 }
 if (stripePublishableKey && !stripePublishableKey.startsWith("pk_")) {
-  console.error(
+  logger.error(
     "Invalid Stripe publishable key format:",
     stripePublishableKey.substring(0, 20) + "..."
   );
 }
 
 if (!stripeAccountId) {
-  console.error("NEXT_PUBLIC_STRIPE_ACCOUNT_ID is not set");
+  logger.error("NEXT_PUBLIC_STRIPE_ACCOUNT_ID is not set");
 }
 
 const stripePromise = loadStripe(stripePublishableKey!, {
@@ -84,7 +85,7 @@ function PaymentForm({
   productName = "Course",
   bookingId,
 }: PaymentFormProps) {
-  console.log("PaymentForm bookingId:", bookingId); // Debug log
+  logger.log("PaymentForm bookingId:", bookingId); // Debug log
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -111,7 +112,7 @@ function PaymentForm({
     try {
       // The client secret should be much longer than just the ID
       if (clientSecret.length < 50) {
-        console.error("Client secret seems too short - might be just the ID");
+        logger.error("Client secret seems too short - might be just the ID");
         setError("Invalid payment intent format. Please try again.");
         setIsProcessing(false);
         return;
@@ -141,7 +142,7 @@ function PaymentForm({
         });
 
       if (pmError) {
-        console.error("createPaymentMethod error:", pmError);
+        logger.error("createPaymentMethod error:", pmError);
         setError(pmError.message || "Card error");
         setIsProcessing(false);
         return;
@@ -161,7 +162,7 @@ function PaymentForm({
         });
 
       if (submitError) {
-        console.error("Stripe confirmation error:", submitError);
+        logger.error("Stripe confirmation error:", submitError);
         setError(submitError.message || "Payment failed");
         onError(submitError.message || "Payment failed");
         setIsProcessing(false);
@@ -199,7 +200,7 @@ function PaymentForm({
 
         window.location.href = processingUrl;
       } else {
-        console.warn(
+        logger.warn(
           "Unexpected payment intent status:",
           paymentIntent?.status
         );
@@ -208,7 +209,7 @@ function PaymentForm({
         setIsProcessing(false);
       }
     } catch (error: any) {
-      console.error("Unexpected error during payment:", error);
+      logger.error("Unexpected error during payment:", error);
       setError(
         error.message || "An unexpected error occurred. Please try again."
       );

@@ -99,6 +99,7 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { logger } from "@/lib/logger";
 import {
   Tooltip,
   TooltipContent,
@@ -168,11 +169,11 @@ export default function PaymentsPage() {
           toast.success("Payments refreshed successfully!");
         }
       } else {
-        console.error("API returned error:", response.data);
+        logger.error("API returned error:", response.data);
         toast.error(response.data?.message || "Failed to fetch payments");
       }
     } catch (error) {
-      console.error("Error fetching payments:", error);
+      logger.error("Error fetching payments:", error);
       toast.error("Failed to fetch payments");
     } finally {
       setLoading(false);

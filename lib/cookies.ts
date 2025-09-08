@@ -1,5 +1,6 @@
 import { parse, serialize } from "cookie";
 
+import { logger } from "@/lib/logger";
 /**
  * Cookie keys for storing tokens.
  */
@@ -50,7 +51,7 @@ export const saveTokenToCookies = (token: string): boolean => {
     document.cookie = cookie;
     return true;
   } catch (error) {
-    console.error("Failed to save token to cookies:", error);
+    logger.error("Failed to save token to cookies:", error);
     return false;
   }
 };
@@ -80,7 +81,7 @@ export const saveRefreshTokenToCookies = (refreshToken: string): boolean => {
     document.cookie = cookie;
     return true;
   } catch (error) {
-    console.error("Failed to save refresh token to cookies:", error);
+    logger.error("Failed to save refresh token to cookies:", error);
     return false;
   }
 };
@@ -128,7 +129,7 @@ export const deleteTokenFromCookies = (): boolean => {
     document.cookie = expiredCookie;
     return true;
   } catch (error) {
-    console.error("Failed to delete token from cookies:", error);
+    logger.error("Failed to delete token from cookies:", error);
     return false;
   }
 };
@@ -150,7 +151,7 @@ export const deleteRefreshTokenFromCookies = (): boolean => {
     document.cookie = expiredCookie;
     return true;
   } catch (error) {
-    console.error("Failed to delete refresh token from cookies:", error);
+    logger.error("Failed to delete refresh token from cookies:", error);
     return false;
   }
 };
@@ -203,7 +204,7 @@ export const clearAllCookies = (): boolean => {
 
     return true;
   } catch (error) {
-    console.error("Failed to clear all cookies:", error);
+    logger.error("Failed to clear all cookies:", error);
     return false;
   }
 };
@@ -271,7 +272,7 @@ export const deleteCookie = (name: string) => {
 
 export const logAllCookies = () => {
   if (typeof document !== "undefined") {
-    console.table(
+    logger.table(
       document.cookie.split(";").reduce((acc, cookie) => {
         const [name, value] = cookie.trim().split("=");
         acc[name] = decodeURIComponent(value || "");

@@ -26,6 +26,7 @@ import { BookingService } from "@/lib/api/bookingService";
 import { getTokenFromCookies } from "@/lib/cookies";
 import type { RescheduleRequest, CreateRescheduleRequestData } from "@/types";
 
+import { logger } from "@/lib/logger";
 interface RescheduleRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -100,7 +101,7 @@ export function CreateRescheduleRequestModal({
         );
       }
     } catch (error) {
-      console.error("Error creating reschedule request:", error);
+      logger.error("Error creating reschedule request:", error);
       toast.error("Error creating reschedule request");
     } finally {
       setLoading(false);
@@ -260,7 +261,7 @@ export function RescheduleRequestActionModal({
         );
       }
     } catch (error) {
-      console.error(`Error ${action}ing reschedule request:`, error);
+      logger.error(`Error ${action}ing reschedule request:`, error);
       toast.error(`Error ${action}ing reschedule request`);
     } finally {
       setLoading(false);

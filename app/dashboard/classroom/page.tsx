@@ -34,6 +34,7 @@ import { toast } from "react-toastify";
 import { useRole } from "@/contexts/RoleContext";
 import { BookingListSkeleton } from "@/components/BookingSkeletons";
 
+import { logger } from "@/lib/logger";
 // Classroom Interface based on API response
 interface Classroom {
   _id: string;
@@ -88,14 +89,14 @@ export default function StudentClassroomsPage() {
         const classroomsData = response.data.data || [];
         setClassrooms(classroomsData);
       } else {
-        console.error(
+        logger.error(
           "Failed to fetch student classrooms:",
           response?.data?.message
         );
         toast.error("Failed to fetch your classrooms");
       }
     } catch (error) {
-      console.error("Error fetching student classrooms:", error);
+      logger.error("Error fetching student classrooms:", error);
       toast.error("Error fetching your classrooms");
     } finally {
       setLoading(false);

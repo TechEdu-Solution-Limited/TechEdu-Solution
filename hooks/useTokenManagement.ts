@@ -7,6 +7,7 @@ import {
 } from "@/lib/cookies";
 import { checkTokenValidity, refreshAccessToken } from "@/lib/apiFetch";
 
+import { logger } from "@/lib/logger";
 interface TokenData {
   accessToken: string | null;
   refreshToken: string | null;
@@ -28,7 +29,7 @@ export const useTokenManagement = () => {
       const response = await checkTokenValidity(token);
       return response.status === 200;
     } catch (error) {
-      console.error("Token validation failed:", error);
+      logger.error("Token validation failed:", error);
       return false;
     }
   }, []);
@@ -53,7 +54,7 @@ export const useTokenManagement = () => {
         }
         return null;
       } catch (error) {
-        console.error("Token refresh failed:", error);
+        logger.error("Token refresh failed:", error);
         return null;
       }
     },

@@ -34,6 +34,7 @@ import {
 } from "@/utils/helpers";
 import Link from "next/link";
 
+import { logger } from "@/lib/logger";
 export default function BookingDetailsPage() {
   const router = useRouter();
   const params = useParams();
@@ -104,7 +105,7 @@ export default function BookingDetailsPage() {
         router.push("/dashboard/bookings");
       }
     } catch (error) {
-      console.error("Error fetching booking details:", error);
+      logger.error("Error fetching booking details:", error);
       toast.error("Error fetching booking details");
       router.push("/dashboard/bookings");
     } finally {
@@ -135,7 +136,7 @@ export default function BookingDetailsPage() {
         toast.error(response?.data?.message || "Failed to cancel booking");
       }
     } catch (error) {
-      console.error("Error cancelling booking:", error);
+      logger.error("Error cancelling booking:", error);
       toast.error("Error cancelling booking");
     } finally {
       setCancelling(false);

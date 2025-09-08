@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { UserRole } from "./dashboardData";
 
+import { logger } from "@/lib/logger";
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -45,7 +46,7 @@ export function getRedirectUrl(
     }
     return fallback;
   } catch (error) {
-    console.error("Failed to decode redirect URL:", error);
+    logger.error("Failed to decode redirect URL:", error);
     return fallback;
   }
 }

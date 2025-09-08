@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { RefreshCw, Shield, User, Users } from "lucide-react";
 import { toast } from "react-toastify";
 
+import { logger } from "@/lib/logger";
 export default function RoleTestPage() {
   const { userData, userRole, getActiveRole, switchUserRole } = useRole();
   const [loading, setLoading] = useState(false);
@@ -24,7 +25,7 @@ export default function RoleTestPage() {
       await getActiveRole();
       toast.success("Active role refreshed! Check console for details.");
     } catch (error) {
-      console.error("[RoleTestPage] Error getting active role:", error);
+      logger.error("[RoleTestPage] Error getting active role:", error);
       toast.error("Failed to get active role");
     } finally {
       setLoading(false);
@@ -37,7 +38,7 @@ export default function RoleTestPage() {
       await switchUserRole();
       toast.success("Role switched! Check console for details.");
     } catch (error) {
-      console.error("[RoleTestPage] Error switching role:", error);
+      logger.error("[RoleTestPage] Error switching role:", error);
       toast.error("Failed to switch role");
     } finally {
       setLoading(false);

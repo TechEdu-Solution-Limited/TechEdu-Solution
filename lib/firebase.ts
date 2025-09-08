@@ -43,7 +43,7 @@ export const uploadImageToFirebase = async (
 
     return downloadURL;
   } catch (error) {
-    console.error("Error uploading to Firebase:", error);
+    logger.error("Error uploading to Firebase:", error);
     throw new Error("Failed to upload image to Firebase");
   }
 };
@@ -64,10 +64,11 @@ export const deleteImageFromFirebase = async (url: string): Promise<void> => {
       const storageRef = ref(storage, path);
       // Note: You might need to import deleteObject from firebase/storage
       // import { deleteObject } from 'firebase/storage';
+import { logger } from "@/lib/logger";
       // await deleteObject(storageRef);
     }
   } catch (error) {
-    console.error("Error deleting from Firebase:", error);
+    logger.error("Error deleting from Firebase:", error);
     throw new Error("Failed to delete image from Firebase");
   }
 };

@@ -10,6 +10,7 @@ import { getCookie, setCookie, deleteCookie } from "@/lib/cookies";
 import { Button } from "@/components/ui/button";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 
+import { logger } from "@/lib/logger";
 // Step Components
 import {
   StudentStep1PersonalInfo,
@@ -255,7 +256,7 @@ export default function StudentOnboarding() {
         }
       } catch (err: any) {
         setError(err?.message || "Failed to load onboarding status");
-        console.error("Onboarding fetch error:", err);
+        logger.error("Onboarding fetch error:", err);
       } finally {
         setLoading(false);
       }
@@ -381,7 +382,7 @@ export default function StudentOnboarding() {
       }
       return false;
     } catch (error) {
-      console.error("Error checking email:", error);
+      logger.error("Error checking email:", error);
       return false;
     }
   };
@@ -680,7 +681,7 @@ export default function StudentOnboarding() {
         setStepSuccess("");
       }, 1000);
     } catch (error: any) {
-      console.error("Step submission error:", error);
+      logger.error("Step submission error:", error);
 
       // Handle specific duplicate email error
       if (
@@ -764,7 +765,7 @@ export default function StudentOnboarding() {
         setSubmitError(result?.message || "Failed to skip step");
       }
     } catch (error) {
-      console.error("Error skipping step:", error);
+      logger.error("Error skipping step:", error);
       setSubmitError("Failed to skip step. Please try again.");
     } finally {
       setStepSubmitting(null);

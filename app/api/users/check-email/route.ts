@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { logger } from "@/lib/logger";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
       message: exists ? "Email already exists" : "Email is available",
     });
   } catch (error) {
-    console.error("Email check error:", error);
+    logger.error("Email check error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

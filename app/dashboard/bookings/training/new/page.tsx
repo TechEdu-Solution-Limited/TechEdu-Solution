@@ -35,6 +35,7 @@ import { postApiRequest, getApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 import { toast } from "react-toastify";
 
+import { logger } from "@/lib/logger";
 interface Instructor {
   _id: string;
   fullName: string;
@@ -116,10 +117,10 @@ export default function CreateTrainingBookingPage() {
           response.data.data?.users || response.data.users || [];
         setInstructors(instructorData);
       } else {
-        console.error("Failed to fetch instructors:", response?.data?.message);
+        logger.error("Failed to fetch instructors:", response?.data?.message);
       }
     } catch (err: any) {
-      console.error("Error fetching instructors:", err);
+      logger.error("Error fetching instructors:", err);
     } finally {
       setInstructorsLoading(false);
     }
@@ -138,10 +139,10 @@ export default function CreateTrainingBookingPage() {
         );
         setProducts(trainingProducts);
       } else {
-        console.error("Failed to fetch products:", response?.data?.message);
+        logger.error("Failed to fetch products:", response?.data?.message);
       }
     } catch (err: any) {
-      console.error("Error fetching products:", err);
+      logger.error("Error fetching products:", err);
     } finally {
       setProductsLoading(false);
     }
@@ -263,7 +264,7 @@ export default function CreateTrainingBookingPage() {
         try {
           attachmentUrls = await uploadFilesToServer(uploadedFiles);
         } catch (error) {
-          console.error("File upload error:", error);
+          logger.error("File upload error:", error);
           toast.error("Failed to upload some files. Please try again.");
           return;
         } finally {
@@ -291,7 +292,7 @@ export default function CreateTrainingBookingPage() {
         toast.error(response?.data?.message || "Failed to create booking");
       }
     } catch (error: any) {
-      console.error("Error creating booking:", error);
+      logger.error("Error creating booking:", error);
       toast.error("Error creating booking");
     } finally {
       setLoading(false);

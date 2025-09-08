@@ -10,6 +10,7 @@ import { getCookie, setCookie, deleteCookie } from "@/lib/cookies";
 import { Button } from "@/components/ui/button";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 
+import { logger } from "@/lib/logger";
 // Step Components
 import {
   RecruiterStep1Welcome,
@@ -299,7 +300,7 @@ export default function RecruiterOnboarding() {
         }
       } catch (err: any) {
         setError(err?.message || "Failed to load onboarding status");
-        console.error("Onboarding fetch error:", err);
+        logger.error("Onboarding fetch error:", err);
       } finally {
         setLoading(false);
       }
@@ -700,7 +701,7 @@ export default function RecruiterOnboarding() {
         setSubmitError(result?.message || "Failed to skip step");
       }
     } catch (error) {
-      console.error("Error skipping step:", error);
+      logger.error("Error skipping step:", error);
       setSubmitError("Failed to skip step. Please try again.");
     } finally {
       setStepSubmitting(null);

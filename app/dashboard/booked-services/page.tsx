@@ -20,6 +20,7 @@ import Link from "next/link";
 import { getApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 
+import { logger } from "@/lib/logger";
 interface BookedService {
   _id: string;
   title: string;
@@ -184,7 +185,7 @@ export default function BookedServicesPage() {
 
         setServices(transformedServices);
       } else {
-        console.error(
+        logger.error(
           "Failed to fetch booked services:",
           response?.data?.message
         );
@@ -192,7 +193,7 @@ export default function BookedServicesPage() {
       }
     } catch (err) {
       setError("Failed to fetch booked services");
-      console.error("Error fetching booked services:", err);
+      logger.error("Error fetching booked services:", err);
     } finally {
       setLoading(false);
     }

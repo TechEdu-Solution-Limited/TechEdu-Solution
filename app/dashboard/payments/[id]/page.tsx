@@ -60,6 +60,7 @@ import {
 import { toast } from "react-toastify";
 import { getTokenFromCookies } from "@/lib/cookies";
 
+import { logger } from "@/lib/logger";
 export default function PaymentDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -85,7 +86,7 @@ export default function PaymentDetailsPage() {
         router.push("/dashboard/payments");
       }
     } catch (error) {
-      console.error("Error fetching payment:", error);
+      logger.error("Error fetching payment:", error);
       toast.error("Failed to fetch payment details");
       router.push("/dashboard/payments");
     } finally {

@@ -27,6 +27,7 @@ import { getTokenFromCookies } from "@/lib/cookies";
 import { useRole } from "@/contexts/RoleContext";
 import type { RescheduleRequest } from "@/types";
 
+import { logger } from "@/lib/logger";
 export default function RescheduleRequestsPage() {
   const { userData } = useRole();
   const [loading, setLoading] = useState(true);
@@ -61,7 +62,7 @@ export default function RescheduleRequestsPage() {
         toast.error("Failed to fetch reschedule requests");
       }
     } catch (error) {
-      console.error("Error fetching reschedule requests:", error);
+      logger.error("Error fetching reschedule requests:", error);
       toast.error("Error fetching reschedule requests");
     } finally {
       setLoading(false);

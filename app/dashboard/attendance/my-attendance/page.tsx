@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { logger } from "@/lib/logger";
 interface LedBy {
   _id: string;
   fullName: string;
@@ -355,7 +356,7 @@ export default function InstructorAttendancePage() {
     present: boolean
   ) => {
     // TODO: Implement attendance marking functionality
-    // console.log(
+    // logger.log(
     //   `Marking ${participantEmail} as ${
     //     present ? "present" : "absent"
     //   } for attendance ${attendanceId}`
@@ -367,7 +368,7 @@ export default function InstructorAttendancePage() {
     participantEmail: string
   ) => {
     // TODO: Implement feedback functionality
-    // console.log(
+    // logger.log(
     //   `Adding feedback for ${participantEmail} in attendance ${attendanceId}`
     // );
   };

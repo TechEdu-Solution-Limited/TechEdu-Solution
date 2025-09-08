@@ -19,6 +19,7 @@ import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useProfileData } from "@/hooks/useProfileData";
 import { toast } from "react-toastify";
 
+import { logger } from "@/lib/logger";
 interface InstitutionProfileProps {
   userProfile: any;
   onUpdate: (data: any) => Promise<{ success: boolean; error?: string }>;
@@ -71,7 +72,7 @@ export default function InstitutionProfile({
           setCompletedSteps(completed);
         }
       } catch (error) {
-        console.error("Failed to fetch onboarding progress:", error);
+        logger.error("Failed to fetch onboarding progress:", error);
       }
     };
 
@@ -167,7 +168,7 @@ export default function InstitutionProfile({
         const fields = stepFieldMapping[stepNumber];
 
         if (!fields) {
-          console.warn(`No field mapping found for step ${stepNumber}`);
+          logger.warn(`No field mapping found for step ${stepNumber}`);
           continue;
         }
 
@@ -207,7 +208,7 @@ export default function InstitutionProfile({
           // Update the context with the saved data
           updateProfile(stepData);
         } catch (error) {
-          console.error(`❌ Failed to complete step ${stepNumber}:`, error);
+          logger.error(`❌ Failed to complete step ${stepNumber}:`, error);
         }
       }
 
@@ -234,7 +235,7 @@ export default function InstitutionProfile({
         setCompletedSteps(completed);
       }
     } catch (error) {
-      console.error("Save error:", error);
+      logger.error("Save error:", error);
       alert("Failed to update profile");
     } finally {
       setLoading(false);

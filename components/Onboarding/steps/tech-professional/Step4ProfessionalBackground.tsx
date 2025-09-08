@@ -2,6 +2,7 @@ import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { logger } from "@/lib/logger";
 interface Step4Props {
   form: any;
   errors: { [key: string]: string };
@@ -61,7 +62,7 @@ export default function Step4ProfessionalBackground({
         } as any;
         handleChange(syntheticEvent);
       } catch (error) {
-        console.error("File upload failed:", error);
+        logger.error("File upload failed:", error);
       }
     }
   };

@@ -9,6 +9,7 @@ import {
 } from "@/lib/cookies";
 import { getDeviceInfo } from "@/utils/getDeviceInfo";
 
+import { logger } from "@/lib/logger";
 /**
  * Base URL for API requests. For Next.js API routes, we use relative URLs
  */
@@ -290,7 +291,7 @@ export const logoutUser = async (): Promise<ApiResponse<any>> => {
     );
     return response;
   } catch (error) {
-    console.error("Logout API error:", error);
+    logger.error("Logout API error:", error);
     // Don't re-throw the error, just return a failed response
     return {
       data: { success: false, message: "Logout failed" },
@@ -414,7 +415,7 @@ export const apiRequestWithRefresh = async <T = any>(
           }
         }
       } catch (refreshError) {
-        console.error("Token refresh failed:", refreshError);
+        logger.error("Token refresh failed:", refreshError);
         // If refresh fails, clear tokens and throw original error
         throw error;
       }
