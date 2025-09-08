@@ -35,8 +35,8 @@ import {
   FileText,
   Users,
   Shield,
-  RefreshCw,
-  ChevronsUpDown,
+  // RefreshCw,
+  // ChevronsUpDown,
 } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { UserNav } from "./UserNav";
@@ -70,9 +70,9 @@ export default function SidebarLayout({
   const { userData, getActiveRole, switchUserRole, setUserData, setUserRole } =
     useRole();
   const router = useRouter();
-  const [availableRoles, setAvailableRoles] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [currentActiveRole, setCurrentActiveRole] = useState<any>(null);
+  // const [availableRoles, setAvailableRoles] = useState<any[]>([]);
+  // const [loading, setLoading] = useState(false);
+  // const [currentActiveRole, setCurrentActiveRole] = useState<any>(null);
 
   const isActiveRoute = (href: string) =>
     href === "/dashboard" ? pathname === href : pathname.startsWith(href);
@@ -95,79 +95,79 @@ export default function SidebarLayout({
   }
 
   // Fetch available roles for the user
-  const fetchAvailableRoles = async () => {
-    try {
-      setLoading(true);
-      const token = getTokenFromCookies();
-      const response = await getApiRequest(
-        "/api/users/available-roles",
-        token || undefined
-      );
+  // const fetchAvailableRoles = async () => {
+  //   try {
+  //     setLoading(true);
+  //     const token = getTokenFromCookies();
+  //     const response = await getApiRequest(
+  //       "/api/users/available-roles",
+  //       token || undefined
+  //     );
 
-      if (response.data?.success) {
-        setAvailableRoles(response.data.data || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch available roles:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     if (response.data?.success) {
+  //       setAvailableRoles(response.data.data || []);
+  //     }
+  //   } catch (error) {
+  //     console.error("Failed to fetch available roles:", error);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   // Get current active role
-  const getCurrentActiveRole = async () => {
-    try {
-      const token = getTokenFromCookies();
-      const response = await getApiRequest(
-        "/api/users/active-role",
-        token || undefined
-      );
+  // const getCurrentActiveRole = async () => {
+  //   try {
+  //     const token = getTokenFromCookies();
+  //     const response = await getApiRequest(
+  //       "/api/users/active-role",
+  //       token || undefined
+  //     );
 
-      if (response.data?.success) {
-        setCurrentActiveRole(response.data.data);
-      }
-    } catch (error) {
-      console.error("Failed to get active role:", error);
-    }
-  };
+  //     if (response.data?.success) {
+  //       setCurrentActiveRole(response.data.data);
+  //     }
+  //   } catch (error) {
+  //     console.error("Failed to get active role:", error);
+  //   }
+  // };
 
   // Handle role switching
-  const handleRoleSwitch = async (roleId: string) => {
-    try {
-      setLoading(true);
-      const token = getTokenFromCookies();
-      const response = await postApiRequest(
-        "/api/users/switch-role",
-        { roleId },
-        { Authorization: `Bearer ${token}` }
-      );
+  // const handleRoleSwitch = async (roleId: string) => {
+  //   try {
+  //     setLoading(true);
+  //     const token = getTokenFromCookies();
+  //     const response = await postApiRequest(
+  //       "/api/users/switch-role",
+  //       { roleId },
+  //       { Authorization: `Bearer ${token}` }
+  //     );
 
-      if (response.data?.success) {
-        // Update the user data with new role
-        const newUserData = { ...userData, role: response.data.data.role };
-        setUserData(newUserData);
-        setUserRole(response.data.data.role);
+  //     if (response.data?.success) {
+  //       // Update the user data with new role
+  //       const newUserData = { ...userData, role: response.data.data.role };
+  //       setUserData(newUserData);
+  //       setUserRole(response.data.data.role);
 
-        // Refresh the page to update sidebar menu
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error("Failed to switch role:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  //       // Refresh the page to update sidebar menu
+  //       window.location.reload();
+  //     }
+  //   } catch (error) {
+  //     console.error("Failed to switch role:", error);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   // Fetch roles when component mounts for tech professionals
-  useEffect(() => {
-    if (
-      userData?.role === "individualTechProfessional" ||
-      userData?.role === "teamTechProfessional"
-    ) {
-      fetchAvailableRoles();
-      getCurrentActiveRole();
-    }
-  }, [userData?.role]);
+  // useEffect(() => {
+  //   if (
+  //     userData?.role === "individualTechProfessional" ||
+  //     userData?.role === "teamTechProfessional"
+  //   ) {
+  //     fetchAvailableRoles();
+  //     getCurrentActiveRole();
+  //   }
+  // }, [userData?.role]);
 
   const logoutHandler = async () => {
     try {
@@ -208,82 +208,7 @@ export default function SidebarLayout({
                 </span>
               </div>
             </div>
-            {/* Role Management Dropdown - Only show for tech professionals */}
-            {(userData?.role === "individualTechProfessional" ||
-              userData?.role === "teamTechProfessional") && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="w-full flex items-start gap-2 justify-start"
-                  >
-                    <ChevronsUpDown className="h-4 w-4" />
-                    <span>Switch Profile</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  className="w-64 bg-white rounded-[10px]"
-                  align="start"
-                >
-                  <DropdownMenuLabel>
-                    {loading ? "Loading..." : "Available Roles"}
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-
-                  {/* Current Active Role */}
-                  {currentActiveRole && (
-                    <>
-                      <DropdownMenuLabel className="text-xs text-gray-500 font-normal">
-                        Current:{" "}
-                        {currentActiveRole.role || currentActiveRole.name}
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
-
-                  {/* Available Roles List */}
-                  {availableRoles.length > 0 ? (
-                    availableRoles.map((role) => (
-                      <DropdownMenuItem
-                        key={role._id || role.id}
-                        onClick={() => handleRoleSwitch(role._id || role.id)}
-                        className="flex items-center justify-between"
-                        disabled={loading}
-                      >
-                        <div className="flex items-center">
-                          <Shield className="h-4 w-4 mr-2" />
-                          <span>{role.role || role.name}</span>
-                        </div>
-                        {currentActiveRole &&
-                          (currentActiveRole._id === role._id ||
-                            currentActiveRole.id === role.id) && (
-                            <Badge variant="secondary" className="text-xs">
-                              Active
-                            </Badge>
-                          )}
-                      </DropdownMenuItem>
-                    ))
-                  ) : (
-                    <DropdownMenuItem disabled>
-                      <span className="text-gray-500">No roles available</span>
-                    </DropdownMenuItem>
-                  )}
-
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={fetchAvailableRoles}
-                    disabled={loading}
-                  >
-                    <RefreshCw
-                      className={`h-4 w-4 mr-2 ${
-                        loading ? "animate-spin" : ""
-                      }`}
-                    />
-                    <span>Refresh Roles</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+            {/* Role Management Dropdown - Only show for tech professionals - COMMENTED OUT */}
           </SidebarHeader>
 
           <SidebarContent>

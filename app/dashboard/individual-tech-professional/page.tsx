@@ -23,15 +23,15 @@ import {
   Bell,
   ShoppingCart,
 } from "lucide-react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
+// import {
+//   LineChart,
+//   Line,
+//   XAxis,
+//   YAxis,
+//   Tooltip,
+//   ResponsiveContainer,
+//   CartesianGrid,
+// } from "recharts";
 import Image from "next/image";
 import Link from "next/link";
 import { useRole } from "@/contexts/RoleContext";
@@ -138,7 +138,10 @@ export default function TalentDashboard() {
         applicationsResponse,
         certificationsResponse,
       ] = await Promise.allSettled([
-        getApiRequestWithRefresh("/api/bookings/user/my-bookings", token),
+        getApiRequestWithRefresh(
+          "/api/bookings/individual-tech-professional/my-bookings",
+          token
+        ),
         getApiRequestWithRefresh(
           `/api/notifications/${(userData as any)?._id}`,
           token
@@ -252,13 +255,13 @@ export default function TalentDashboard() {
   };
 
   // Generate skills data for chart (mock data for now)
-  const skillsData = [
-    { month: "Jan", skills: Math.floor(stats.skillsProgress * 2) },
-    { month: "Feb", skills: Math.floor(stats.skillsProgress * 3) },
-    { month: "Mar", skills: Math.floor(stats.skillsProgress * 4) },
-    { month: "Apr", skills: Math.floor(stats.skillsProgress * 5) },
-    { month: "May", skills: Math.floor(stats.skillsProgress * 6) },
-  ];
+  // const skillsData = [
+  //   { month: "Jan", skills: Math.floor(stats.skillsProgress * 2) },
+  //   { month: "Feb", skills: Math.floor(stats.skillsProgress * 3) },
+  //   { month: "Mar", skills: Math.floor(stats.skillsProgress * 4) },
+  //   { month: "Apr", skills: Math.floor(stats.skillsProgress * 5) },
+  //   { month: "May", skills: Math.floor(stats.skillsProgress * 6) },
+  // ];
 
   // Get upcoming interviews from applications
   const upcomingInterviews = applications
@@ -370,7 +373,7 @@ export default function TalentDashboard() {
         )}
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-6 flex flex-col items-center shadow hover:shadow-lg transition">
             <BookOpen size={32} className="text-blue-400 mb-2" />
             <div className="text-2xl font-bold text-[#011F72]">
@@ -436,8 +439,8 @@ export default function TalentDashboard() {
             />
           </div>
         </div>
-        {/* Skills Acquired Chart */}
-        <div className="bg-white border border-blue-100 rounded-xl shadow p-6 mb-8">
+        {/* Skills Acquired Chart - COMMENTED OUT */}
+        {/* <div className="bg-white border border-blue-100 rounded-xl shadow p-6 mb-8">
           <h2 className="text-lg font-semibold text-[#011F72] mb-4">
             Skills Acquired Over Time
           </h2>
@@ -456,9 +459,9 @@ export default function TalentDashboard() {
               />
             </LineChart>
           </ResponsiveContainer>
-        </div>
+        </div> */}
         {/* Upcoming Interviews & Quick Links */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {/* Upcoming Interviews */}
           <div className="md:col-span-2 bg-white border border-blue-100 rounded-xl shadow p-6">
             <h2 className="text-lg font-semibold text-[#011F72] mb-4">

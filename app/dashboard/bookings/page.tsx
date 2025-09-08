@@ -31,6 +31,7 @@ import {
   GraduationCap,
   Users2,
   Link as LinkIcon,
+  DollarSign,
 } from "lucide-react";
 import { getApiRequest, deleteApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
@@ -76,10 +77,19 @@ export default function UserBookingsPage() {
         return;
       }
 
-      const response = await getApiRequest(
-        "/api/bookings/user/my-bookings",
-        token
-      );
+      // Determine the correct endpoint based on user role
+      let endpoint = "/api/bookings/user/my-bookings"; // fallback
+      if (userData?.role === "student") {
+        endpoint = "/api/bookings/student/my-bookings";
+      } else if (userData?.role === "individualTechProfessional") {
+        endpoint = "/api/bookings/individual-tech-professional/my-bookings";
+      } else if (userData?.role === "teamTechProfessional") {
+        endpoint = "/api/bookings/team-tech-professional/my-bookings";
+      } else if (userData?.role === "recruiter") {
+        endpoint = "/api/bookings/recruiter/my-bookings";
+      }
+
+      const response = await getApiRequest(endpoint, token);
       if (response?.data?.success) {
         const bookingsData = response.data.data || [];
 
@@ -90,18 +100,47 @@ export default function UserBookingsPage() {
             booking.attachments = [booking.attachments];
           }
 
-          // Handle missing fields with fallbacks
-          return {
+          // Handle new API structure with productId and instructorId objects
+          const processedBooking = {
             ...booking,
+            // Extract product information from productId object
+            productName:
+              booking.productId?.service ||
+              booking.productName ||
+              "Unknown Service",
+            productPrice: booking.productId?.price || booking.productPrice || 0,
+
+            // Extract instructor information from instructorId object
+            instructorName:
+              booking.instructorId?.fullName ||
+              booking.instructorName ||
+              "Unknown Instructor",
+            instructorEmail:
+              booking.instructorId?.email ||
+              booking.instructorEmail ||
+              "Unknown",
+
+            // Handle participant information
             fullName:
+              booking.fullName ||
               booking.bookingSchedulerFullName ||
               booking.createdBy?.fullName ||
               "Unknown",
             email:
+              booking.email ||
               booking.bookingSchedulerEmail ||
               booking.createdBy?.email ||
               "Unknown",
-            platformRole: booking.bookingSchedulerPlatformRole || "Unknown",
+            platformRole:
+              booking.platformRole ||
+              booking.bookingSchedulerPlatformRole ||
+              "Unknown",
+
+            // Handle scheduling information
+            scheduleAt:
+              booking.scheduleAt || booking.scheduledAt || booking.startTime,
+            endAt: booking.endAt || booking.endTime,
+
             // Ensure arrays are properly handled
             participants: Array.isArray(booking.participants)
               ? booking.participants
@@ -115,6 +154,8 @@ export default function UserBookingsPage() {
             // Handle schedulingMeta
             schedulingMeta: booking.schedulingMeta || null,
           };
+
+          return processedBooking;
         });
 
         setBookings(processedBookings);
@@ -658,12 +699,20 @@ export default function UserBookingsPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <CardTitle className="text-lg font-semibold text-slate-900 mb-2">
-                        {booking.bookingPurpose || "No purpose specified"}
+                        {booking.productName ||
+                          booking.bookingPurpose ||
+                          "No service specified"}
                       </CardTitle>
                       <div className="flex items-center gap-2 mb-2">
                         <User className="w-4 h-4 text-slate-500" />
                         <span className="text-sm text-slate-600">
                           {booking.fullName || "No name provided"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <User className="w-4 h-4 text-slate-500" />
+                        <span className="text-sm text-slate-600">
+                          Instructor: {booking.instructorName || "Unknown"}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
@@ -699,19 +748,46 @@ export default function UserBookingsPage() {
                     <Calendar className="w-4 h-4" />
                     <span>
                       {(() => {
-                        const { start, end } = getPrimaryDateTime(booking);
-                        return (
-                          <>
-                            {new Date(start).toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            })}
-                            <span className="text-slate-500 ml-2">
-                              {formatTimeRange(start, end)}
-                            </span>
-                          </>
-                        );
+                        // Use new API structure if available, otherwise fall back to existing logic
+                        if (booking.scheduleAt && booking.endAt) {
+                          const start = new Date(booking.scheduleAt);
+                          const end = new Date(booking.endAt);
+                          return (
+                            <>
+                              {start.toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })}
+                              <span className="text-slate-500 ml-2">
+                                {start.toLocaleTimeString("en-US", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}{" "}
+                                -{" "}
+                                {end.toLocaleTimeString("en-US", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            </>
+                          );
+                        } else {
+                          // Fallback to existing logic
+                          const { start, end } = getPrimaryDateTime(booking);
+                          return (
+                            <>
+                              {new Date(start).toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })}
+                              <span className="text-slate-500 ml-2">
+                                {formatTimeRange(start, end)}
+                              </span>
+                            </>
+                          );
+                        }
                       })()}
                     </span>
                   </div>
@@ -749,6 +825,15 @@ export default function UserBookingsPage() {
                       })()}
                     </span>
                   </div>
+
+                  {booking.productPrice && (
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <DollarSign className="w-4 h-4" />
+                      <span className="font-semibold text-green-600">
+                        ${booking.productPrice}
+                      </span>
+                    </div>
+                  )}
 
                   {booking.userNotes && (
                     <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">

@@ -124,10 +124,29 @@ export interface ServiceLevel {
 // User Booking Interface based on API response
 export interface UserBooking {
   _id: string;
-  productId: string;
+  productId:
+    | string
+    | {
+        _id: string;
+        service: string;
+        productType: string;
+        price: number;
+      };
   productType: string;
-  instructorId: string;
+  instructorId:
+    | string
+    | {
+        _id: string;
+        fullName: string;
+        email: string;
+      };
   bookingPurpose: string;
+
+  // New fields from updated API response structure
+  productName?: string;
+  productPrice?: number;
+  instructorName?: string;
+  instructorEmail?: string;
   scheduleAt?: string; // Legacy field - use scheduledStart instead
   endAt?: string; // Legacy field - use scheduledEnd instead
   scheduledStart?: string; // Actual scheduled start time from Calendly
