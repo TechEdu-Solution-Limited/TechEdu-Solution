@@ -1,0 +1,44 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // ========================================
+    // ASSETS FOLDER - Public read, authenticated write
+    // ========================================
+    match /assets/{allPaths=**} {
+      // Public read access for images, logos, UI assets
+      allow read: if true;
+      
+      // Only authenticated users can upload
+      allow write: if request.auth != null;
+    }
+    
+    // ========================================
+    // ATTACHMENTS FOLDER - Authenticated users only
+    // ========================================
+    match /attachments/{allPaths=**} {
+      // Only authenticated users can access attachments
+      allow read, write: if request.auth != null;
+    }
+    
+    // ========================================
+    // MATERIALS FOLDER - Authenticated read, authenticated write
+    // ========================================
+    match /materials/{allPaths=**} {
+      // Authenticated users can read training materials
+      allow read: if request.auth != null;
+      
+      // Authenticated users can upload materials
+      // TODO: Restrict to admins/instructors in production
+      allow write: if request.auth != null;
+    }
+    
+    // ========================================
+    // DEFAULT RULE - Deny everything else
+    // ========================================
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

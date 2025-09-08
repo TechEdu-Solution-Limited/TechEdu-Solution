@@ -1,0 +1,54 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Assets folder - Public read, authenticated write for admins/content creators
+    match /assets/{allPaths=**} {
+      // Allow public read access for images, logos, etc.
+      allow read: if true;
+      
+      // Only allow authenticated users to write
+      // You can add admin checks if needed: if request.auth != null && isAdmin();
+      allow write: if request.auth != null;
+    }
+    
+    // Attachments folder - Private, only accessible by the user who uploaded
+    match /attachments/{allPaths=**} {
+      // Only allow read/write if user is authenticated
+      allow read, write: if request.auth != null;
+      
+      // Optional: Add user-specific subfolder protection
+      // match /attachments/user-uploads/{userId}/{allPaths=**} {
+      //   allow read, write: if request.auth != null && request.auth.uid == userId;
+      // }
+    }
+    
+    // Materials folder - Read for authenticated users, write for admins/instructors
+    match /materials/{allPaths=**} {
+      // Allow authenticated users to read training materials
+      allow read: if request.auth != null;
+      
+      // Only allow admins/instructors to write
+      // You can add role checks: if request.auth != null && (isAdmin() || isInstructor());
+      allow write: if request.auth != null;
+    }
+    
+    // Default rule - deny everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+// Helper functions (uncomment and modify based on your Firestore structure)
+// function isAdmin() {
+//   return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+// }
+
+// function isInstructor() {
+//   return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['instructor', 'admin'];
+// }
+
+// function isUser(userId) {
+//   return request.auth != null && request.auth.uid == userId;
+// }

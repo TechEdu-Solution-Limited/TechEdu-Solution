@@ -1,0 +1,111 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // ========================================
+    // ASSETS FOLDER - Public images, logos, UI assets
+    // ========================================
+    match /assets/{allPaths=**} {
+      // Public read access for images, logos, etc.
+      allow read: if true;
+      
+      // Only authenticated users can upload assets
+      // Consider adding admin-only uploads for production
+      allow write: if request.auth != null;
+      
+      // Optional: Admin-only uploads for production
+      // allow write: if request.auth != null && isAdmin();
+    }
+    
+    // ========================================
+    // ATTACHMENTS FOLDER - User-specific files
+    // ========================================
+    match /attachments/{allPaths=**} {
+      // Only authenticated users can access
+      allow read, write: if request.auth != null;
+    }
+    
+    // User-specific subfolder protection
+    match /attachments/user-uploads/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Booking attachments - accessible by user who created the booking
+    match /attachments/booking-attachments/{allPaths=**} {
+      allow read, write: if request.auth != null;
+      // Optional: Add booking ownership check
+      // allow read, write: if request.auth != null && isBookingOwner(resource);
+    }
+    
+    // ========================================
+    // MATERIALS FOLDER - Training materials, certifications
+    // ========================================
+    match /materials/{allPaths=**} {
+      // Authenticated users can read training materials
+      allow read: if request.auth != null;
+      
+      // Only admins and instructors can upload materials
+      allow write: if request.auth != null && (isAdmin() || isInstructor());
+    }
+    
+    // Course-specific materials
+    match /materials/course-materials/{courseId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (isAdmin() || isInstructor() || isCourseInstructor(courseId));
+    }
+    
+    // Certification materials
+    match /materials/certification-docs/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (isAdmin() || isInstructor());
+    }
+    
+    // ========================================
+    // DEFAULT RULE - Deny everything else
+    // ========================================
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+// ========================================
+// HELPER FUNCTIONS
+// ========================================
+
+// Check if user is admin
+function isAdmin() {
+  return request.auth != null && 
+    firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+}
+
+// Check if user is instructor or admin
+function isInstructor() {
+  return request.auth != null && 
+    firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['instructor', 'admin'];
+}
+
+// Check if user is course instructor
+function isCourseInstructor(courseId) {
+  return request.auth != null && 
+    firestore.get(/databases/(default)/documents/courses/$(courseId)).data.instructorId == request.auth.uid;
+}
+
+// Check if user owns a booking
+function isBookingOwner(bookingId) {
+  return request.auth != null && 
+    firestore.get(/databases/(default)/documents/bookings/$(bookingId)).data.userId == request.auth.uid;
+}
+
+// Check if user has specific role
+function hasRole(role) {
+  return request.auth != null && 
+    firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == role;
+}
+
+// Check if user is authenticated and has valid profile
+function isAuthenticatedUser() {
+  return request.auth != null && 
+    firestore.exists(/databases/(default)/documents/users/$(request.auth.uid));
+}
