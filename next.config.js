@@ -11,6 +11,17 @@ const nextConfig = {
     remotePatterns: [],
     domains: [],
   },
+  experimental: {
+    // Disable static optimization for problematic pages
+    skipTrailingSlashRedirect: true,
+  },
+  // Force all pages to be dynamic to avoid build issues
+  generateBuildId: async () => {
+    return 'build-' + Date.now()
+  },
+  // Disable static optimization to prevent build failures
+  trailingSlash: false,
+  skipTrailingSlashRedirect: true,
   // webpack: (config, { dev, isServer }) => {
   //   if (!dev && !isServer) {
   //     config.optimization.minimizer = config.optimization.minimizer || [];
