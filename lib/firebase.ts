@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { logger } from "@/lib/logger";
 
 // Your Firebase configuration
 // Replace with your actual Firebase config
@@ -64,7 +65,7 @@ export const deleteImageFromFirebase = async (url: string): Promise<void> => {
       const storageRef = ref(storage, path);
       // Note: You might need to import deleteObject from firebase/storage
       // import { deleteObject } from 'firebase/storage';
-import { logger } from "@/lib/logger";
+      // import { logger } from "@/lib/logger";
       // await deleteObject(storageRef);
     }
   } catch (error) {
