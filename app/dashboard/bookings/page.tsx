@@ -718,7 +718,7 @@ export default function UserBookingsPage() {
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
                         {isRecentlyCreated(booking) && (
-                          <Badge className="bg-red text-white font-semibold animate-pulse">
+                          <Badge className="bg-red-600 text-white font-semibold animate-pulse">
                             NEW
                           </Badge>
                         )}
