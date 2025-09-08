@@ -11,8 +11,8 @@ const paths = [
     img: "/icons/undraw_teacher_s628.svg",
     alt: "Student using a laptop",
     actions: [
-      { label: "Browse Live Training", urlpath: "/training" },
-      { label: "Earn a Certificate", urlpath: "/training/certifications" },
+      { label: "Browse Live Training", urlpath: "/register" },
+      { label: "Earn a Certificate", urlpath: "/register" },
       { label: "Register", urlpath: "/register" },
     ],
   },
@@ -24,8 +24,8 @@ const paths = [
     alt: "Professional in an online training",
     actions: [
       { label: "Register to start a CV", urlpath: "/register" },
-      { label: "Use Scholarship Coach", urlpath: "/tools/scholarship-coach" },
-      { label: "Book a Mentorship Call", urlpath: "/contact#discovery-call" },
+      { label: "Use Scholarship Coach", urlpath: "/register" },
+      { label: "Book a Mentorship Call", urlpath: "/contact" },
     ],
   },
   {
@@ -39,7 +39,7 @@ const paths = [
       { label: "Request a Demo", urlpath: "/register" },
       {
         label: "Book a Discovery Call",
-        urlpath: "/contact#discovery-call",
+        urlpath: "/contact",
       },
       { label: "Register to Partner with Us", urlpath: "/register" },
     ],
@@ -52,7 +52,7 @@ const paths = [
     alt: "Employer reviewing job applications",
     actions: [
       { label: "Register to Post a Job", urlpath: "/register" },
-      { label: "Browse Graduate Talent", urlpath: "/career-connect/talents" },
+      // { label: "Browse Graduate Talent", urlpath: "/career-connect/talents" },
       {
         label: "Use the Package Estimator Tool",
         urlpath:
