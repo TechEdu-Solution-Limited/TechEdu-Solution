@@ -160,32 +160,42 @@ const page = () => {
                   </div>
                   <div className="flex flex-col gap-2 justify-end items-center w-full">
                     <div className="flex w-full gap-2">
-                      {path.actions.slice(0, 2).map((action, idx) => (
+                      {path.actions?.slice(0, 2).map((action, idx) => (
                         <Link
-                          key={action.label}
+                          key={action?.label || idx}
                           href={
-                            action.label.toLowerCase().includes("register")
+                            action?.label?.toLowerCase().includes("register")
                               ? `${action.urlpath}?role=${path.role}`
-                              : action.urlpath
+                              : action?.urlpath || "#"
                           }
                           className="w-1/2 p-2 text-center bg-white border border-gray-500 rounded-[10px] text-[14px] text-[#011F72] font-medium hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                          aria-label={`${action.label} for ${path.title}`}
+                          aria-label={`${action?.label || "Action"} for ${
+                            path.title
+                          }`}
                         >
-                          {action.label}
+                          {action?.label || "Action"}
                         </Link>
                       ))}
                     </div>
-                    <Link
-                      href={
-                        path.actions[2].label.toLowerCase().includes("register")
-                          ? `${path.actions[2].urlpath}?role=${path.role}`
-                          : path.actions[2].urlpath
-                      }
-                      className="w-full py-2 px-4 text-center bg-white border border-gray-500 rounded-[10px] text-[14px] text-[#011F72] font-medium hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                      aria-label={`${path.actions[2].label} for ${path.title}`}
-                    >
-                      {path.actions[2].label}
-                    </Link>
+                    {path.actions &&
+                      path.actions.length > 2 &&
+                      path.actions[2] && (
+                        <Link
+                          href={
+                            path.actions[2].label
+                              ?.toLowerCase()
+                              .includes("register")
+                              ? `${path.actions[2].urlpath}?role=${path.role}`
+                              : path.actions[2].urlpath || "#"
+                          }
+                          className="w-full py-2 px-4 text-center bg-white border border-gray-500 rounded-[10px] text-[14px] text-[#011F72] font-medium hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                          aria-label={`${
+                            path.actions[2].label || "Action"
+                          } for ${path.title}`}
+                        >
+                          {path.actions[2].label || "Action"}
+                        </Link>
+                      )}
                   </div>
                 </article>
               ))}

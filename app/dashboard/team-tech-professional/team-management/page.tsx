@@ -45,7 +45,7 @@ import {
 import { getTokenFromCookies } from "@/lib/cookies";
 import { toast } from "react-toastify";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 interface TeamMember {
   id: string;
   fullName: string;
@@ -135,7 +135,7 @@ export default function TeamManagementPage() {
       setTeamData(teamResponse.data?.data);
       setMembers(membersResponse.data?.data?.members || []);
     } catch (error: any) {
-      logger.error("Error fetching team data:", error);
+      safeConsole.error("Error fetching team data:", error);
       toast.error(error.message || "Failed to load team data");
     } finally {
       setLoading(false);
@@ -174,7 +174,7 @@ export default function TeamManagementPage() {
       setShowInviteModal(false);
       fetchTeamData(); // Refresh the members list
     } catch (error: any) {
-      logger.error("Error inviting member:", error);
+      safeConsole.error("Error inviting member:", error);
       toast.error(error.message || "Failed to invite member");
     } finally {
       setInviteLoading(false);
@@ -207,7 +207,7 @@ export default function TeamManagementPage() {
       toast.success("Invitation revoked successfully!");
       fetchTeamData(); // Refresh the members list
     } catch (error: any) {
-      logger.error("Error revoking invitation:", error);
+      safeConsole.error("Error revoking invitation:", error);
       toast.error(error.message || "Failed to revoke invitation");
     } finally {
       setRevokeLoading(null);

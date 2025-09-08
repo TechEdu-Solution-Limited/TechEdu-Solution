@@ -17,7 +17,7 @@ import {
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useProfileData } from "@/hooks/useProfileData";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 interface RecruiterProfileProps {
   userProfile: any;
   onUpdate: (data: any) => Promise<{ success: boolean; error?: string }>;
@@ -85,7 +85,7 @@ export default function RecruiterProfile({
           setCompletedSteps(completed);
         }
       } catch (error) {
-        logger.error("Failed to fetch onboarding progress:", error);
+        safeConsole.error("Failed to fetch onboarding progress:", error);
       }
     };
     fetchOnboardingProgress();

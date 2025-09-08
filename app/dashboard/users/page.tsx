@@ -51,7 +51,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 interface User {
   id: string;
   name: string;
@@ -290,7 +290,7 @@ export default function UserManagementPage() {
 
   const handleBulkAction = (action: string) => {
     // Handle bulk actions
-    // logger.log(`Bulk action: ${action} for users:`, selectedUsers);
+    // safeConsole.log(`Bulk action: ${action} for users:`, selectedUsers);
     setSelectedUsers([]);
   };
 

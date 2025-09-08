@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTokenFromCookies } from "@/lib/cookies";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 export async function GET(
   request: NextRequest,
   { params }: { params: { userId: string } }
@@ -31,7 +31,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    logger.error("Error fetching onboarding progress:", error);
+    safeConsole.error("Error fetching onboarding progress:", error);
     return NextResponse.json(
       { error: "Failed to fetch onboarding progress" },
       { status: 500 }

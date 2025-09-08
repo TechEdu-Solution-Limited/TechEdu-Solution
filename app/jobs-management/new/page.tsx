@@ -53,7 +53,7 @@ import { JobFormData } from "@/types/jobs";
 import { postApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 export default function NewJobPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -111,7 +111,7 @@ export default function NewJobPage() {
         const parsedDraft = JSON.parse(savedDraft);
         setFormData(parsedDraft);
       } catch (error) {
-        logger.error("Error loading draft:", error);
+        safeConsole.error("Error loading draft:", error);
       }
     }
   }, []);

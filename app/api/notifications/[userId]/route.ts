@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTokenFromCookies } from "@/lib/cookies";
 import { getApiRequestWithRefresh } from "@/lib/apiFetch";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 export async function GET(
   request: NextRequest,
   { params }: { params: { userId: string } }
@@ -40,7 +40,7 @@ export async function GET(
       data: notifications,
     });
   } catch (error) {
-    logger.error("Error fetching notifications:", error);
+    safeConsole.error("Error fetching notifications:", error);
 
     // If external API is not available, return empty array
     return NextResponse.json({

@@ -59,7 +59,7 @@ import {
 import { getTokenFromCookies } from "@/lib/cookies";
 import { getCookie } from "@/lib/cookies";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 // Types
 interface TeamMember {
   id: string;
@@ -133,7 +133,7 @@ export default function TeamManagementPage() {
           setTeamMembers(membersRes.data || []);
         }
       } catch (error) {
-        logger.error("Error fetching team data:", error);
+        safeConsole.error("Error fetching team data:", error);
         toast.error("Failed to fetch team data");
       } finally {
         setLoading(false);
@@ -249,7 +249,7 @@ export default function TeamManagementPage() {
         toast.error(response.message || "Failed to send invitation");
       }
     } catch (error) {
-      logger.error("Error inviting member:", error);
+      safeConsole.error("Error inviting member:", error);
       toast.error("Failed to send invitation");
     }
   };
@@ -281,7 +281,7 @@ export default function TeamManagementPage() {
         toast.error(response.message || "Failed to revoke invitation");
       }
     } catch (error) {
-      logger.error("Error revoking invitation:", error);
+      safeConsole.error("Error revoking invitation:", error);
       toast.error("Failed to revoke invitation");
     }
   };
@@ -313,7 +313,7 @@ export default function TeamManagementPage() {
         toast.error(response.message || "Failed to update team information");
       }
     } catch (error) {
-      logger.error("Error updating team info:", error);
+      safeConsole.error("Error updating team info:", error);
       toast.error("Failed to update team information");
     }
   };

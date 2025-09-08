@@ -11,7 +11,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import { loginUser, apiRequest } from "@/lib/apiFetch";
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 import {
   saveTokenToCookies,
   setCookie,
@@ -184,7 +184,7 @@ const LoginPage = () => {
               token
             );
           } catch (progressError) {
-            logger.error("Error fetching progress details:", progressError);
+            safeConsole.error("Error fetching progress details:", progressError);
           }
           return getOnboardingRoute(role, id);
         }
@@ -193,11 +193,11 @@ const LoginPage = () => {
         if (onboardingStatus === "not_started" || !onboardingStatus) {
           return getOnboardingRoute(role, id);
         } else {
-          logger.warn("Unexpected onboarding response:", startResponse);
+          safeConsole.warn("Unexpected onboarding response:", startResponse);
         }
       }
     } catch (error) {
-      logger.error("Error checking onboarding status:", error);
+      safeConsole.error("Error checking onboarding status:", error);
       // If API call fails, fall back to onboarding route for safety
     } finally {
       // Reset loading state

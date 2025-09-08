@@ -166,7 +166,7 @@ export const Header = () => {
         className={`fixed top-0 w-full z-30 px-2 md:px-16 h-[15vh] flex justify-between items-center transition-all duration-300 ${
           isScrolled
             ? "bg-primary shadow-md backdrop-blur-[18px]"
-            : "bg-gradient-to-br from-[#0D1140] via-[#1e3a8a] to-[#0D1140]"
+            : "bg-primary"
         }`}
       >
         <Link href="/">

@@ -44,7 +44,7 @@ import { dashboardSidebarConfig } from "@/components/dashboardSidebarConfig";
 import Image from "next/image";
 import { useRole } from "@/contexts/RoleContext";
 import { getApiRequest, postApiRequest, logoutUser } from "@/lib/apiFetch";
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 import {
   deleteRefreshTokenFromCookies,
   deleteTokenFromCookies,
@@ -109,7 +109,7 @@ export default function SidebarLayout({
   //       setAvailableRoles(response.data.data || []);
   //     }
   //   } catch (error) {
-  //     logger.error("Failed to fetch available roles:", error);
+  //     safeConsole.error("Failed to fetch available roles:", error);
   //   } finally {
   //     setLoading(false);
   //   }
@@ -128,7 +128,7 @@ export default function SidebarLayout({
   //       setCurrentActiveRole(response.data.data);
   //     }
   //   } catch (error) {
-  //     logger.error("Failed to get active role:", error);
+  //     safeConsole.error("Failed to get active role:", error);
   //   }
   // };
 
@@ -153,7 +153,7 @@ export default function SidebarLayout({
   //       window.location.reload();
   //     }
   //   } catch (error) {
-  //     logger.error("Failed to switch role:", error);
+  //     safeConsole.error("Failed to switch role:", error);
   //   } finally {
   //     setLoading(false);
   //   }

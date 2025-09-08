@@ -10,7 +10,7 @@ import { getCookie, setCookie, deleteCookie } from "@/lib/cookies";
 import { Button } from "@/components/ui/button";
 import { useRole } from "@/contexts/RoleContext";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 // Step Components
 import {
   Step1PersonalInfo,
@@ -522,7 +522,7 @@ export default function IndividualindividualTechProfessionalOnboarding() {
         }
       } catch (err: any) {
         setError(err?.message || "Failed to load onboarding status");
-        logger.error("Onboarding fetch error:", err);
+        safeConsole.error("Onboarding fetch error:", err);
       } finally {
         setLoading(false);
       }
@@ -1034,7 +1034,7 @@ export default function IndividualindividualTechProfessionalOnboarding() {
         setSubmitError(result?.message || "Failed to skip step");
       }
     } catch (error) {
-      logger.error("Error skipping step:", error);
+      safeConsole.error("Error skipping step:", error);
       setSubmitError("Failed to skip step. Please try again.");
     } finally {
       setStepSubmitting(null);

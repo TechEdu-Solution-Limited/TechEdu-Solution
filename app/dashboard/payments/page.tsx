@@ -99,7 +99,7 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 import {
   Tooltip,
   TooltipContent,
@@ -169,11 +169,11 @@ export default function PaymentsPage() {
           toast.success("Payments refreshed successfully!");
         }
       } else {
-        logger.error("API returned error:", response.data);
+        safeConsole.error("API returned error:", response.data);
         toast.error(response.data?.message || "Failed to fetch payments");
       }
     } catch (error) {
-      logger.error("Error fetching payments:", error);
+      safeConsole.error("Error fetching payments:", error);
       toast.error("Failed to fetch payments");
     } finally {
       setLoading(false);
@@ -300,7 +300,7 @@ export default function PaymentsPage() {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: currency || "USD",
-    }).format(amount / 100);
+    }).format(amount);
   };
 
   const clearFilters = () => {

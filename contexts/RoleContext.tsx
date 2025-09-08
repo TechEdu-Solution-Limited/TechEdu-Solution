@@ -21,7 +21,7 @@ import {
 import { useRouter } from "next/navigation";
 import { isValidUserData } from "@/lib/utils";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 interface RoleContextType {
   userRole: UserRole;
   setUserRole: (role: UserRole) => void;
@@ -79,7 +79,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
           setLoading(false);
           return true;
         } catch (error) {
-          logger.error("Error parsing user data from cookies:", error);
+          safeConsole.error("Error parsing user data from cookies:", error);
         }
       }
       setLoading(false);
@@ -105,7 +105,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     window.location.href = targetRoute;
 
     if (!dashboardRoutes[targetRole]) {
-      logger.warn(
+      safeConsole.warn(
         `[Redirect] No route found for role: "${targetRole}". Defaulting to /dashboard/student`
       );
     }
@@ -123,7 +123,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     if (isValidUserData(userData)) {
       saveUserDataToCookies(userData);
     } else {
-      logger.warn("Invalid user data, skipping cookie save.");
+      safeConsole.warn("Invalid user data, skipping cookie save.");
     }
 
     // Redirect to appropriate dashboard
@@ -155,14 +155,14 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
           setIsAuthenticated(true);
           return true;
         } catch (error) {
-          logger.error("Error parsing user data:", error);
+          safeConsole.error("Error parsing user data:", error);
         }
       }
 
       setIsAuthenticated(false);
       return false;
     } catch (error) {
-      logger.error("Error refreshing auth:", error);
+      safeConsole.error("Error refreshing auth:", error);
       setIsAuthenticated(false);
       return false;
     }
@@ -174,10 +174,10 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       const response = await logoutUser();
 
       if (response.status >= 400) {
-        logger.error("Logout API call failed");
+        safeConsole.error("Logout API call failed");
       }
     } catch (error) {
-      logger.error("Error calling logout API:", error);
+      safeConsole.error("Error calling logout API:", error);
     } finally {
       // Clear local state regardless of API call result
       setUserRole("student");
@@ -199,7 +199,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     try {
       const token = getTokenFromCookies();
       if (!token) {
-        logger.error("No token available for getActiveRole");
+        safeConsole.error("No token available for getActiveRole");
         return;
       }
 
@@ -215,7 +215,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
-      logger.error("[RoleContext] Error getting active role:", error);
+      safeConsole.error("[RoleContext] Error getting active role:", error);
     }
   };
 
@@ -224,7 +224,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     try {
       const token = getTokenFromCookies();
       if (!token) {
-        logger.error("No token available for switchUserRole");
+        safeConsole.error("No token available for switchUserRole");
         return;
       }
 
@@ -245,7 +245,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         redirectToRoleDashboard(newRole);
       }
     } catch (error) {
-      logger.error("Error switching user role:", error);
+      safeConsole.error("Error switching user role:", error);
     }
   };
 

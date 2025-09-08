@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCookie } from "@/lib/cookies";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       data: mockFileData,
     });
   } catch (error) {
-    logger.error("File upload error:", error);
+    safeConsole.error("File upload error:", error);
     return NextResponse.json(
       { success: false, message: "Internal server error" },
       { status: 500 }

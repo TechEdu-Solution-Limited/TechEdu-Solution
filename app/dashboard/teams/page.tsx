@@ -31,7 +31,7 @@ import { Team, TeamInvitation, UserTeam } from "@/types";
 import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 export default function TeamsPage() {
   const { userData } = useRole();
   const router = useRouter();
@@ -56,7 +56,7 @@ export default function TeamsPage() {
         setTeams(response.data.data.teams);
       }
     } catch (error) {
-      logger.error("Error fetching teams:", error);
+      safeConsole.error("Error fetching teams:", error);
       toast.error("Failed to fetch teams");
     } finally {
       setLoading(false);
@@ -72,7 +72,7 @@ export default function TeamsPage() {
         setMyTeams(response.data.data.teams);
       }
     } catch (error) {
-      logger.error("Error fetching my teams:", error);
+      safeConsole.error("Error fetching my teams:", error);
     }
   };
 
@@ -85,7 +85,7 @@ export default function TeamsPage() {
         setInvitations(response.data.data.invitations);
       }
     } catch (error) {
-      logger.error("Error fetching invitations:", error);
+      safeConsole.error("Error fetching invitations:", error);
     }
   };
 
@@ -111,7 +111,7 @@ export default function TeamsPage() {
         fetchMyTeams();
       }
     } catch (error) {
-      logger.error("Error accepting invitation:", error);
+      safeConsole.error("Error accepting invitation:", error);
       toast.error("Failed to accept invitation");
     }
   };
@@ -129,7 +129,7 @@ export default function TeamsPage() {
         fetchInvitations();
       }
     } catch (error) {
-      logger.error("Error declining invitation:", error);
+      safeConsole.error("Error declining invitation:", error);
       toast.error("Failed to decline invitation");
     }
   };
@@ -146,7 +146,7 @@ export default function TeamsPage() {
         fetchMyTeams();
       }
     } catch (error) {
-      logger.error("Error leaving team:", error);
+      safeConsole.error("Error leaving team:", error);
       toast.error("Failed to leave team");
     }
   };

@@ -53,7 +53,7 @@ import { JobFormData } from "@/types/jobs";
 import { getApiRequest, postApiRequest } from "@/lib/apiFetch";
 import { getCookie, getTokenFromCookies } from "@/lib/cookies";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 export default function NewJobPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -114,7 +114,7 @@ export default function NewJobPage() {
         const parsedDraft = JSON.parse(savedDraft);
         setFormData(parsedDraft);
       } catch (error) {
-        logger.error("Error loading draft:", error);
+        safeConsole.error("Error loading draft:", error);
       }
     }
   }, []);
@@ -136,11 +136,11 @@ export default function NewJobPage() {
           );
           setCompanies(validCompanies);
         } else {
-          logger.error("Failed to fetch companies:", result.message);
+          safeConsole.error("Failed to fetch companies:", result.message);
           setCompanies([]);
         }
       } catch (error) {
-        logger.error("Error fetching companies:", error);
+        safeConsole.error("Error fetching companies:", error);
         setCompanies([]);
       } finally {
         setCompaniesLoading(false);
@@ -267,7 +267,7 @@ export default function NewJobPage() {
         toast.error("Failed to post job");
       }
     } catch (error: any) {
-      logger.error("Job submission error:", error); // Debug log
+      safeConsole.error("Job submission error:", error); // Debug log
       setError(error.message || "An error occurred while posting the job");
       toast.error("An error occurred while posting the job");
     } finally {

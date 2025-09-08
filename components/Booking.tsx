@@ -42,7 +42,7 @@ import { getApiRequest, postApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 import { uploadFileToCloudinary } from "@/lib/cloudinary";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 export default function BookingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -211,7 +211,7 @@ export default function BookingPage() {
           availabilityResponse.message ||
           "Unknown error";
         // Avoid spamming users with validation errors during initial attempts
-        logger.warn("Availability fetch error:", message);
+        safeConsole.warn("Availability fetch error:", message);
         setAvailableSlots([]);
         setAvailabilityChecked(true);
         return;
@@ -231,26 +231,26 @@ export default function BookingPage() {
       const durationMinutes =
         availabilityData.data?.slotsInfo?.durationMinutes || 60;
 
-      // logger.log(
+      // safeConsole.log(
       //   "Processing available slots:",
       //   availableSlots.length,
       //   "slots"
       // );
-      // logger.log("Duration minutes:", durationMinutes);
+      // safeConsole.log("Duration minutes:", durationMinutes);
 
       const transformedSlots = availableSlots
         .map((slotTime: string, index: number) => {
           try {
             // Debug first few slots
             if (index < 3) {
-              logger.log(`Processing slot ${index}:`, slotTime);
+              safeConsole.log(`Processing slot ${index}:`, slotTime);
             }
 
             const startDateTime = new Date(slotTime);
 
             // Validate the date is valid
             if (isNaN(startDateTime.getTime())) {
-              // logger.warn("Invalid date string:", slotTime);
+              // safeConsole.warn("Invalid date string:", slotTime);
               return null;
             }
 
@@ -267,12 +267,12 @@ export default function BookingPage() {
 
             // Debug first few results
             // if (index < 3) {
-            //   logger.log(`Result for slot ${index}:`, result);
+            //   safeConsole.log(`Result for slot ${index}:`, result);
             // }
 
             return result;
           } catch (error) {
-            logger.warn("Error processing slot:", slotTime, error);
+            safeConsole.warn("Error processing slot:", slotTime, error);
             return null;
           }
         })
@@ -287,7 +287,7 @@ export default function BookingPage() {
         toast.success(`Found ${transformedSlots.length} available time slots`);
       }
     } catch (error) {
-      logger.error("Failed to fetch instructor availability:", error);
+      safeConsole.error("Failed to fetch instructor availability:", error);
 
       if (error instanceof Error) {
         if (error.message.includes("404")) {
@@ -333,7 +333,7 @@ export default function BookingPage() {
 
         setProductData(response.data);
       } catch (error) {
-        logger.error("Failed to fetch product:", error);
+        safeConsole.error("Failed to fetch product:", error);
         toast.error("Failed to load product details. Please try again.");
       } finally {
         setLoadingProduct(false);
@@ -959,7 +959,7 @@ export default function BookingPage() {
                                 `${file.name} uploaded successfully!`
                               );
                             } catch (error) {
-                              logger.error(
+                              safeConsole.error(
                                 `Failed to upload ${file.name}:`,
                                 error
                               );

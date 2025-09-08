@@ -40,7 +40,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 interface JobFormData {
   // Basic Information
   title: string;
@@ -241,7 +241,7 @@ export default function JobDetailPage() {
 
   const handleStatusChange = (newStatus: string) => {
     // TODO: Implement status change API call
-    // logger.log(`Changing status to: ${newStatus}`);
+    // safeConsole.log(`Changing status to: ${newStatus}`);
   };
 
   return (

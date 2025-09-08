@@ -13,7 +13,7 @@ import { FaRegCircleXmark } from "react-icons/fa6";
 import CVStep2 from "@/components/CVSteps/CV2Step";
 import CVStep3 from "@/components/CVSteps/CV3Step";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 const steps = [
   {
     id: 1,
@@ -92,7 +92,7 @@ const page = () => {
         setFormData(structuredData);
         setCurrentStep(parsed.step || 1);
       } catch (error) {
-        logger.error("Error parsing saved CV data:", error);
+        safeConsole.error("Error parsing saved CV data:", error);
       }
     }
   }, []);

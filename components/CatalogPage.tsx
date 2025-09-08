@@ -32,7 +32,7 @@ import type { Product } from "@/types/product";
 import { getApiRequest } from "@/lib/apiFetch";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 const PRODUCT_TYPE_OPTIONS = [
   "Training & Certification",
   "Academic Support Services",
@@ -160,7 +160,7 @@ export default function CatalogPage({
         setCategoryMap(categoryMap);
       })
       .catch((err) => {
-        logger.error("Error fetching categories:", err);
+        safeConsole.error("Error fetching categories:", err);
         setCategories([]);
       })
       .finally(() => setCategoriesLoading(false));
@@ -186,7 +186,7 @@ export default function CatalogPage({
         ) {
           params.productSubCategoryId = categoryId;
         } else {
-          logger.warn("Invalid category ID format:", categoryId);
+          safeConsole.warn("Invalid category ID format:", categoryId);
           // Fallback to name-based filtering
           params.productSubcategoryName = category;
         }
@@ -208,7 +208,7 @@ export default function CatalogPage({
         setTotalPages(data?.data?.data?.pagination?.totalPages || 1);
       })
       .catch((err) => {
-        logger.error("API Error details:", err);
+        safeConsole.error("API Error details:", err);
         setError(err);
       })
       .finally(() => setLoading(false));
@@ -371,7 +371,7 @@ export default function CatalogPage({
       const data = await getApiRequest<any>(`/api/products/public/${id}`);
       setSelectedProduct(data?.data?.data || null);
     } catch (error) {
-      logger.error("Error fetching product details:", error);
+      safeConsole.error("Error fetching product details:", error);
       setSelectedProduct(null);
     } finally {
       setDetailsLoading(false);

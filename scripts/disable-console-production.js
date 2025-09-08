@@ -49,105 +49,105 @@ function replaceConsoleStatements(filePath) {
       const insertIndex = lastImportIndex + lastImport.length;
       
       content = content.slice(0, insertIndex) + 
-        '\nimport { logger } from "@/lib/logger";' + 
+        '\nimport { safeConsole } from "@/lib/console";' + 
         content.slice(insertIndex);
       modified = true;
     }
   }
   
-  // Replace logger.log with logger.log
-  if (content.includes('logger.log')) {
-    content = content.replace(/console\.log/g, 'logger.log');
+  // Replace safeConsole.log with safeConsole.log
+  if (content.includes('safeConsole.log')) {
+    content = content.replace(/console\.log/g, 'safeConsole.log');
     modified = true;
   }
   
-  // Replace logger.error with logger.error
-  if (content.includes('logger.error')) {
-    content = content.replace(/console\.error/g, 'logger.error');
+  // Replace safeConsole.error with safeConsole.error
+  if (content.includes('safeConsole.error')) {
+    content = content.replace(/console\.error/g, 'safeConsole.error');
     modified = true;
   }
   
-  // Replace logger.warn with logger.warn
-  if (content.includes('logger.warn')) {
-    content = content.replace(/console\.warn/g, 'logger.warn');
+  // Replace safeConsole.warn with safeConsole.warn
+  if (content.includes('safeConsole.warn')) {
+    content = content.replace(/console\.warn/g, 'safeConsole.warn');
     modified = true;
   }
   
-  // Replace logger.info with logger.info
-  if (content.includes('logger.info')) {
-    content = content.replace(/console\.info/g, 'logger.info');
+  // Replace safeConsole.info with safeConsole.info
+  if (content.includes('safeConsole.info')) {
+    content = content.replace(/console\.info/g, 'safeConsole.info');
     modified = true;
   }
   
-  // Replace logger.debug with logger.debug
-  if (content.includes('logger.debug')) {
-    content = content.replace(/console\.debug/g, 'logger.debug');
+  // Replace safeConsole.debug with safeConsole.debug
+  if (content.includes('safeConsole.debug')) {
+    content = content.replace(/console\.debug/g, 'safeConsole.debug');
     modified = true;
   }
   
-  // Replace logger.group with logger.group
-  if (content.includes('logger.group')) {
-    content = content.replace(/console\.group/g, 'logger.group');
+  // Replace safeConsole.group with safeConsole.group
+  if (content.includes('safeConsole.group')) {
+    content = content.replace(/console\.group/g, 'safeConsole.group');
     modified = true;
   }
   
-  // Replace logger.groupEnd with logger.groupEnd
-  if (content.includes('logger.groupEnd')) {
-    content = content.replace(/console\.groupEnd/g, 'logger.groupEnd');
+  // Replace safeConsole.groupEnd with safeConsole.groupEnd
+  if (content.includes('safeConsole.groupEnd')) {
+    content = content.replace(/console\.groupEnd/g, 'safeConsole.groupEnd');
     modified = true;
   }
   
-  // Replace logger.table with logger.table
-  if (content.includes('logger.table')) {
-    content = content.replace(/console\.table/g, 'logger.table');
+  // Replace safeConsole.table with safeConsole.table
+  if (content.includes('safeConsole.table')) {
+    content = content.replace(/console\.table/g, 'safeConsole.table');
     modified = true;
   }
   
-  // Replace logger.time with logger.time
-  if (content.includes('logger.time')) {
-    content = content.replace(/console\.time/g, 'logger.time');
+  // Replace safeConsole.time with safeConsole.time
+  if (content.includes('safeConsole.time')) {
+    content = content.replace(/console\.time/g, 'safeConsole.time');
     modified = true;
   }
   
-  // Replace logger.timeEnd with logger.timeEnd
-  if (content.includes('logger.timeEnd')) {
-    content = content.replace(/console\.timeEnd/g, 'logger.timeEnd');
+  // Replace safeConsole.timeEnd with safeConsole.timeEnd
+  if (content.includes('safeConsole.timeEnd')) {
+    content = content.replace(/console\.timeEnd/g, 'safeConsole.timeEnd');
     modified = true;
   }
   
-  // Replace logger.trace with logger.trace
-  if (content.includes('logger.trace')) {
-    content = content.replace(/console\.trace/g, 'logger.trace');
+  // Replace safeConsole.trace with safeConsole.trace
+  if (content.includes('safeConsole.trace')) {
+    content = content.replace(/console\.trace/g, 'safeConsole.trace');
     modified = true;
   }
   
-  // Replace logger.assert with logger.assert
-  if (content.includes('logger.assert')) {
-    content = content.replace(/console\.assert/g, 'logger.assert');
+  // Replace safeConsole.assert with safeConsole.assert
+  if (content.includes('safeConsole.assert')) {
+    content = content.replace(/console\.assert/g, 'safeConsole.assert');
     modified = true;
   }
   
-  // Replace logger.count with logger.count
-  if (content.includes('logger.count')) {
-    content = content.replace(/console\.count/g, 'logger.count');
+  // Replace safeConsole.count with safeConsole.count
+  if (content.includes('safeConsole.count')) {
+    content = content.replace(/console\.count/g, 'safeConsole.count');
     modified = true;
   }
   
-  // Replace logger.countReset with logger.countReset
-  if (content.includes('logger.countReset')) {
-    content = content.replace(/console\.countReset/g, 'logger.countReset');
+  // Replace safeConsole.countReset with safeConsole.countReset
+  if (content.includes('safeConsole.countReset')) {
+    content = content.replace(/console\.countReset/g, 'safeConsole.countReset');
     modified = true;
   }
   
-  // Replace logger.clear with logger.clear
-  if (content.includes('logger.clear')) {
-    content = content.replace(/console\.clear/g, 'logger.clear');
+  // Replace safeConsole.clear with safeConsole.clear
+  if (content.includes('safeConsole.clear')) {
+    content = content.replace(/console\.clear/g, 'safeConsole.clear');
     modified = true;
   }
   
   if (modified) {
     fs.writeFileSync(filePath, content, 'utf8');
-    logger.log(`✅ Updated: ${filePath}`);
+    console.log(`✅ Updated: ${filePath}`);
     return true;
   }
   
@@ -159,7 +159,7 @@ function main() {
   const projectRoot = path.join(__dirname, '..');
   const files = getAllFiles(projectRoot);
   
-  logger.log(`🔍 Found ${files.length} files to process...`);
+  console.log(`🔍 Found ${files.length} files to process...`);
   
   let updatedCount = 0;
   
@@ -169,13 +169,13 @@ function main() {
         updatedCount++;
       }
     } catch (error) {
-      logger.error(`❌ Error processing ${file}:`, error.message);
+      console.error(`❌ Error processing ${file}:`, error.message);
     }
   }
   
-  logger.log(`\n🎉 Process complete! Updated ${updatedCount} files.`);
-  logger.log('📝 All console statements have been replaced with logger calls.');
-  logger.log('🚀 Console output will be disabled in production builds.');
+  console.log(`\n🎉 Process complete! Updated ${updatedCount} files.`);
+  console.log('📝 All console statements have been replaced with logger calls.');
+  console.log('🚀 Console output will be disabled in production builds.');
 }
 
 if (require.main === module) {

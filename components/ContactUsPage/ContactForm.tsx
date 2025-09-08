@@ -11,7 +11,7 @@ import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import emailjs from "@emailjs/browser";
 import { EMAILJS_CONFIG } from "@/lib/emailjs-config";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 export default function ContactForm() {
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -73,7 +73,7 @@ export default function ContactForm() {
         throw new Error("Failed to send message");
       }
     } catch (error) {
-      logger.error("EmailJS error:", error);
+      safeConsole.error("EmailJS error:", error);
       setSubmitStatus("error");
       setSubmitMessage(
         "Failed to send message. Please try again or contact us directly."

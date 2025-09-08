@@ -39,7 +39,7 @@ import type {
   SimplePaymentIntentRequest,
 } from "@/types/payment";
 import { CartItem } from "@/types/cart";
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 
 export default function CartPage() {
   const {
@@ -123,13 +123,13 @@ export default function CartPage() {
           gbp: data.rates.GBP || 0.79,
           eur: data.rates.EUR || 0.92,
         });
-        logger.log("Exchange rates updated:", {
+        safeConsole.log("Exchange rates updated:", {
           GBP: data.rates.GBP,
           EUR: data.rates.EUR,
         });
       }
     } catch (error) {
-      logger.error("Failed to fetch exchange rates:", error);
+      safeConsole.error("Failed to fetch exchange rates:", error);
       setRatesError(true);
       // Keep fallback rates if API fails
     } finally {
@@ -243,7 +243,7 @@ export default function CartPage() {
       try {
         await fetchProfile();
       } catch (profileError) {
-        logger.warn(
+        safeConsole.warn(
           "Failed to fetch profile, continuing with fallback:",
           profileError
         );
@@ -258,11 +258,11 @@ export default function CartPage() {
 
     // Skip booking details form for individualTechProfessional role
     // as all required data is already available
-    if (userData?.role === "individualTechProfessional") {
-      setSelectedCheckoutItemId(productId);
-      await createPaymentIntent(productId);
-      return;
-    }
+    // if (userData?.role === "individualTechProfessional") {
+    //   setSelectedCheckoutItemId(productId);
+    //   await createPaymentIntent(productId);
+    //   return;
+    // }
 
     // Show booking details form for other roles (students, teamTechProfessional, etc.)
     setSelectedCheckoutItemId(productId);
@@ -326,15 +326,15 @@ export default function CartPage() {
 
       // TEMPORARY: Skip booking creation for testing
       if (item.requiresBooking && !currentBookingId) {
-        logger.log(
+        safeConsole.log(
           "Skipping booking creation for testing - proceeding directly to payment intent"
         );
         currentBookingId = "temp-booking-id-for-testing";
       } else if (item.requiresBooking && currentBookingId) {
         // Create booking for bookable services
         try {
-          logger.log("Creating booking for bookable service:", item.title);
-          logger.log("Booking form data:", bookingFormData);
+          safeConsole.log("Creating booking for bookable service:", item.title);
+          safeConsole.log("Booking form data:", bookingFormData);
 
           const bookingPayload = {
             productId: item.id,
@@ -370,7 +370,7 @@ export default function CartPage() {
             isTeam: bookingFormData.isTeam,
           };
 
-          logger.log("Booking payload:", bookingPayload);
+          safeConsole.log("Booking payload:", bookingPayload);
 
           const bookingResponse = await postApiRequest(
             "/api/bookings",
@@ -378,14 +378,14 @@ export default function CartPage() {
             { Authorization: `Bearer ${token}` }
           );
 
-          logger.log("Booking response:", bookingResponse);
+          safeConsole.log("Booking response:", bookingResponse);
 
           if (
             bookingResponse.status === 201 &&
             bookingResponse.data?.data?.booking?._id
           ) {
             currentBookingId = bookingResponse.data.data.booking._id;
-            logger.log(
+            safeConsole.log(
               "Booking created successfully with ID:",
               currentBookingId
             );
@@ -398,31 +398,31 @@ export default function CartPage() {
               };
             }
           } else {
-            logger.error("Booking creation failed:", bookingResponse);
+            safeConsole.error("Booking creation failed:", bookingResponse);
             throw new Error("Failed to create booking");
           }
         } catch (bookingError) {
-          logger.error("Booking creation error:", bookingError);
+          safeConsole.error("Booking creation error:", bookingError);
           // For now, let's continue with payment intent creation even if booking fails
           // This allows us to test the payment flow
-          logger.warn(
+          safeConsole.warn(
             "Continuing with payment intent creation despite booking failure"
           );
           currentBookingId = "temp-booking-id"; // Temporary ID for testing
         }
       }
 
-      logger.log("Creating payment intent for:", item.title);
-      logger.log("Payment amount (cents):", amountCents);
-      logger.log("Booking ID:", currentBookingId);
-      logger.log("User ID:", userId);
-      logger.log("Profile ID:", profileId);
-      logger.log("User role:", userData?.role);
+      safeConsole.log("Creating payment intent for:", item.title);
+      safeConsole.log("Payment amount (cents):", amountCents);
+      safeConsole.log("Booking ID:", currentBookingId);
+      safeConsole.log("User ID:", userId);
+      safeConsole.log("Profile ID:", profileId);
+      safeConsole.log("User role:", userData?.role);
 
       // Ensure bookingId is not empty for bookable services
       if (item.requiresBooking && !currentBookingId) {
         currentBookingId = "temp-booking-id-for-testing";
-        logger.warn(
+        safeConsole.warn(
           "Using temporary booking ID for testing:",
           currentBookingId
         );
@@ -431,7 +431,7 @@ export default function CartPage() {
       // For non-bookable services, use empty booking ID
       if (!item.requiresBooking) {
         currentBookingId = "";
-        logger.log("Non-bookable service - no booking ID needed");
+        safeConsole.log("Non-bookable service - no booking ID needed");
       }
 
       // For individualTechProfessional, use default values since modal is skipped
@@ -459,8 +459,8 @@ export default function CartPage() {
         }),
       };
 
-      logger.log("Payment data:", paymentData);
-      logger.log("Four booking details being sent:", {
+      safeConsole.log("Payment data:", paymentData);
+      safeConsole.log("Four booking details being sent:", {
         userNotes: isIndividualTechProfessional
           ? ""
           : bookingFormData.userNotes,
@@ -481,16 +481,16 @@ export default function CartPage() {
           paymentCurrency,
           token
         );
-        logger.log("Payment intent response:", response);
+        safeConsole.log("Payment intent response:", response);
       } catch (apiError: any) {
-        logger.error("API call failed:", apiError);
+        safeConsole.error("API call failed:", apiError);
         throw new Error(
           `API call failed: ${apiError.message || "Unknown error"}`
         );
       }
 
       if (!response || !response.data?.success) {
-        logger.error("Payment intent creation failed:", response);
+        safeConsole.error("Payment intent creation failed:", response);
         throw new Error(
           response?.data?.message || "Failed to create payment intent"
         );
@@ -498,19 +498,22 @@ export default function CartPage() {
 
       const secret = response.data?.data?.clientSecret;
       if (!secret || !secret.includes("_secret_")) {
-        logger.error(
+        safeConsole.error(
           "Invalid payment intent response - no client secret:",
           response
         );
         throw new Error("Invalid payment intent response");
       }
 
-      logger.log("Payment intent created successfully, client secret:", secret);
+      safeConsole.log(
+        "Payment intent created successfully, client secret:",
+        secret
+      );
 
       // Capture booking ID from response if available
       const responseBookingId = response.data?.data?.bookingId;
       if (responseBookingId) {
-        logger.log(
+        safeConsole.log(
           "Booking ID from payment intent response:",
           responseBookingId
         );
@@ -523,7 +526,7 @@ export default function CartPage() {
       setShowPaymentForm(true);
       toast.success("Secure payment initialized");
     } catch (err: any) {
-      logger.error("Init payment error:", err);
+      safeConsole.error("Init payment error:", err);
 
       // Provide error message
       let errorMessage = err?.message || "Failed to start payment";
@@ -617,7 +620,7 @@ export default function CartPage() {
 
       toast.success("File uploaded successfully");
     } catch (error) {
-      logger.error("Upload error:", error);
+      safeConsole.error("Upload error:", error);
       toast.error("Failed to upload file");
     } finally {
       setIsUploadingAttachment(false);
@@ -738,7 +741,7 @@ export default function CartPage() {
       }
 
       if (!token) {
-        logger.warn("No token found in login response");
+        safeConsole.warn("No token found in login response");
       }
 
       toast.success("Login successful!");
@@ -758,16 +761,16 @@ export default function CartPage() {
         try {
           const authUpdated = await refreshAuth();
           if (!authUpdated) {
-            logger.warn("Auth state refresh failed, reloading page");
+            safeConsole.warn("Auth state refresh failed, reloading page");
             window.location.reload();
           }
         } catch (refreshError) {
-          logger.error("Error refreshing auth state:", refreshError);
+          safeConsole.error("Error refreshing auth state:", refreshError);
           window.location.reload();
         }
       }
     } catch (error: any) {
-      logger.error("Login error:", error);
+      safeConsole.error("Login error:", error);
       setAuthError(error.message || "Failed to login");
     } finally {
       setIsAuthLoading(false);

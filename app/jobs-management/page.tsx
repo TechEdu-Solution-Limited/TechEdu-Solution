@@ -78,7 +78,7 @@ import { Job } from "@/types/jobs";
 import { getApiRequest, deleteApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 // API integration for jobs
 const useJobs = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -109,11 +109,11 @@ const useJobs = () => {
         const jobsData = response.data?.data || response.data || [];
         setJobs(jobsData);
       } else {
-        logger.error("❌ API Error:", response.message);
+        safeConsole.error("❌ API Error:", response.message);
         setError(response.message || "Failed to fetch jobs");
       }
     } catch (error: any) {
-      logger.error("💥 Network/Error Details:", {
+      safeConsole.error("💥 Network/Error Details:", {
         message: error.message,
         status: error.status,
         fullError: error,

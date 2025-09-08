@@ -1,6 +1,6 @@
 import { getCookie } from "./cookies";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 /**
  * Validates if a JWT token exists and is not expired
  * @param token - The JWT token to validate
@@ -32,7 +32,7 @@ export function validateToken(token: string): boolean {
 
     return true;
   } catch (error) {
-    logger.error("Error validating token:", error);
+    safeConsole.error("Error validating token:", error);
     return false;
   }
 }

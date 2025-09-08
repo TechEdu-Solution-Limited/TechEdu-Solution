@@ -61,7 +61,7 @@ import { JobFormData, Job } from "@/types/jobs";
 import { getApiRequest, updateApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 export default function EditJobPage() {
   const params = useParams();
   const router = useRouter();
@@ -141,7 +141,7 @@ export default function EditJobPage() {
           setError(response.message || "Failed to fetch job details");
         }
       } catch (error: any) {
-        logger.error("Error fetching job:", error);
+        safeConsole.error("Error fetching job:", error);
         setError(
           error.message || "An error occurred while fetching job details"
         );

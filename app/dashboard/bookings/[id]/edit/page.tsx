@@ -32,7 +32,7 @@ import { EditBookingFormSkeleton } from "@/components/BookingSkeletons";
 import { BookingEditForm, UserBooking } from "@/types/booking";
 import { getPrimaryDateTime } from "@/utils/helpers";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 export default function EditBookingPage() {
   const router = useRouter();
   const params = useParams();
@@ -111,7 +111,7 @@ export default function EditBookingPage() {
         router.push("/dashboard/bookings");
       }
     } catch (error) {
-      logger.error("Error fetching booking details:", error);
+      safeConsole.error("Error fetching booking details:", error);
       toast.error("Error fetching booking details");
       router.push("/dashboard/bookings");
     } finally {
@@ -191,7 +191,7 @@ export default function EditBookingPage() {
         toast.error(response?.data?.message || "Failed to update booking");
       }
     } catch (error) {
-      logger.error("Error updating booking:", error);
+      safeConsole.error("Error updating booking:", error);
       toast.error("Error updating booking");
     } finally {
       setSaving(false);

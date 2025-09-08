@@ -24,7 +24,7 @@ import { useRole } from "@/contexts/RoleContext";
 import { getApiRequestWithRefresh } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 const MOCK_AVATAR = "/assets/placeholder-avatar.jpg";
 
 function StatusBadge({ status }: { status: string }) {
@@ -99,7 +99,7 @@ export default function StudentDashboard() {
           userResponse.data?.data?.data?.id;
 
         if (!userId) {
-          logger.error("No user ID found in response");
+          safeConsole.error("No user ID found in response");
           return;
         }
 
@@ -114,7 +114,7 @@ export default function StudentDashboard() {
         }
       } catch (error: any) {
         // Enhanced error logging to help debug API issues
-        logger.error("Error fetching onboarding progress details:", {
+        safeConsole.error("Error fetching onboarding progress details:", {
           error: error,
           message: error?.message,
           status: error?.status,
@@ -168,7 +168,7 @@ export default function StudentDashboard() {
         }
       } catch (error: any) {
         // Enhanced error logging to help debug API issues
-        logger.error("Error fetching active services details:", {
+        safeConsole.error("Error fetching active services details:", {
           error: error,
           message: error?.message,
           status: error?.status,
@@ -217,7 +217,7 @@ export default function StudentDashboard() {
         }
       } catch (error: any) {
         // Enhanced error logging to help debug API issues
-        logger.error("Error fetching notifications details:", {
+        safeConsole.error("Error fetching notifications details:", {
           error: error,
           message: error?.message,
           status: error?.status,

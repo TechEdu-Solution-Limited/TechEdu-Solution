@@ -10,7 +10,7 @@ import { toast } from "react-toastify";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 interface Notification {
   _id: string;
   type: string;
@@ -80,7 +80,7 @@ export default function TeamInvitesPage() {
           });
         }
       } catch (error: any) {
-        logger.error("Error fetching invitation token:", error);
+        safeConsole.error("Error fetching invitation token:", error);
         toast.error("Failed to load invitation details");
       } finally {
         setLoading(false);
@@ -112,7 +112,7 @@ export default function TeamInvitesPage() {
 
       toast.success("Invitation accepted successfully!");
     } catch (error: any) {
-      logger.error("Error accepting invitation:", error);
+      safeConsole.error("Error accepting invitation:", error);
       toast.error(
         error?.error?.details?.[0] ||
           error?.message ||
@@ -145,7 +145,7 @@ export default function TeamInvitesPage() {
 
       toast.success("Invitation declined successfully!");
     } catch (error: any) {
-      logger.error("Error declining invitation:", error);
+      safeConsole.error("Error declining invitation:", error);
       toast.error(
         error?.error?.details?.[0] ||
           error?.message ||

@@ -39,7 +39,7 @@ import Link from "next/link";
 import { useMediaQuery } from "@/hooks/use-mobile";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [appliedJobs, setAppliedJobs] = useState<AppliedJob[]>([]);
@@ -125,7 +125,7 @@ export default function JobsPage() {
         setError(response.message || "Failed to fetch jobs");
       }
     } catch (error: any) {
-      logger.error("❌ Error fetching jobs:", error);
+      safeConsole.error("❌ Error fetching jobs:", error);
       setError(error.message || "Failed to fetch jobs");
     } finally {
       setLoading(false);
@@ -230,7 +230,7 @@ export default function JobsPage() {
   return (
     <>
       {/* Header - Always visible */}
-      <header className="mx-auto px-4 md:px-16 pt-24 pb-16 flex flex-col items-center justify-center text-center bg-gradient-to-br from-[#0D1140] via-[#1e3a8a] to-[#0D1140] h-full w-full md:h-[80vh]">
+      <header className="mx-auto px-4 md:px-16 pt-24 pb-16 flex flex-col items-center justify-center text-center bg-[#0D1140] h-full w-full md:h-[80vh]">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl md:text-6xl font-bold text-white pb-6 leading-tight pt-12">
             Find Your Dream Tech Job

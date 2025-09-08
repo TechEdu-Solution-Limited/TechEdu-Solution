@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, Lock, UserCheck, ArrowRight } from "lucide-react";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 interface JobApplicationGuardProps {
   children: React.ReactNode;
   jobId?: string;
@@ -72,7 +72,7 @@ export default function JobApplicationGuard({
         // User is authenticated and has the right role
         setIsChecking(false);
       } catch (error) {
-        logger.error("Error checking access:", error);
+        safeConsole.error("Error checking access:", error);
         // If there's an error, clear cookies and redirect to registration
         clearAuthCookies();
         router.push("/register?role=individualTechProfessional");

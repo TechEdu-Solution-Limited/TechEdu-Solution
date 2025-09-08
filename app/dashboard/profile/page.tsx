@@ -15,7 +15,7 @@ import {
 import { getTokenFromCookies } from "@/lib/cookies";
 import { useProfileData } from "@/hooks/useProfileData";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 interface UserProfile {
   _id: string;
   id?: string;
@@ -64,7 +64,7 @@ export default function ProfilePage() {
       }
     } catch (err) {
       setError("Error fetching profile");
-      logger.error("Error fetching profile:", err);
+      safeConsole.error("Error fetching profile:", err);
     } finally {
       setLoading(false);
     }
@@ -105,7 +105,7 @@ export default function ProfilePage() {
         return { success: false, error: response.message };
       }
     } catch (err) {
-      logger.error("Error updating profile:", err);
+      safeConsole.error("Error updating profile:", err);
       return { success: false, error: "Failed to update profile" };
     } finally {
       setLoading(false);

@@ -27,7 +27,7 @@ import { getTokenFromCookies } from "@/lib/cookies";
 import { getApiRequest } from "@/lib/apiFetch";
 import { toast } from "react-toastify";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 interface AttendanceRecord {
   _id: string;
   sessionId: string | any; // Can be object or "[object Object]" string
@@ -113,7 +113,7 @@ export default function AttendanceDetailPage() {
       if (showRefreshLoader) {
         toast.error(errorMessage);
       }
-      logger.error("Error fetching attendance:", err);
+      safeConsole.error("Error fetching attendance:", err);
     } finally {
       setLoading(false);
       setRefreshing(false);

@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "react-toastify";
 import { apiRequest, getApiRequest, postApiRequest } from "@/lib/apiFetch";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 interface InvitationData {
   teamName: string;
   teamLead: string;
@@ -62,7 +62,7 @@ export default function TeamInvitationHandler() {
         setError(response.message || "Invalid or expired invitation");
       }
     } catch (error) {
-      logger.error("Error validating invitation:", error);
+      safeConsole.error("Error validating invitation:", error);
       setError("Failed to validate invitation");
     } finally {
       setLoading(false);
@@ -90,7 +90,7 @@ export default function TeamInvitationHandler() {
         toast.error(response.message || "Failed to accept invitation");
       }
     } catch (error) {
-      logger.error("Error accepting invitation:", error);
+      safeConsole.error("Error accepting invitation:", error);
       toast.error("Failed to accept invitation");
     } finally {
       setProcessing(false);
@@ -118,7 +118,7 @@ export default function TeamInvitationHandler() {
         toast.error(response.message || "Failed to accept invitation");
       }
     } catch (error) {
-      logger.error("Error declining invitation:", error);
+      safeConsole.error("Error declining invitation:", error);
       toast.error("Failed to decline invitation");
     } finally {
       setProcessing(false);

@@ -11,7 +11,7 @@ import { getTokenFromCookies } from "@/lib/cookies";
 import { Eye, EyeOff } from "lucide-react";
 import ThemeToggle from "@/utils/ThemeToggle";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 export default function SettingsPage() {
   // State for password change
   const [currentPassword, setCurrentPassword] = useState("");
@@ -148,7 +148,7 @@ export default function SettingsPage() {
         toast.error(errorMessage);
       }
     } catch (error: any) {
-      logger.error("Password change error:", error);
+      safeConsole.error("Password change error:", error);
       const errorMessage =
         error.message ||
         error.response?.data?.message ||

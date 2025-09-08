@@ -41,7 +41,7 @@ import { getApiRequest, postApiRequest } from "@/lib/apiFetch";
 import { getCookie } from "@/lib/cookies";
 import JobApplicationGuard from "@/components/JobApplicationGuard";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 interface Job {
   id: string;
   title: string;
@@ -228,7 +228,7 @@ function JobApplicationContent() {
         throw new Error("Failed to get file ID from upload response");
       }
     } catch (error: any) {
-      logger.error("File upload error:", error);
+      safeConsole.error("File upload error:", error);
       setErrors({ fileUpload: error.message || "Failed to upload file" });
     } finally {
       setUploading(false);
@@ -366,7 +366,7 @@ function JobApplicationContent() {
         );
       }
     } catch (error) {
-      logger.error("Error submitting application:", error);
+      safeConsole.error("Error submitting application:", error);
       setErrors({ submit: "Failed to submit application. Please try again." });
     } finally {
       setIsSubmitting(false);

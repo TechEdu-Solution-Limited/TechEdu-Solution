@@ -7,7 +7,7 @@ import { useCart } from "@/contexts/CartContext";
 import { CartItem } from "@/types/cart";
 import { useParams, notFound } from "next/navigation";
 
-import { logger } from "@/lib/logger";
+import { safeConsole } from "@/lib/console";
 interface Product {
   _id: string;
   productType: string;
@@ -73,7 +73,7 @@ export default function ProductPage() {
         }
       })
       .catch((error) => {
-        logger.error("Error fetching product:", error);
+        safeConsole.error("Error fetching product:", error);
         setProduct(null);
       })
       .finally(() => setLoading(false));
