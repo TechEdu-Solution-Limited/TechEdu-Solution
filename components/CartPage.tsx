@@ -258,11 +258,11 @@ export default function CartPage() {
 
     // Skip booking details form for individualTechProfessional role
     // as all required data is already available
-    if (userData?.role === "individualTechProfessional") {
-      setSelectedCheckoutItemId(productId);
-      await createPaymentIntent(productId);
-      return;
-    }
+    // if (userData?.role === "individualTechProfessional") {
+    //   setSelectedCheckoutItemId(productId);
+    //   await createPaymentIntent(productId);
+    //   return;
+    // }
 
     // Show booking details form for other roles (students, teamTechProfessional, etc.)
     setSelectedCheckoutItemId(productId);
