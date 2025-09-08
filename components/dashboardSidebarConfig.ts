@@ -214,6 +214,26 @@ export const dashboardSidebarConfig = {
             href: "/dashboard/training",
           },
           {
+            label: "My Bookings",
+            icon: BookOpen,
+            href: "/dashboard/bookings",
+          },
+          {
+            label: "Classroom",
+            icon: HiViewBoards,
+            href: "/dashboard/my-classroom",
+          },
+          {
+            label: "My Sessions",
+            icon: Calendar,
+            href: "/dashboard/sessions/my-sessions",
+          },
+          {
+            label: "My Attendance",
+            icon: FileText,
+            href: "/dashboard/attendance/my-attendance",
+          },
+          {
             label: "Certifications",
             icon: Award,
             href: "/dashboard/certifications",
@@ -238,11 +258,11 @@ export const dashboardSidebarConfig = {
       {
         title: "Career Tools",
         items: [
-          {
-            label: "CV Builder",
-            icon: FileText,
-            href: "/dashboard/cv-builder",
-          },
+          // {
+          //   label: "CV Builder",
+          //   icon: FileText,
+          //   href: "/dashboard/cv-builder",
+          // },
           // {
           //   label: "AI Suggestions",
           //   icon: Target,
@@ -319,32 +339,47 @@ export const dashboardSidebarConfig = {
                 icon: User,
                 href: "/dashboard/team-tech-professional/my-role",
               },
+              {
+                label: "My Bookings",
+                icon: BookOpen,
+                href: "/dashboard/bookings",
+              },
+              {
+                label: "Classroom",
+                icon: HiViewBoards,
+                href: "/dashboard/my-classroom",
+              },
+              {
+                label: "My Sessions",
+                icon: Calendar,
+                href: "/dashboard/sessions/my-sessions",
+              },
               // {
               //   label: "Company Status",
               //   icon: Building2,
               //   href: "/dashboard/team-tech-professional/company-status",
               // },
-              {
-                label: "Tasks",
-                icon: ClipboardList,
-                href: "/dashboard/team-tech-professional/tasks",
-              },
-              { label: "Projects", icon: Layers, href: "/dashboard/projects" },
-              {
-                label: "Communication",
-                icon: MessageCircle,
-                href: "/dashboard/team-tech-professional/communication",
-              },
-              {
-                label: "Team Training Assignments",
-                icon: BookOpen,
-                href: "/dashboard/training",
-              },
-              {
-                label: "Performance Tracker",
-                icon: Target,
-                href: "/dashboard/performance",
-              },
+              // {
+              //   label: "Tasks",
+              //   icon: ClipboardList,
+              //   href: "/dashboard/team-tech-professional/tasks",
+              // },
+              // { label: "Projects", icon: Layers, href: "/dashboard/projects" },
+              // {
+              //   label: "Communication",
+              //   icon: MessageCircle,
+              //   href: "/dashboard/team-tech-professional/communication",
+              // },
+              // {
+              //   label: "Team Training Assignments",
+              //   icon: BookOpen,
+              //   href: "/dashboard/training",
+              // },
+              // {
+              //   label: "Performance Tracker",
+              //   icon: Target,
+              //   href: "/dashboard/performance",
+              // },
               {
                 label: "My Profile",
                 icon: User,
@@ -360,41 +395,36 @@ export const dashboardSidebarConfig = {
                 icon: Users,
                 href: "/dashboard/team-members",
               },
-              {
-                label: "My Courses",
-                icon: BookOpen,
-                href: "/dashboard/courses",
-              },
-              {
-                label: "Bookings",
-                icon: BookOpen,
-                href: "/dashboard/bookings/training/new",
-              },
+              // {
+              //   label: "My Courses",
+              //   icon: BookOpen,
+              //   href: "/dashboard/courses",
+              // },
               {
                 label: "Payments",
                 icon: BookOpen,
                 href: "/dashboard/payments",
               },
-              {
-                label: "Feedback Tools",
-                icon: MessageCircle,
-                href: "/dashboard/team-tech-professional/feedback",
-              },
+              // {
+              //   label: "Feedback Tools",
+              //   icon: MessageCircle,
+              //   href: "/dashboard/team-tech-professional/feedback",
+              // },
               {
                 label: "Notifications",
                 icon: Bell,
                 href: "/dashboard/notifications",
               },
-              {
-                label: "Resources",
-                icon: Layers,
-                href: "/dashboard/resources",
-              },
-              {
-                label: "Support",
-                icon: MessageCircle,
-                href: "/dashboard/support",
-              },
+              // {
+              //   label: "Resources",
+              //   icon: Layers,
+              //   href: "/dashboard/resources",
+              // },
+              // {
+              //   label: "Support",
+              //   icon: MessageCircle,
+              //   href: "/dashboard/support",
+              // },
             ]
           : [
               {
@@ -408,31 +438,51 @@ export const dashboardSidebarConfig = {
                 href: "/dashboard/team-tech-professional/my-role",
               },
               {
-                label: "Company Status",
-                icon: Building2,
-                href: "/dashboard/team-tech-professional/company-status",
-              },
-              {
-                label: "Tasks",
-                icon: ClipboardList,
-                href: "/dashboard/team-tech-professional/tasks",
-              },
-              { label: "Projects", icon: Layers, href: "/dashboard/projects" },
-              {
-                label: "Communication",
-                icon: MessageCircle,
-                href: "/dashboard/team-tech-professional/communication",
-              },
-              {
-                label: "Team Training Assignments",
+                label: "My Bookings",
                 icon: BookOpen,
-                href: "/dashboard/training",
+                href: "/dashboard/bookings",
               },
               {
-                label: "Performance Tracker",
-                icon: Target,
-                href: "/dashboard/performance",
+                label: "Classroom",
+                icon: HiViewBoards,
+                href: "/dashboard/my-classroom",
               },
+              {
+                label: "My Sessions",
+                icon: Calendar,
+                href: "/dashboard/sessions/my-sessions",
+              },
+              {
+                label: "My Attendance",
+                icon: FileText,
+                href: "/dashboard/attendance/my-attendance",
+              },
+              // {
+              //   label: "Company Status",
+              //   icon: Building2,
+              //   href: "/dashboard/team-tech-professional/company-status",
+              // },
+              // {
+              //   label: "Tasks",
+              //   icon: ClipboardList,
+              //   href: "/dashboard/team-tech-professional/tasks",
+              // },
+              // { label: "Projects", icon: Layers, href: "/dashboard/projects" },
+              // {
+              //   label: "Communication",
+              //   icon: MessageCircle,
+              //   href: "/dashboard/team-tech-professional/communication",
+              // },
+              // {
+              //   label: "Team Training Assignments",
+              //   icon: BookOpen,
+              //   href: "/dashboard/training",
+              // },
+              // {
+              //   label: "Performance Tracker",
+              //   icon: Target,
+              //   href: "/dashboard/performance",
+              // },
               {
                 label: "My Profile",
                 icon: User,
@@ -443,16 +493,16 @@ export const dashboardSidebarConfig = {
                 icon: Bell,
                 href: "/dashboard/notifications",
               },
-              {
-                label: "Resources",
-                icon: Layers,
-                href: "/dashboard/resources",
-              },
-              {
-                label: "Support",
-                icon: MessageCircle,
-                href: "/dashboard/support",
-              },
+              // {
+              //   label: "Resources",
+              //   icon: Layers,
+              //   href: "/dashboard/resources",
+              // },
+              // {
+              //   label: "Support",
+              //   icon: MessageCircle,
+              //   href: "/dashboard/support",
+              // },
             ],
       },
     ],
@@ -490,21 +540,26 @@ export const dashboardSidebarConfig = {
             icon: Calendar,
             href: "/dashboard/interviews",
           },
+          {
+            label: "My Bookings",
+            icon: BookOpen,
+            href: "/dashboard/bookings",
+          },
           // {
           //   label: "Candidate Pipeline",
           //   icon: Layers,
           //   href: "/dashboard/recruiter/pipeline",
           // },
-          {
-            label: "CV Matching",
-            icon: Search,
-            href: "/dashboard/cv-matching",
-          },
-          {
-            label: "Notes & Feedback",
-            icon: MessageCircle,
-            href: "/dashboard/notes-feedback",
-          },
+          // {
+          //   label: "CV Matching",
+          //   icon: Search,
+          //   href: "/dashboard/cv-matching",
+          // },
+          // {
+          //   label: "Notes & Feedback",
+          //   icon: MessageCircle,
+          //   href: "/dashboard/notes-feedback",
+          // },
           {
             label: "Company Profile",
             icon: Building2,
@@ -517,13 +572,13 @@ export const dashboardSidebarConfig = {
           },
         ],
       },
-      {
-        title: "Support",
-        items: [
-          { label: "Resources", icon: Layers, href: "/dashboard/resources" },
-          { label: "Support", icon: MessageCircle, href: "/dashboard/support" },
-        ],
-      },
+      // {
+      //   title: "Support",
+      //   items: [
+      //     { label: "Resources", icon: Layers, href: "/dashboard/resources" },
+      //     { label: "Support", icon: MessageCircle, href: "/dashboard/support" },
+      //   ],
+      // },
     ],
   },
 
@@ -539,16 +594,16 @@ export const dashboardSidebarConfig = {
             icon: Users,
             href: "/dashboard/talent-management",
           },
-          {
-            label: "Uploads & Verification",
-            icon: FileCheck,
-            href: "/dashboard/uploads",
-          },
-          {
-            label: "Academic Services",
-            icon: UserCheck,
-            href: "/dashboard/services",
-          },
+          // {
+          //   label: "Uploads & Verification",
+          //   icon: FileCheck,
+          //   href: "/dashboard/uploads",
+          // },
+          // {
+          //   label: "Academic Services",
+          //   icon: UserCheck,
+          //   href: "/dashboard/services",
+          // },
           {
             label: "Reports & Analytics",
             icon: BarChart3,
@@ -565,10 +620,15 @@ export const dashboardSidebarConfig = {
             href: "/dashboard/students",
           },
           {
-            label: "Courses",
+            label: "My Bookings",
             icon: BookOpen,
-            href: "/dashboard/courses-management",
+            href: "/dashboard/bookings",
           },
+          // {
+          //   label: "Courses",
+          //   icon: BookOpen,
+          //   href: "/dashboard/courses-management",
+          // },
           {
             label: "Orders & Payments",
             icon: ShoppingCart,
@@ -581,17 +641,17 @@ export const dashboardSidebarConfig = {
           },
         ],
       },
-      {
-        title: "Support",
-        items: [
-          { label: "Resources", icon: Layers, href: "/dashboard/resources" },
-          {
-            label: "Feedback / Support",
-            icon: MessageCircle,
-            href: "/dashboard/support",
-          },
-        ],
-      },
+      // {
+      //   title: "Support",
+      //   items: [
+      //     { label: "Resources", icon: Layers, href: "/dashboard/resources" },
+      //     {
+      //       label: "Feedback / Support",
+      //       icon: MessageCircle,
+      //       href: "/dashboard/support",
+      //     },
+      //   ],
+      // },
     ],
   },
 };

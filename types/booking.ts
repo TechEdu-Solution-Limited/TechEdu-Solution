@@ -158,10 +158,16 @@ export interface UserBooking {
 
   // Meeting link from associated classroom/session
   meetingLink?: string;
+  bookingUrl?: string;
 
   userNotes?: string;
   internalNotes?: string;
   attachments?: string[];
+  schedulingMeta?: {
+    retryCount: number;
+    connectCalendlyUrl?: string;
+    lastRetryAt?: string;
+  };
   cancellation?: {
     isCancelled: boolean;
     reason?: string;

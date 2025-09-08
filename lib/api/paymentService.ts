@@ -1,3 +1,4 @@
+import { SimplePaymentIntentRequest } from "@/types/payment";
 import { postApiRequest, getApiRequest, putApiRequest } from "../apiFetch";
 import type {
   PaymentIntent,
@@ -24,6 +25,38 @@ export class PaymentService {
     const response = await postApiRequest(
       `${this.baseUrl}/create-intent`,
       data,
+      {
+        Authorization: `Bearer ${token}`,
+      }
+    );
+    return response;
+  }
+
+  /**
+   * Create a simplified payment intent
+   */
+  static async createSimplePaymentIntent(
+    data: SimplePaymentIntentRequest,
+    amount: number,
+    currency: string,
+    token: string
+  ): Promise<ApiResponse<PaymentResponse>> {
+    // Filter out undefined values to avoid Stripe errors
+    const filteredData = Object.fromEntries(
+      Object.entries(data).filter(
+        ([_, value]) => value !== undefined && value !== ""
+      )
+    );
+
+    const payload = {
+      ...filteredData,
+      amount,
+      currency,
+    };
+
+    const response = await postApiRequest(
+      `${this.baseUrl}/create-intent`,
+      payload,
       {
         Authorization: `Bearer ${token}`,
       }

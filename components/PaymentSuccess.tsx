@@ -60,37 +60,30 @@ export default function PaymentSuccessPage() {
 
   // Auto-redirect to dashboard after 5 seconds for successful payments
   useEffect(() => {
+    // const bookingId = searchParams.get("bookingId");
+
     if (paymentDetails?.status === "succeeded" && userData?.role) {
       const timer = setTimeout(() => {
         setRedirecting(false);
 
-        // Redirect based on user role
-        let dashboardPath = "/dashboard";
-        if (userData.role === "student") {
-          dashboardPath = "/dashboard/student";
-        } else if (userData.role === "individualTechProfessional") {
-          dashboardPath = "/dashboard/individual-tech-professional";
-        } else if (userData.role === "teamTechProfessional") {
-          dashboardPath = "/dashboard/team-tech-professional";
-        }
-
-        router.push(dashboardPath);
+        // Redirect to the specific booking details page
+        router.push(`/dashboard/bookings`);
       }, 5000); // 5 seconds
 
       return () => clearTimeout(timer);
     }
-  }, [paymentDetails, userData, router]);
+  }, [paymentDetails, userData, router, searchParams]);
 
   const handleContinueToDashboard = () => {
-    let dashboardPath = "/dashboard";
-    if (userData?.role === "student") {
-      dashboardPath = "/dashboard/student";
-    } else if (userData?.role === "individualTechProfessional") {
-      dashboardPath = "/dashboard/individual-tech-professional";
-    } else if (userData?.role === "teamTechProfessional") {
-      dashboardPath = "/dashboard/team-tech-professional";
+    const bookingId = searchParams.get("bookingId");
+
+    if (bookingId) {
+      // Redirect to the specific booking details page
+      router.push(`/dashboard/bookings`);
+    } else {
+      // Fallback to general dashboard
+      router.push("/dashboard");
     }
-    router.push(dashboardPath);
   };
 
   const handleViewBookings = () => {

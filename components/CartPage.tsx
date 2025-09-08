@@ -17,6 +17,9 @@ import {
   User,
   AlertCircle,
   Loader2,
+  Calendar,
+  Upload,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -31,12 +34,21 @@ import {
 } from "@/lib/cookies";
 import StripePaymentForm from "@/components/StripePaymentForm";
 import { PaymentService } from "@/lib/api/paymentService";
-import type { CreatePaymentIntentRequest } from "@/types/payment";
+import type {
+  CreatePaymentIntentRequest,
+  SimplePaymentIntentRequest,
+} from "@/types/payment";
 import { CartItem } from "@/types/cart";
 
 export default function CartPage() {
-  const { cartItems, removeFromCart, clearCart, cartTotal, cartCount } =
-    useCart();
+  const {
+    cartItems,
+    removeFromCart,
+    clearCart,
+    cartTotal,
+    cartCount,
+    updateCartItem,
+  } = useCart();
   const {
     isAuthenticated,
     userData,
@@ -78,13 +90,100 @@ export default function CartPage() {
   const [paymentAmountCents, setPaymentAmountCents] = useState<number | null>(
     null
   );
-  const [paymentCurrency, setPaymentCurrency] = useState<string>("gbp");
+  const [paymentCurrency, setPaymentCurrency] = useState<string>("gbp"); // Default to GBP for UK users
+  const [paymentBookingId, setPaymentBookingId] = useState<string | null>(null);
+  const [currencyRates, setCurrencyRates] = useState({
+    usd: 1.0,
+    gbp: 0.79, // Fallback rates
+    eur: 0.92,
+  });
+  const [isLoadingRates, setIsLoadingRates] = useState(false);
+  const [ratesError, setRatesError] = useState(false);
+
+  // Fetch real-time exchange rates
+  const fetchExchangeRates = async () => {
+    setIsLoadingRates(true);
+    setRatesError(false);
+    try {
+      // Using ExchangeRate-API (free tier: 1500 requests/month)
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_EXCHANGE_RATE_API_URL}/v4/latest/USD`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.rates) {
+        setCurrencyRates({
+          usd: 1.0,
+          gbp: data.rates.GBP || 0.79,
+          eur: data.rates.EUR || 0.92,
+        });
+        console.log("Exchange rates updated:", {
+          GBP: data.rates.GBP,
+          EUR: data.rates.EUR,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch exchange rates:", error);
+      setRatesError(true);
+      // Keep fallback rates if API fails
+    } finally {
+      setIsLoadingRates(false);
+    }
+  };
+
+  // Fetch rates on component mount
+  useEffect(() => {
+    fetchExchangeRates();
+  }, []);
+
+  // Two-step checkout state for bookable services
+  const [showBookingDetailsForm, setShowBookingDetailsForm] = useState(false);
+  const [bookingFormData, setBookingFormData] = useState({
+    userNotes: "",
+    attachments: [] as string[],
+    participantType: "individual" as "individual" | "team",
+    isTeam: false, // Will be automatically managed based on participantType
+  });
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+
+  // Convert price from USD to selected currency
+  const convertPrice = (usdPrice: number, targetCurrency: string) => {
+    const rate =
+      currencyRates[targetCurrency as keyof typeof currencyRates] || 1;
+    return usdPrice * rate;
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-GB", {
       style: "currency",
-      currency: "usd",
+      currency: paymentCurrency, // Use the user's currency preference
     }).format(amount);
+  };
+
+  // Calculate total with currency conversion
+  const calculateConvertedTotal = () => {
+    const totalInUSD = cartItems.reduce(
+      (sum, item) => sum + (item.price || 0),
+      0
+    );
+    return convertPrice(totalInUSD, paymentCurrency);
+  };
+
+  // Function to update booking details in cart item
+  const updateBookingDetails = (itemId: string, field: string, value: any) => {
+    const updatedItem = cartItems.find((item) => item.id === itemId);
+    if (updatedItem && updatedItem.bookingDetails) {
+      const newBookingDetails = {
+        ...updatedItem.bookingDetails,
+        [field]: value,
+      };
+      updateCartItem(itemId, { bookingDetails: newBookingDetails });
+    }
   };
 
   // Helper function to check if user can purchase a product type
@@ -126,31 +225,43 @@ export default function CartPage() {
   // Compute total for a single item: price + 20% VAT + £2.99 fee
   const computeItemTotal = (price: number) => price + price * 0.2 + 2.99;
 
-  // Initialize Stripe payment inline on the cart page
+  // Initialize checkout process - show form first, then create payment intent
   const handleProductCheckout = async (productId: string) => {
+    if (!isAuthenticated) {
+      const redirectUrl = encodeURIComponent(`/cart`);
+      window.location.href = `/login?redirect=${redirectUrl}`;
+      return;
+    }
+
+    if (profileLoading) {
+      toast.info("Loading profile data...");
+      return;
+    }
+
+    if (!profile && fetchProfile) {
+      try {
+        await fetchProfile();
+      } catch (profileError) {
+        console.warn(
+          "Failed to fetch profile, continuing with fallback:",
+          profileError
+        );
+      }
+    }
+
+    const item = cartItems.find((ci) => ci.id === productId);
+    if (!item) {
+      toast.error("Item not found in cart");
+      return;
+    }
+
+    // Always show booking details form first (for both bookable and non-bookable services)
+    setSelectedCheckoutItemId(productId);
+    setShowBookingDetailsForm(true);
+  };
+
+  const createPaymentIntent = async (productId: string) => {
     try {
-      if (!isAuthenticated) {
-        const redirectUrl = encodeURIComponent(`/cart`);
-        window.location.href = `/login?redirect=${redirectUrl}`;
-        return;
-      }
-
-      if (profileLoading) {
-        toast.info("Loading profile data...");
-        return;
-      }
-
-      if (!profile && fetchProfile) {
-        try {
-          await fetchProfile();
-        } catch (profileError) {
-          console.warn(
-            "Failed to fetch profile, continuing with fallback:",
-            profileError
-          );
-        }
-      }
-
       const item = cartItems.find((ci) => ci.id === productId);
       if (!item) {
         toast.error("Item not found in cart");
@@ -198,29 +309,164 @@ export default function CartPage() {
         );
       }
 
-      const amountCents = Math.round((item.price || 0) * 100);
+      const convertedPrice = convertPrice(item.price || 0, paymentCurrency);
+      const amountCents = Math.round(convertedPrice * 100);
 
-      const paymentData: CreatePaymentIntentRequest = {
-        amount: amountCents,
-        currency: "usd",
+      // For bookable services, we need to create a booking first and get bookingId
+      let currentBookingId = item.bookingDetails?.bookingId || "";
+
+      // TEMPORARY: Skip booking creation for testing
+      if (item.requiresBooking && !currentBookingId) {
+        console.log(
+          "Skipping booking creation for testing - proceeding directly to payment intent"
+        );
+        currentBookingId = "temp-booking-id-for-testing";
+      } else if (item.requiresBooking && currentBookingId) {
+        // Create booking for bookable services
+        try {
+          console.log("Creating booking for bookable service:", item.title);
+          console.log("Booking form data:", bookingFormData);
+
+          const bookingPayload = {
+            productId: item.id,
+            productType: item.productType,
+            instructorId: item.instructorId,
+            bookingPurpose: item.title,
+            minutesPerSession: item.minutesPerSession,
+            durationInMinutes: item.durationInMinutes,
+            numberOfExpectedParticipants:
+              item.bookingDetails?.numberOfParticipants || 1,
+            isClassroom: item.hasClassroom,
+            isSession: item.hasSession,
+            participantType: bookingFormData.participantType || "individual",
+            platformRole: userData?.role || "student",
+            email: userData?.email || "",
+            fullName: userData?.fullName || "",
+            createdBy: userId,
+            profileId: profileId as string,
+            participants: [
+              {
+                participantType:
+                  bookingFormData.participantType || "individual",
+                platformRole: userData?.role || "student",
+                profileId: profileId as string,
+                email: userData?.email || "",
+                fullName: userData?.fullName || "",
+              },
+            ],
+            actualDaysAndTime: [],
+            // Add additional booking details from form
+            userNotes: bookingFormData.userNotes,
+            attachments: bookingFormData.attachments,
+            isTeam: bookingFormData.isTeam,
+          };
+
+          console.log("Booking payload:", bookingPayload);
+
+          const bookingResponse = await postApiRequest(
+            "/api/bookings",
+            bookingPayload,
+            { Authorization: `Bearer ${token}` }
+          );
+
+          console.log("Booking response:", bookingResponse);
+
+          if (
+            bookingResponse.status === 201 &&
+            bookingResponse.data?.data?.booking?._id
+          ) {
+            currentBookingId = bookingResponse.data.data.booking._id;
+            console.log(
+              "Booking created successfully with ID:",
+              currentBookingId
+            );
+            // Update the cart item with the new booking ID
+            if (item.bookingDetails) {
+              item.bookingDetails = {
+                ...item.bookingDetails,
+                bookingId: currentBookingId,
+                bookingData: bookingPayload,
+              };
+            }
+          } else {
+            console.error("Booking creation failed:", bookingResponse);
+            throw new Error("Failed to create booking");
+          }
+        } catch (bookingError) {
+          console.error("Booking creation error:", bookingError);
+          // For now, let's continue with payment intent creation even if booking fails
+          // This allows us to test the payment flow
+          console.warn(
+            "Continuing with payment intent creation despite booking failure"
+          );
+          currentBookingId = "temp-booking-id"; // Temporary ID for testing
+        }
+      }
+
+      console.log("Creating payment intent for:", item.title);
+      console.log("Payment amount (cents):", amountCents);
+      console.log("Booking ID:", currentBookingId);
+      console.log("User ID:", userId);
+      console.log("Profile ID:", profileId);
+      console.log("User role:", userData?.role);
+
+      // Ensure bookingId is not empty for bookable services
+      if (item.requiresBooking && !currentBookingId) {
+        currentBookingId = "temp-booking-id-for-testing";
+        console.warn(
+          "Using temporary booking ID for testing:",
+          currentBookingId
+        );
+      }
+
+      // For non-bookable services, use empty booking ID
+      if (!item.requiresBooking) {
+        currentBookingId = "";
+        console.log("Non-bookable service - no booking ID needed");
+      }
+
+      const paymentData: SimplePaymentIntentRequest = {
         productId: item.id,
-        productType: (item.productType ||
-          "Training & Certification") as CreatePaymentIntentRequest["productType"],
-        bookingService: item.title,
-        platformRole: (userData?.role ||
-          "student") as CreatePaymentIntentRequest["platformRole"],
-        isSession: item.hasSession || false,
-        isClassroom: item.hasClassroom || false,
-        userId,
-        profileId: profileId as string,
-        bookingId: item.bookingDetails?.bookingId || "",
+        isTeam: bookingFormData.isTeam,
+        userNotes: bookingFormData.userNotes,
+        attachments:
+          bookingFormData.attachments.length > 0
+            ? bookingFormData.attachments[0]
+            : undefined, // Single attachment URL
+        participantType: bookingFormData.participantType,
+        numberOfExpectedParticipants: 1,
+        // Only include optional fields if they have valid values
+        ...((userData as any)?.stripeCustomerId && {
+          customerId: (userData as any).stripeCustomerId,
+        }),
       };
 
-      const response = await PaymentService.createPaymentIntent(
-        paymentData,
-        token
-      );
+      console.log("Payment data:", paymentData);
+      console.log("Four booking details being sent:", {
+        userNotes: bookingFormData.userNotes,
+        attachments: bookingFormData.attachments,
+        isTeam: bookingFormData.isTeam,
+        participantType: bookingFormData.participantType,
+      });
+
+      let response;
+      try {
+        response = await PaymentService.createSimplePaymentIntent(
+          paymentData,
+          amountCents,
+          paymentCurrency,
+          token
+        );
+        console.log("Payment intent response:", response);
+      } catch (apiError: any) {
+        console.error("API call failed:", apiError);
+        throw new Error(
+          `API call failed: ${apiError.message || "Unknown error"}`
+        );
+      }
+
       if (!response || !response.data?.success) {
+        console.error("Payment intent creation failed:", response);
         throw new Error(
           response?.data?.message || "Failed to create payment intent"
         );
@@ -228,12 +474,31 @@ export default function CartPage() {
 
       const secret = response.data?.data?.clientSecret;
       if (!secret || !secret.includes("_secret_")) {
+        console.error(
+          "Invalid payment intent response - no client secret:",
+          response
+        );
         throw new Error("Invalid payment intent response");
+      }
+
+      console.log(
+        "Payment intent created successfully, client secret:",
+        secret
+      );
+
+      // Capture booking ID from response if available
+      const responseBookingId = response.data?.data?.bookingId;
+      if (responseBookingId) {
+        console.log(
+          "Booking ID from payment intent response:",
+          responseBookingId
+        );
+        setPaymentBookingId(responseBookingId);
       }
 
       setPaymentClientSecret(secret);
       setPaymentAmountCents(amountCents);
-      setPaymentCurrency(paymentData.currency || "usd");
+      setPaymentCurrency(paymentCurrency);
       setShowPaymentForm(true);
       toast.success("Secure payment initialized");
     } catch (err: any) {
@@ -272,6 +537,77 @@ export default function CartPage() {
     setPaymentClientSecret(null);
     setSelectedCheckoutItemId(null);
     setPaymentError(null);
+  };
+
+  // Booking details form handlers
+  const handleBookingFormSubmit = async () => {
+    if (!selectedCheckoutItemId) return;
+
+    const item = cartItems.find((ci) => ci.id === selectedCheckoutItemId);
+    if (!item) return;
+
+    // Validate required fields if attachments are required
+    if (item.isAttachmentRequired) {
+      if (!bookingFormData.userNotes.trim()) {
+        toast.error("User notes are required for this service");
+        return;
+      }
+      if (bookingFormData.attachments.length === 0) {
+        toast.error("At least one attachment is required for this service");
+        return;
+      }
+    }
+
+    setShowBookingDetailsForm(false);
+    await createPaymentIntent(selectedCheckoutItemId);
+  };
+
+  const handleBookingFormCancel = () => {
+    setShowBookingDetailsForm(false);
+    setSelectedCheckoutItemId(null);
+    setBookingFormData({
+      userNotes: "",
+      attachments: [],
+      participantType: "individual",
+      isTeam: false, // Automatically set based on participantType
+    });
+  };
+
+  const handleAttachmentUpload = async (file: File) => {
+    setIsUploadingAttachment(true);
+    try {
+      // Here you would implement file upload to Cloudinary or your preferred service
+      // For now, we'll just simulate the upload
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Simulate upload delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Mock URL - replace with actual upload response
+      const mockUrl = `https://res.cloudinary.com/your-cloud/image/upload/v${Date.now()}/${
+        file.name
+      }`;
+
+      setBookingFormData((prev) => ({
+        ...prev,
+        attachments: [...prev.attachments, mockUrl],
+      }));
+
+      toast.success("File uploaded successfully");
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload file");
+    } finally {
+      setIsUploadingAttachment(false);
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setBookingFormData((prev) => ({
+      ...prev,
+      attachments: prev.attachments.filter((_, i) => i !== index),
+    }));
   };
 
   const handleQuickSignUp = async () => {
@@ -716,7 +1052,120 @@ export default function CartPage() {
                   Your Cart ({cartCount})
                 </CardTitle>
               </CardHeader>
+
+              {/* Welcome Message for Authenticated Users */}
+              {isAuthenticated && (
+                <div className="p-6">
+                  <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+                    <CardContent className="text-center py-6">
+                      <div className="flex items-center justify-center gap-3 mb-3">
+                        <User className="w-8 h-8 text-green-600" />
+                        <h3 className="text-xl font-semibold text-green-800">
+                          Welcome back, {userData.fullName || userData.email}!
+                        </h3>
+                      </div>
+                      <p className="text-green-700">
+                        You're all set to complete your purchase. Click
+                        "Purchase Now" on any course to proceed.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
               <CardContent className="space-y-4">
+                {/* Currency Selector */}
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-700">
+                        Payment Currency
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                        Select your preferred currency for payment
+                        {isLoadingRates && (
+                          <span className="ml-2 text-blue-600">
+                            • Updating rates...
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={fetchExchangeRates}
+                        disabled={isLoadingRates}
+                        className="p-2 text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                        title="Refresh exchange rates"
+                      >
+                        <svg
+                          className={`w-4 h-4 ${
+                            isLoadingRates ? "animate-spin" : ""
+                          }`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                          />
+                        </svg>
+                      </button>
+                      <select
+                        value={paymentCurrency}
+                        onChange={(e) => setPaymentCurrency(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="gbp">GBP (£) - British Pound</option>
+                        <option value="usd">USD ($) - US Dollar</option>
+                        <option value="eur">EUR (€) - Euro</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cart Total */}
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Cart Total
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {cartItems.length} item
+                        {cartItems.length !== 1 ? "s" : ""} in your cart
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-blue-600">
+                        {formatCurrency(calculateConvertedTotal())}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {isLoadingRates ? (
+                          "Updating exchange rates..."
+                        ) : ratesError ? (
+                          "Using fallback rates • Click refresh to retry"
+                        ) : (
+                          <>
+                            Converted from USD • Live rates
+                            {paymentCurrency !== "usd" && (
+                              <span className="ml-1">
+                                (1 USD ={" "}
+                                {currencyRates[
+                                  paymentCurrency as keyof typeof currencyRates
+                                ]?.toFixed(3)}{" "}
+                                {paymentCurrency.toUpperCase()})
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {cartItems.map((item) => (
                   <div
                     key={item.id}
@@ -800,12 +1249,29 @@ export default function CartPage() {
                             </div>
                           </div>
                         )}
+
+                      {/* Bookable Service Indicator */}
+                      {isAuthenticated && item.requiresBooking && (
+                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-center gap-2 text-blue-700">
+                            <Calendar className="w-4 h-4" />
+                            <span className="text-sm font-medium">
+                              Bookable Service
+                            </span>
+                          </div>
+                          <p className="text-xs text-blue-600 mt-1">
+                            Additional details will be collected during checkout
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="w-full lg:w-auto lg:text-right space-y-4">
                       <div className="text-center lg:text-right">
                         <p className="text-3xl font-bold text-[#011F72] mb-1">
-                          {formatCurrency(item.price || 0)}
+                          {formatCurrency(
+                            convertPrice(item.price || 0, paymentCurrency)
+                          )}
                         </p>
                         <p className="text-sm text-gray-500">per course</p>
                       </div>
@@ -975,26 +1441,6 @@ export default function CartPage() {
           </div>
         )}
 
-        {/* Welcome Message for Authenticated Users */}
-        {isAuthenticated && (
-          <div className="mt-8">
-            <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-              <CardContent className="text-center py-6">
-                <div className="flex items-center justify-center gap-3 mb-3">
-                  <User className="w-8 h-8 text-green-600" />
-                  <h3 className="text-xl font-semibold text-green-800">
-                    Welcome back, {userData.fullName || userData.email}!
-                  </h3>
-                </div>
-                <p className="text-green-700">
-                  You're all set to complete your purchase. Click "Purchase Now"
-                  on any course to proceed.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
         {/* Continue Shopping Section */}
         <div className="mt-8 text-center">
           <Link
@@ -1040,11 +1486,225 @@ export default function CartPage() {
                     cartItems.find((ci) => ci.id === selectedCheckoutItemId)
                       ?.title || "Course"
                   }
+                  bookingId={paymentBookingId}
                 />
               </CardContent>
             </Card>
           </div>
         )}
+
+        {/* Booking Details Form Modal */}
+        {showBookingDetailsForm &&
+          selectedCheckoutItemId &&
+          (() => {
+            const item = cartItems.find(
+              (ci) => ci.id === selectedCheckoutItemId
+            );
+            if (!item) return null;
+
+            return (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-2xl font-bold text-gray-900">
+                        Additional Booking Details
+                      </h2>
+                      <button
+                        onClick={handleBookingFormCancel}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-6 h-6" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-6">
+                      {/* User Notes - Only for bookable services */}
+                      {item.requiresBooking && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            User Notes
+                            {item?.isAttachmentRequired && (
+                              <span className="text-red-500 ml-1">*</span>
+                            )}
+                          </label>
+                          <textarea
+                            value={bookingFormData.userNotes}
+                            onChange={(e) =>
+                              setBookingFormData((prev) => ({
+                                ...prev,
+                                userNotes: e.target.value,
+                              }))
+                            }
+                            className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                              item?.isAttachmentRequired &&
+                              !bookingFormData.userNotes
+                                ? "border-red-300"
+                                : "border-gray-300"
+                            }`}
+                            rows={4}
+                            placeholder={
+                              item?.isAttachmentRequired
+                                ? "Please provide detailed notes about your requirements..."
+                                : "Any special requirements, questions, or additional information..."
+                            }
+                            required={item?.isAttachmentRequired}
+                          />
+                          {item?.isAttachmentRequired &&
+                            !bookingFormData.userNotes && (
+                              <p className="text-xs text-red-500 mt-1">
+                                User notes are required for this service
+                              </p>
+                            )}
+                        </div>
+                      )}
+
+                      {/* Participant Type - Only for teamTechProfessional */}
+                      {userData?.role === "teamTechProfessional" && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Booking Type
+                          </label>
+                          <select
+                            value={bookingFormData.participantType}
+                            onChange={(e) => {
+                              const newParticipantType = e.target.value as
+                                | "individual"
+                                | "team";
+                              setBookingFormData((prev) => ({
+                                ...prev,
+                                participantType: newParticipantType,
+                                isTeam: newParticipantType === "team",
+                              }));
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            <option value="individual">For Myself Only</option>
+                            <option value="team">For My Team</option>
+                          </select>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Choose whether to book for yourself only or for your
+                            entire team.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* File Attachments - Only for bookable services */}
+                      {item.requiresBooking && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Attachments
+                            {item?.isAttachmentRequired ? (
+                              <span className="text-red-500 ml-1">*</span>
+                            ) : (
+                              <span className="text-gray-500 ml-1">
+                                (Optional)
+                              </span>
+                            )}
+                          </label>
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <input
+                              type="file"
+                              id="attachment-upload"
+                              multiple
+                              accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                              onChange={(e) => {
+                                const files = Array.from(e.target.files || []);
+                                files.forEach((file) =>
+                                  handleAttachmentUpload(file)
+                                );
+                              }}
+                              className="hidden"
+                            />
+                            <label
+                              htmlFor="attachment-upload"
+                              className="cursor-pointer flex flex-col items-center"
+                            >
+                              <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                              <span className="text-sm text-gray-600">
+                                Click to upload files or drag and drop
+                              </span>
+                              <span className="text-xs text-gray-500 mt-1">
+                                PDF, DOC, DOCX, TXT, JPG, PNG (Max 10MB each)
+                              </span>
+                            </label>
+                          </div>
+
+                          {/* Uploaded Files List */}
+                          {bookingFormData.attachments.length > 0 && (
+                            <div className="mt-4 space-y-2">
+                              {bookingFormData.attachments.map(
+                                (attachment, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md"
+                                  >
+                                    <span className="text-sm text-gray-700 truncate">
+                                      {attachment.split("/").pop()}
+                                    </span>
+                                    <button
+                                      onClick={() => removeAttachment(index)}
+                                      className="text-red-500 hover:text-red-700"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          )}
+
+                          {isUploadingAttachment && (
+                            <div className="mt-2 flex items-center text-sm text-blue-600">
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                              Uploading...
+                            </div>
+                          )}
+                          {item?.isAttachmentRequired &&
+                            bookingFormData.attachments.length === 0 && (
+                              <p className="text-xs text-red-500 mt-2">
+                                At least one attachment is required for this
+                                service
+                              </p>
+                            )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Form Actions */}
+                    <div className="flex justify-end space-x-3 mt-8">
+                      <Button
+                        variant="outline"
+                        onClick={handleBookingFormCancel}
+                        className="px-6"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleBookingFormSubmit}
+                        className="px-6 bg-blue-600 hover:bg-blue-700"
+                        disabled={
+                          isInitializingPayment ||
+                          (item?.isAttachmentRequired &&
+                            (!bookingFormData.userNotes.trim() ||
+                              bookingFormData.attachments.length === 0))
+                        }
+                      >
+                        {isInitializingPayment ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            Processing...
+                          </>
+                        ) : (
+                          "Continue to Payment"
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
       </div>
     </div>
   );

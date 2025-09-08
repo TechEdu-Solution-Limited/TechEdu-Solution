@@ -122,6 +122,24 @@ export interface CreatePaymentIntentRequest {
   isClassroom: boolean;
   customerId?: string;
   bookingId: string;
+  // Additional booking details for payment intent
+  userNotes?: string;
+  attachments?: string[];
+  isTeam: boolean;
+  participantType: "individual" | "team";
+}
+
+// Simplified payment intent request for the new API structure
+export interface SimplePaymentIntentRequest {
+  productId: string;
+  isTeam: boolean;
+  userNotes: string;
+  attachments?: string; // Single attachment URL
+  participantType: string; // individual | team
+  numberOfExpectedParticipants: number;
+  jobApplicationId?: string; // Optional - only included if present
+  couponCode?: string; // Optional - only included if present
+  customerId?: string; // Optional - only included if present
 }
 
 // Payment response
@@ -132,6 +150,7 @@ export interface PaymentResponse {
     paymentIntentId: string;
     clientSecret?: string;
     redirectUrl?: string;
+    bookingId?: string; // Booking ID from the created booking
   };
   error?: {
     code: string;

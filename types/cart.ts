@@ -27,6 +27,7 @@ export interface CartItem {
   hasCertificate?: boolean;
   requiresEnrollment?: boolean;
   isBookableService?: boolean;
+  isAttachmentRequired?: boolean; // New field to indicate if attachments are required
   instructorId?: string;
   instructorName?: string;
   virtualPlatform?: string;

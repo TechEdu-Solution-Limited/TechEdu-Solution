@@ -57,6 +57,7 @@ export interface Product {
   hasCertificate: boolean;
   requiresBooking: boolean;
   requiresEnrollment: boolean;
+  isAttachmentRequired?: boolean; // New field to indicate if attachments are required for this product
   isBookableService: boolean;
   isRecurring: boolean;
 
@@ -73,7 +74,7 @@ export interface Product {
 
   // Content & Materials
   tags: string[];
-  materials?: string[]; // URLs to downloadable materials
+  materials?: string; // URLs to downloadable materials
   videoUrl?: string; // Promotional video
   syllabus?: string; // URL to syllabus document
 

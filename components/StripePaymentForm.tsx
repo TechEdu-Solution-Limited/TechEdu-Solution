@@ -56,6 +56,7 @@ interface PaymentFormProps {
   onError: (error: string) => void;
   onClose?: () => void;
   productName?: string;
+  bookingId?: string | null;
 }
 
 // Helper function to extract client secret from response
@@ -81,7 +82,9 @@ function PaymentForm({
   onError,
   onClose,
   productName = "Course",
+  bookingId,
 }: PaymentFormProps) {
+  console.log("PaymentForm bookingId:", bookingId); // Debug log
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -152,7 +155,9 @@ function PaymentForm({
             window.location.origin
           }/payment-success?amount=${amount}&currency=${currency}&product_name=${encodeURIComponent(
             productName
-          )}&redirect_status=return`,
+          )}&redirect_status=return${
+            bookingId ? `&bookingId=${bookingId}` : ""
+          }`,
         });
 
       if (submitError) {
@@ -172,7 +177,9 @@ function PaymentForm({
           paymentIntent.id
         }&amount=${amount}&currency=${currency}&product_name=${encodeURIComponent(
           productName
-        )}&redirect_status=succeeded&payment_method=${paymentMethod.id}`;
+        )}&redirect_status=succeeded&payment_method=${paymentMethod.id}${
+          bookingId ? `&bookingId=${bookingId}` : ""
+        }`;
         window.location.href = successUrl;
       } else if (paymentIntent && paymentIntent.status === "requires_action") {
         // Don't set error here as the redirect should handle it
@@ -186,7 +193,9 @@ function PaymentForm({
           paymentIntent.id
         }&amount=${amount}&currency=${currency}&product_name=${encodeURIComponent(
           productName
-        )}&redirect_status=processing&payment_method=${paymentMethod.id}`;
+        )}&redirect_status=processing&payment_method=${paymentMethod.id}${
+          bookingId ? `&bookingId=${bookingId}` : ""
+        }`;
 
         window.location.href = processingUrl;
       } else {
@@ -493,6 +502,7 @@ interface StripePaymentFormProps {
   onError: (error: string) => void;
   onClose?: () => void;
   productName?: string;
+  bookingId?: string | null;
 }
 
 export default function StripePaymentForm({
@@ -503,6 +513,7 @@ export default function StripePaymentForm({
   onError,
   onClose,
   productName,
+  bookingId,
 }: StripePaymentFormProps) {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -517,6 +528,7 @@ export default function StripePaymentForm({
               onError={onError}
               onClose={onClose}
               productName={productName}
+              bookingId={bookingId}
             />
           </Elements>
         </div>

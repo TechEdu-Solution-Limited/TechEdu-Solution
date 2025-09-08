@@ -82,7 +82,42 @@ export default function UserBookingsPage() {
       );
       if (response?.data?.success) {
         const bookingsData = response.data.data || [];
-        setBookings(bookingsData);
+
+        // Process each booking to handle data structure inconsistencies
+        const processedBookings = bookingsData.map((booking: any) => {
+          // Handle attachments - convert string to array if needed
+          if (booking.attachments && typeof booking.attachments === "string") {
+            booking.attachments = [booking.attachments];
+          }
+
+          // Handle missing fields with fallbacks
+          return {
+            ...booking,
+            fullName:
+              booking.bookingSchedulerFullName ||
+              booking.createdBy?.fullName ||
+              "Unknown",
+            email:
+              booking.bookingSchedulerEmail ||
+              booking.createdBy?.email ||
+              "Unknown",
+            platformRole: booking.bookingSchedulerPlatformRole || "Unknown",
+            // Ensure arrays are properly handled
+            participants: Array.isArray(booking.participants)
+              ? booking.participants
+              : [],
+            actualDaysAndTime: Array.isArray(booking.actualDaysAndTime)
+              ? booking.actualDaysAndTime
+              : [],
+            attachments: Array.isArray(booking.attachments)
+              ? booking.attachments
+              : [],
+            // Handle schedulingMeta
+            schedulingMeta: booking.schedulingMeta || null,
+          };
+        });
+
+        setBookings(processedBookings);
       } else {
         console.error(
           "Failed to fetch user bookings:",
@@ -176,9 +211,13 @@ export default function UserBookingsPage() {
 
   const filteredBookings = bookings.filter((booking) => {
     const matchesSearch =
-      booking.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.bookingPurpose.toLowerCase().includes(searchTerm.toLowerCase());
+      (booking.fullName || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (booking.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (booking.bookingPurpose || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
 
     const matchesStatus =
       statusFilter === "all" || booking.status === statusFilter;
@@ -247,6 +286,15 @@ export default function UserBookingsPage() {
     };
 
     return <Badge className={config.color}>{config.label}</Badge>;
+  };
+
+  // Check if booking is within 4 hours of creation
+  const isRecentlyCreated = (booking: UserBooking) => {
+    const createdAt = new Date(booking.createdAt);
+    const now = new Date();
+    const hoursSinceCreation =
+      (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+    return hoursSinceCreation <= 4;
   };
 
   return (
@@ -600,21 +648,30 @@ export default function UserBookingsPage() {
             {filteredBookings.map((booking) => (
               <Card
                 key={booking._id}
-                className="bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 group"
+                className={`${
+                  isRecentlyCreated(booking)
+                    ? "bg-amber-200/70 backdrop-blur-sm border-amber-300"
+                    : "bg-white/70 backdrop-blur-sm border-0"
+                } shadow-lg hover:shadow-xl transition-all duration-300 group`}
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <CardTitle className="text-lg font-semibold text-slate-900 mb-2">
-                        {booking.bookingPurpose}
+                        {booking.bookingPurpose || "No purpose specified"}
                       </CardTitle>
                       <div className="flex items-center gap-2 mb-2">
                         <User className="w-4 h-4 text-slate-500" />
                         <span className="text-sm text-slate-600">
-                          {booking.fullName}
+                          {booking.fullName || "No name provided"}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
+                        {isRecentlyCreated(booking) && (
+                          <Badge className="bg-amber-500 text-white font-semibold animate-pulse">
+                            NEW
+                          </Badge>
+                        )}
                         <Badge
                           variant={
                             booking.productType === "AcademicService"
@@ -700,25 +757,27 @@ export default function UserBookingsPage() {
                     </div>
                   )}
 
-                  {booking.attachments && booking.attachments.length > 0 && (
-                    <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
-                      <p className="font-medium mb-2">Attachments:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {booking.attachments.map((attachment, index) => (
-                          <Badge
-                            key={index}
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            📎 File {index + 1}
-                          </Badge>
-                        ))}
+                  {booking.attachments &&
+                    Array.isArray(booking.attachments) &&
+                    booking.attachments.length > 0 && (
+                      <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
+                        <p className="font-medium mb-2">Attachments:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {booking.attachments.map((attachment, index) => (
+                            <Badge
+                              key={index}
+                              variant="outline"
+                              className="text-xs"
+                            >
+                              📎 File {index + 1}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* Meeting and Scheduling Links */}
-                  {(booking.meetingLink || booking.calendlyUrl) && (
+                  {/* {(booking.meetingLink || booking.calendlyUrl || booking.bookingUrl) && (
                     <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
                       <p className="font-medium mb-2">Links:</p>
                       <div className="space-y-2">
@@ -746,6 +805,40 @@ export default function UserBookingsPage() {
                             >
                               Reschedule
                             </a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )} */}
+
+                  {booking.bookingUrl && (
+                    <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
+                      <p className="font-medium mb-2">Links:</p>
+                      <div className="space-y-2">
+                        {booking.bookingUrl && (
+                          <div className="flex items-center gap-2">
+                            <Video className="w-4 h-4 text-blue-600" />
+                            <Link
+                              href={booking.bookingUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline text-xs"
+                            >
+                              Schedule your time
+                            </Link>
+                          </div>
+                        )}
+                        {booking.calendlyUrl && (
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-green-600" />
+                            <Link
+                              href={booking.calendlyUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-green-600 hover:text-green-800 underline text-xs"
+                            >
+                              Reschedule
+                            </Link>
                           </div>
                         )}
                       </div>

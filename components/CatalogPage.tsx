@@ -229,32 +229,35 @@ export default function CatalogPage({
     const requiresBooking =
       product.requiresBooking || product.isBookableService || false;
 
-    if (requiresBooking) {
-      // Redirect to public bookings page for bookable products
-      const bookingUrl = `/bookings?productId=${
-        product._id
-      }&productName=${encodeURIComponent(
-        product.service
-      )}&service=${encodeURIComponent(
-        product.service
-      )}&productType=${encodeURIComponent(
-        product.productType
-      )}&deliveryMode=${encodeURIComponent(
-        product.deliveryMode
-      )}&sessionType=${encodeURIComponent(
-        product.sessionType
-      )}&duration=${encodeURIComponent(
-        `${product.programLength} ${product.mode}`
-      )}&minutesPerSession=${product.minutesPerSession}&price=${
-        product.price
-      }&instructorId=${product.instructorId}&isClassroom=${
-        product.hasClassroom
-      }&isSession=${product.hasSession}&durationInMinutes=${
-        product.durationInMinutes
-      }`;
-      window.location.href = bookingUrl;
-      return;
-    }
+    // COMMENTED OUT: Old flow that routed to booking page
+    // if (requiresBooking) {
+    //   // Redirect to public bookings page for bookable products
+    //   const bookingUrl = `/bookings?productId=${
+    //     product._id
+    //   }&productName=${encodeURIComponent(
+    //     product.service
+    //   )}&service=${encodeURIComponent(
+    //     product.service
+    //   )}&productType=${encodeURIComponent(
+    //     product.productType
+    //   )}&deliveryMode=${encodeURIComponent(
+    //     product.deliveryMode
+    //   )}&sessionType=${encodeURIComponent(
+    //     product.sessionType
+    //   )}&duration=${encodeURIComponent(
+    //     `${product.programLength} ${product.mode}`
+    //   )}&minutesPerSession=${product.minutesPerSession}&price=${
+    //     product.price
+    //   }&instructorId=${product.instructorId}&isClassroom=${
+    //     product.hasClassroom
+    //   }&isSession=${product.hasSession}&durationInMinutes=${
+    //     product.durationInMinutes
+    //   }`;
+    //   window.location.href = bookingUrl;
+    //   return;
+    // }
+
+    // NEW FLOW: Add bookable services to cart for payment intent creation
 
     // For non-bookable products, add directly to cart with animation
     const button = event.currentTarget as HTMLElement;
@@ -298,7 +301,7 @@ export default function CatalogPage({
         certificate: product.hasCertificate,
         status: product.enabled ? "active" : "inactive",
         level: product.productSubcategoryName || "",
-        requiresBooking: false,
+        requiresBooking: requiresBooking, // Updated to use the actual booking requirement
 
         // Product details for booking
         deliveryMode: product.deliveryMode,
@@ -314,11 +317,46 @@ export default function CatalogPage({
         hasCertificate: product.hasCertificate,
         requiresEnrollment: product.requiresEnrollment,
         isBookableService: product.isBookableService,
+        isAttachmentRequired: product.isAttachmentRequired || false, // Add field for attachment requirements
         instructorId: product.instructorId,
         instructorName: product.instructorName,
         virtualPlatform: product.virtualPlatform,
         classroomCapacity: product.classroomCapacity,
         classroomRequirements: product.classroomRequirements,
+
+        // NEW: Add booking details for bookable services
+        bookingDetails: requiresBooking
+          ? {
+              fullName: "", // Will be filled in cart
+              email: "", // Will be filled in cart
+              phone: "", // Will be filled in cart
+              preferredDate: undefined, // Will be filled in cart
+              preferredTime: "", // Will be filled in cart
+              numberOfParticipants: 1,
+              participantType: "individual" as const,
+              userNotes: "",
+              bookingId: "", // Will be generated during payment intent creation
+              bookingData: {
+                productId: product._id,
+                productType: product.productType,
+                instructorId: product.instructorId,
+                bookingPurpose: product.service,
+                minutesPerSession: product.minutesPerSession,
+                durationInMinutes: product.durationInMinutes,
+                numberOfExpectedParticipants: 1,
+                isClassroom: product.hasClassroom,
+                isSession: product.hasSession,
+                participantType: "individual",
+                platformRole: "student", // Will be updated based on user role
+                email: "", // Will be filled in cart
+                fullName: "", // Will be filled in cart
+                createdBy: "", // Will be filled in cart
+                profileId: "", // Will be filled in cart
+                participants: [], // Will be filled in cart
+                actualDaysAndTime: [], // Will be filled in cart
+              },
+            }
+          : undefined,
       };
       addToCart(cartItem);
       setFlyingItem(null);

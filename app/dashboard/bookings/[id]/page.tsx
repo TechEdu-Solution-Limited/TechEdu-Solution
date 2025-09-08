@@ -32,6 +32,7 @@ import {
   getDurationText,
   getPrimaryDateTime,
 } from "@/utils/helpers";
+import Link from "next/link";
 
 export default function BookingDetailsPage() {
   const router = useRouter();
@@ -62,7 +63,42 @@ export default function BookingDetailsPage() {
 
       if (response?.data?.success) {
         const bookingData = response.data.data;
-        setBooking(bookingData);
+
+        // Handle attachments - convert string to array if needed
+        if (
+          bookingData.attachments &&
+          typeof bookingData.attachments === "string"
+        ) {
+          bookingData.attachments = [bookingData.attachments];
+        }
+
+        // Handle missing fields with fallbacks
+        const processedBooking = {
+          ...bookingData,
+          fullName:
+            bookingData.bookingSchedulerFullName ||
+            bookingData.createdBy?.fullName ||
+            "Unknown",
+          email:
+            bookingData.bookingSchedulerEmail ||
+            bookingData.createdBy?.email ||
+            "Unknown",
+          platformRole: bookingData.bookingSchedulerPlatformRole || "Unknown",
+          // Ensure arrays are properly handled
+          participants: Array.isArray(bookingData.participants)
+            ? bookingData.participants
+            : [],
+          actualDaysAndTime: Array.isArray(bookingData.actualDaysAndTime)
+            ? bookingData.actualDaysAndTime
+            : [],
+          attachments: Array.isArray(bookingData.attachments)
+            ? bookingData.attachments
+            : [],
+          // Handle schedulingMeta
+          schedulingMeta: bookingData.schedulingMeta || null,
+        };
+
+        setBooking(processedBooking);
       } else {
         toast.error("Failed to fetch booking details");
         router.push("/dashboard/bookings");
@@ -356,6 +392,7 @@ export default function BookingDetailsPage() {
               )}
 
               {booking.actualDaysAndTime &&
+                Array.isArray(booking.actualDaysAndTime) &&
                 booking.actualDaysAndTime.length > 0 && (
                   <div className="flex items-start gap-3">
                     <Calendar className="w-4 h-4 text-slate-500 mt-1" />
@@ -473,7 +510,7 @@ export default function BookingDetailsPage() {
         </div>
 
         {/* Meeting Information */}
-        {(booking.meetingLink || booking.calendlyUrl) && (
+        {(booking.meetingLink || booking.calendlyUrl || booking.bookingUrl) && (
           <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -489,14 +526,14 @@ export default function BookingDetailsPage() {
                     <p className="text-sm font-medium text-slate-700 mb-1">
                       Meeting Link
                     </p>
-                    <a
+                    <Link
                       href={booking.meetingLink}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-700 underline flex items-center gap-1"
                     >
                       {booking.meetingLink}
-                    </a>
+                    </Link>
                   </div>
                 </div>
               )}
@@ -508,14 +545,33 @@ export default function BookingDetailsPage() {
                     <p className="text-sm font-medium text-slate-700 mb-1">
                       Reschedule Link
                     </p>
-                    <a
+                    <Link
                       href={booking.calendlyUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-green-600 hover:text-green-700 underline flex items-center gap-1"
                     >
                       {booking.calendlyUrl}
-                    </a>
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {booking.bookingUrl && (
+                <div className="flex items-center gap-3">
+                  <Video className="w-4 h-4 text-slate-500" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-700 mb-1">
+                      Schedule your time
+                    </p>
+                    <Link
+                      href={booking.bookingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-700 underline flex items-center gap-1"
+                    >
+                      {booking.bookingUrl}
+                    </Link>
                   </div>
                 </div>
               )}
@@ -572,85 +628,89 @@ export default function BookingDetailsPage() {
         )}
 
         {/* Participants Information */}
-        {booking.participants && booking.participants.length > 0 && (
-          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Participants
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <p className="text-sm text-slate-600">
-                  People included in this booking:
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {booking.participants.map((participant, index) => (
-                    <div
-                      key={participant._id}
-                      className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200"
-                    >
-                      <div className="p-2 bg-blue-100 rounded-full">
-                        <User className="w-4 h-4 text-blue-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-700 truncate">
-                          {participant.fullName}
-                        </p>
-                        <p className="text-xs text-slate-500 truncate">
-                          {participant.email}
-                        </p>
-                        <p className="text-xs text-slate-400 truncate">
-                          {participant.platformRole} •{" "}
-                          {participant.participantType}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Attachments */}
-        {booking.attachments && booking.attachments.length > 0 && (
-          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                📎 Attachments
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <p className="text-sm text-slate-600">
-                  Files uploaded with this booking:
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {booking.attachments.map(
-                    (attachment: string, index: number) => (
+        {booking.participants &&
+          Array.isArray(booking.participants) &&
+          booking.participants.length > 0 && (
+            <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Participants
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <p className="text-sm text-slate-600">
+                    People included in this booking:
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {booking.participants.map((participant, index) => (
                       <div
-                        key={index}
+                        key={participant._id}
                         className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200"
                       >
-                        <div className="p-2 bg-blue-100 rounded-full">📎</div>
+                        <div className="p-2 bg-blue-100 rounded-full">
+                          <User className="w-4 h-4 text-blue-600" />
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-slate-700 truncate">
-                            File {index + 1}
+                            {participant.fullName}
                           </p>
                           <p className="text-xs text-slate-500 truncate">
-                            {attachment}
+                            {participant.email}
+                          </p>
+                          <p className="text-xs text-slate-400 truncate">
+                            {participant.platformRole} •{" "}
+                            {participant.participantType}
                           </p>
                         </div>
                       </div>
-                    )
-                  )}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          )}
+
+        {/* Attachments */}
+        {booking.attachments &&
+          Array.isArray(booking.attachments) &&
+          booking.attachments.length > 0 && (
+            <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  📎 Attachments
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <p className="text-sm text-slate-600">
+                    Files uploaded with this booking:
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {booking.attachments.map(
+                      (attachment: string, index: number) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200"
+                        >
+                          <div className="p-2 bg-blue-100 rounded-full">📎</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-700 truncate">
+                              File {index + 1}
+                            </p>
+                            <p className="text-xs text-slate-500 truncate">
+                              {attachment}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
         {/* Cancellation Details */}
         {booking.cancellation && booking.cancellation.isCancelled && (

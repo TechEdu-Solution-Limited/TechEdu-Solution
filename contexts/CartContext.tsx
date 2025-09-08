@@ -7,6 +7,7 @@ interface CartContextType {
   cartItems: CartItem[];
   addToCart: (item: CartItem) => void;
   removeFromCart: (itemId: string) => void;
+  updateCartItem: (itemId: string, updates: Partial<CartItem>) => void;
   clearCart: () => void;
   cartCount: number;
   cartTotal: number;
@@ -56,6 +57,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setCartItems((prev) => prev.filter((item) => item.id !== itemId));
   };
 
+  const updateCartItem = (itemId: string, updates: Partial<CartItem>) => {
+    setCartItems((prev) =>
+      prev.map((item) => (item.id === itemId ? { ...item, ...updates } : item))
+    );
+  };
+
   const clearCart = () => {
     setCartItems([]);
   };
@@ -80,6 +87,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     cartItems,
     addToCart,
     removeFromCart,
+    updateCartItem,
     clearCart,
     cartCount,
     cartTotal,
