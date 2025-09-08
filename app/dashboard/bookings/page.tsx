@@ -692,7 +692,7 @@ export default function UserBookingsPage() {
                 key={booking._id}
                 className={`${
                   isRecentlyCreated(booking)
-                    ? "bg-amber-200/70 backdrop-blur-sm border-amber-300"
+                    ? "bg-green-100/70 backdrop-blur-sm border-green-200"
                     : "bg-white/70 backdrop-blur-sm border-0"
                 } shadow-lg hover:shadow-xl transition-all duration-300 group`}
               >
@@ -718,7 +718,7 @@ export default function UserBookingsPage() {
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
                         {isRecentlyCreated(booking) && (
-                          <Badge className="bg-amber-500 text-white font-semibold animate-pulse">
+                          <Badge className="bg-red text-white font-semibold animate-pulse">
                             NEW
                           </Badge>
                         )}

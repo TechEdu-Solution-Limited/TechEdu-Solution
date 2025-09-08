@@ -40,6 +40,7 @@ import type {
 } from "@/types/payment";
 import { CartItem } from "@/types/cart";
 import { safeConsole } from "@/lib/console";
+import { uploadAttachment, STORAGE_FOLDERS } from "@/lib/firebase";
 
 export default function CartPage() {
   const {
@@ -600,22 +601,12 @@ export default function CartPage() {
   const handleAttachmentUpload = async (file: File) => {
     setIsUploadingAttachment(true);
     try {
-      // Here you would implement file upload to Cloudinary or your preferred service
-      // For now, we'll just simulate the upload
-      const formData = new FormData();
-      formData.append("file", file);
-
-      // Simulate upload delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Mock URL - replace with actual upload response
-      const mockUrl = `https://res.cloudinary.com/your-cloud/image/upload/v${Date.now()}/${
-        file.name
-      }`;
+      // Upload to Firebase Storage attachments folder
+      const downloadURL = await uploadAttachment(file, "booking-attachments");
 
       setBookingFormData((prev) => ({
         ...prev,
-        attachments: [...prev.attachments, mockUrl],
+        attachments: [...prev.attachments, downloadURL],
       }));
 
       toast.success("File uploaded successfully");
