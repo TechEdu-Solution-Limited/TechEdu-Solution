@@ -27,10 +27,6 @@ const nextConfig = {
     }
     return config;
   },
-  // Environment variables
-  env: {
-    NODE_ENV: process.env.NODE_ENV,
-  },
 };
 
 module.exports = nextConfig;
