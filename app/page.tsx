@@ -92,7 +92,7 @@ const Home: NextPage = () => {
     <>
       <header className="relative w-full px-4 pt-20 md:pt-24 md:px-16 min-h-[100vh]">
         {/* Background Layer */}
-        <div className="absolute inset-0 h-full xl:h-[84vh] z-0 bg-gradient-to-b from-[#011F72] to-[#ffffff] xl:bg-none xl:bg-[#0D1140]"></div>
+        <div className="absolute inset-0 h-full xl:h-[84vh] z-0 bg-gradient-to-br from-[#0D1140] via-[#1e3a8a] to-[#0D1140]"></div>
 
         {/* Foreground Content */}
         <div className="relative grid grid-cols-1 xl:grid-cols-2 gap-8 md:gap-12 z-10">
@@ -111,7 +111,7 @@ const Home: NextPage = () => {
             </p>
             <Link
               href="/contact#discovery-call"
-              className="bg-[#0D1140] hover:bg-blue-700 text-white px-6 py-4 text-center rounded text-[1rem] font-medium transition"
+              className="bg-[#0D1140] hover:bg-blue-700 text-white px-6 py-4 text-center rounded text-[1rem] font-medium transition lg:mt-8"
             >
               Book a Free Discovery Call
             </Link>
