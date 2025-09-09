@@ -691,7 +691,10 @@ export default function UserBookingsPage() {
               <Card
                 key={booking._id}
                 className={`${
-                  isRecentlyCreated(booking)
+                  booking.status === "cancelled" ||
+                  booking.schedulingStatus === "canceled"
+                    ? "bg-gray-100/70 backdrop-blur-sm border-gray-300 opacity-75"
+                    : isRecentlyCreated(booking)
                     ? "bg-green-100/70 backdrop-blur-sm border-green-200"
                     : "bg-white/70 backdrop-blur-sm border-0"
                 } shadow-lg hover:shadow-xl transition-all duration-300 group`}
@@ -717,11 +720,13 @@ export default function UserBookingsPage() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        {isRecentlyCreated(booking) && (
-                          <Badge className="bg-red-600 text-white font-semibold animate-pulse">
-                            NEW
-                          </Badge>
-                        )}
+                        {isRecentlyCreated(booking) &&
+                          booking.status !== "cancelled" &&
+                          booking.schedulingStatus !== "canceled" && (
+                            <Badge className="bg-red-600 text-white font-semibold animate-pulse">
+                              NEW
+                            </Badge>
+                          )}
                         <Badge
                           variant={
                             booking.productType === "AcademicService"
@@ -1005,11 +1010,33 @@ export default function UserBookingsPage() {
 
                   {/* Classroom Button */}
                   {booking.isClassroom && (
-                    <Link href={`/dashboard/my-classroom`}>
+                    <Link
+                      href={
+                        booking.status === "cancelled" ||
+                        booking.schedulingStatus === "canceled"
+                          ? "#"
+                          : `/dashboard/my-classroom`
+                      }
+                    >
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-[5px] w-full mt-4"
+                        disabled={
+                          booking.status === "cancelled" ||
+                          booking.schedulingStatus === "canceled"
+                        }
+                        className={`rounded-[5px] w-full mt-4 ${
+                          booking.status === "cancelled" ||
+                          booking.schedulingStatus === "canceled"
+                            ? "text-gray-400 cursor-not-allowed bg-gray-100"
+                            : "text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                        }`}
+                        title={
+                          booking.status === "cancelled" ||
+                          booking.schedulingStatus === "canceled"
+                            ? "Classroom access disabled for cancelled bookings"
+                            : "Access Classroom"
+                        }
                       >
                         <GraduationCap className="w-4 h-4 mr-1" />
                         Classroom
@@ -1019,11 +1046,33 @@ export default function UserBookingsPage() {
 
                   {/* Session Button */}
                   {booking.isSession && (
-                    <Link href={`/dashboard/sessions/my-sessions`}>
+                    <Link
+                      href={
+                        booking.status === "cancelled" ||
+                        booking.schedulingStatus === "canceled"
+                          ? "#"
+                          : `/dashboard/sessions/my-sessions`
+                      }
+                    >
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-[5px] w-full mt-4"
+                        disabled={
+                          booking.status === "cancelled" ||
+                          booking.schedulingStatus === "canceled"
+                        }
+                        className={`rounded-[5px] w-full mt-4 ${
+                          booking.status === "cancelled" ||
+                          booking.schedulingStatus === "canceled"
+                            ? "text-gray-400 cursor-not-allowed bg-gray-100"
+                            : "text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        }`}
+                        title={
+                          booking.status === "cancelled" ||
+                          booking.schedulingStatus === "canceled"
+                            ? "Session access disabled for cancelled bookings"
+                            : "Access Sessions"
+                        }
                       >
                         <Users2 className="w-4 h-4 mr-1" />
                         Sessions
