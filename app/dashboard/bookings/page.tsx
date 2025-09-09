@@ -695,7 +695,7 @@ export default function UserBookingsPage() {
                   booking.schedulingStatus === "canceled"
                     ? "bg-gray-100/70 backdrop-blur-sm border-gray-300 opacity-75"
                     : isRecentlyCreated(booking)
-                    ? "bg-green-100/70 backdrop-blur-sm border-green-200"
+                    ? "bg-blue-100/70 backdrop-blur-sm border-blue-200"
                     : "bg-white/70 backdrop-blur-sm border-0"
                 } shadow-lg hover:shadow-xl transition-all duration-300 group`}
               >
@@ -842,7 +842,7 @@ export default function UserBookingsPage() {
                   )}
 
                   {booking.userNotes && (
-                    <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
+                    <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-[10px]">
                       <p className="font-medium mb-1">Notes:</p>
                       <p className="line-clamp-2">{booking.userNotes}</p>
                     </div>
@@ -851,7 +851,7 @@ export default function UserBookingsPage() {
                   {booking.attachments &&
                     Array.isArray(booking.attachments) &&
                     booking.attachments.length > 0 && (
-                      <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
+                      <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-[10px]">
                         <p className="font-medium mb-2">Attachments:</p>
                         <div className="flex flex-wrap gap-2">
                           {booking.attachments.map((attachment, index) => (
@@ -869,7 +869,7 @@ export default function UserBookingsPage() {
 
                   {/* Meeting and Scheduling Links */}
                   {/* {(booking.meetingLink || booking.calendlyUrl || booking.bookingUrl) && (
-                    <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
+                    <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-[10px]">
                       <p className="font-medium mb-2">Links:</p>
                       <div className="space-y-2">
                         {booking.meetingLink && (
@@ -902,39 +902,41 @@ export default function UserBookingsPage() {
                     </div>
                   )} */}
 
-                  {booking.bookingUrl && (
-                    <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
-                      <p className="font-medium mb-2">Links:</p>
-                      <div className="space-y-2">
-                        {booking.bookingUrl && (
-                          <div className="flex items-center gap-2">
-                            <Video className="w-4 h-4 text-blue-600" />
-                            <Link
-                              href={booking.bookingUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 underline text-xs"
-                            >
-                              Schedule your time
-                            </Link>
-                          </div>
-                        )}
-                        {booking.calendlyUrl && (
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-green-600" />
-                            <Link
-                              href={booking.calendlyUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-green-600 hover:text-green-800 underline text-xs"
-                            >
-                              Reschedule
-                            </Link>
-                          </div>
-                        )}
+                  {booking.bookingUrl &&
+                    booking.status !== "cancelled" &&
+                    booking.schedulingStatus !== "canceled" && (
+                      <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-[10px]">
+                        <p className="font-medium mb-2">Links:</p>
+                        <div className="space-y-2">
+                          {booking.bookingUrl && (
+                            <div className="flex items-center gap-2">
+                              <Video className="w-4 h-4 text-blue-600" />
+                              <Link
+                                href={booking.bookingUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline text-xs"
+                              >
+                                Schedule your time
+                              </Link>
+                            </div>
+                          )}
+                          {booking.calendlyUrl && (
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-green-600" />
+                              <Link
+                                href={booking.calendlyUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-green-600 hover:text-green-800 underline text-xs"
+                              >
+                                Reschedule
+                              </Link>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   <div className="flex items-center gap-2 pt-3 border-t border-slate-200">
                     <Link href={`/dashboard/bookings/${booking._id}`}>
@@ -1009,76 +1011,38 @@ export default function UserBookingsPage() {
                   </div>
 
                   {/* Classroom Button */}
-                  {booking.isClassroom && (
-                    <Link
-                      href={
-                        booking.status === "cancelled" ||
-                        booking.schedulingStatus === "canceled"
-                          ? "#"
-                          : `/dashboard/my-classroom`
-                      }
-                    >
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={
-                          booking.status === "cancelled" ||
-                          booking.schedulingStatus === "canceled"
-                        }
-                        className={`rounded-[5px] w-full mt-4 ${
-                          booking.status === "cancelled" ||
-                          booking.schedulingStatus === "canceled"
-                            ? "text-gray-400 cursor-not-allowed bg-gray-100"
-                            : "text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                        }`}
-                        title={
-                          booking.status === "cancelled" ||
-                          booking.schedulingStatus === "canceled"
-                            ? "Classroom access disabled for cancelled bookings"
-                            : "Access Classroom"
-                        }
-                      >
-                        <GraduationCap className="w-4 h-4 mr-1" />
-                        Classroom
-                      </Button>
-                    </Link>
-                  )}
+                  {booking.isClassroom &&
+                    booking.status !== "cancelled" &&
+                    booking.schedulingStatus !== "canceled" && (
+                      <Link href={`/dashboard/my-classroom`}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-[5px] w-full mt-4"
+                          title="Access Classroom"
+                        >
+                          <GraduationCap className="w-4 h-4 mr-1" />
+                          Classroom
+                        </Button>
+                      </Link>
+                    )}
 
                   {/* Session Button */}
-                  {booking.isSession && (
-                    <Link
-                      href={
-                        booking.status === "cancelled" ||
-                        booking.schedulingStatus === "canceled"
-                          ? "#"
-                          : `/dashboard/sessions/my-sessions`
-                      }
-                    >
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={
-                          booking.status === "cancelled" ||
-                          booking.schedulingStatus === "canceled"
-                        }
-                        className={`rounded-[5px] w-full mt-4 ${
-                          booking.status === "cancelled" ||
-                          booking.schedulingStatus === "canceled"
-                            ? "text-gray-400 cursor-not-allowed bg-gray-100"
-                            : "text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                        }`}
-                        title={
-                          booking.status === "cancelled" ||
-                          booking.schedulingStatus === "canceled"
-                            ? "Session access disabled for cancelled bookings"
-                            : "Access Sessions"
-                        }
-                      >
-                        <Users2 className="w-4 h-4 mr-1" />
-                        Sessions
-                      </Button>
-                    </Link>
-                  )}
+                  {booking.isSession &&
+                    booking.status !== "cancelled" &&
+                    booking.schedulingStatus !== "canceled" && (
+                      <Link href={`/dashboard/sessions/my-sessions`}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-[5px] w-full mt-4"
+                          title="Access Sessions"
+                        >
+                          <Users2 className="w-4 h-4 mr-1" />
+                          Sessions
+                        </Button>
+                      </Link>
+                    )}
                 </CardContent>
               </Card>
             ))}
