@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { getApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
+import { useRole } from "@/contexts/RoleContext";
 import {
   Calendar,
   Clock,
@@ -49,6 +50,7 @@ interface Session {
 }
 
 export default function StudentSessionsPage() {
+  const { userData } = useRole();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,8 +74,32 @@ export default function StudentSessionsPage() {
         return;
       }
 
+      if (!userData?.role) {
+        setError("User role not available. Please refresh the page.");
+        setLoading(false);
+        return;
+      }
+
       try {
-        const endpoint = "/api/sessions/student/my-sessions";
+        // Dynamically select endpoint based on user role
+        let endpoint = "/api/sessions/student/my-sessions"; // default
+
+        switch (userData.role) {
+          case "recruiter":
+            endpoint = "/api/sessions/recruiter/my-sessions";
+            break;
+          case "individualTechProfessional":
+            endpoint = "/api/sessions/individual-tech-professional/my-sessions";
+            break;
+          case "teamTechProfessional":
+            endpoint = "/api/sessions/team-tech-professional/my-sessions";
+            break;
+          case "student":
+          default:
+            endpoint = "/api/sessions/student/my-sessions";
+            break;
+        }
+
         const response = await getApiRequest(endpoint, token);
 
         if (response?.data?.success) {
@@ -89,7 +115,7 @@ export default function StudentSessionsPage() {
     };
 
     fetchSessions();
-  }, []);
+  }, [userData?.role]);
 
   // Filter and sort logic
   const filteredSessions = sessions.filter((session) => {
@@ -195,7 +221,13 @@ export default function StudentSessionsPage() {
                 My Sessions
               </h1>
               <p className="text-slate-600 text-lg">
-                View and join your scheduled mentoring sessions
+                {userData?.role === "recruiter"
+                  ? "View and join your scheduled recruitment consultation sessions"
+                  : userData?.role === "individualTechProfessional"
+                  ? "View and join your scheduled career development sessions"
+                  : userData?.role === "teamTechProfessional"
+                  ? "View and join your scheduled team training sessions"
+                  : "View and join your scheduled mentoring sessions"}
               </p>
             </div>
           </div>
@@ -446,7 +478,14 @@ export default function StudentSessionsPage() {
                               No sessions found
                             </h3>
                             <p className="text-slate-600">
-                              You haven't scheduled any sessions yet
+                              {userData?.role === "recruiter"
+                                ? "You haven't scheduled any recruitment consultation sessions yet"
+                                : userData?.role ===
+                                  "individualTechProfessional"
+                                ? "You haven't scheduled any career development sessions yet"
+                                : userData?.role === "teamTechProfessional"
+                                ? "You haven't scheduled any team training sessions yet"
+                                : "You haven't scheduled any mentoring sessions yet"}
                             </p>
                           </div>
                         </div>

@@ -36,6 +36,7 @@ import {
 import Link from "next/link";
 
 import { safeConsole } from "@/lib/console";
+import { useRole } from "@/contexts/RoleContext";
 interface LedBy {
   _id: string;
   fullName: string;
@@ -51,25 +52,44 @@ interface Participant {
 }
 
 interface Calendar {
-  eventId: string;
-  joinUrl: string;
+  eventId: string | null;
+  joinUrl: string | null;
   synced: boolean;
 }
 
 interface Attendance {
   _id: string;
-  sessionId?: string | any; // Can be object or "[object Object]" string
-  classroomId?: string | any; // Can be object or "[object Object]" string
+  sessionId?:
+    | string
+    | {
+        _id: string;
+        scheduleAt: string;
+        endAt: string;
+      };
+  classroomId?:
+    | string
+    | {
+        _id: string;
+        scheduleAt: string;
+        endAt: string;
+      };
+  bookingId?:
+    | string
+    | {
+        _id: string;
+        scheduleAt: string;
+        endAt: string;
+      };
   productType: string;
+  materialUrl?: string;
   ledBy?: LedBy | string | any; // Can be object, string "[object Object]", or other
   scheduleAt: string;
   endAt: string;
+  timezone?: string;
   durationInMinutes: number;
   status: string;
+  rescheduledMeetingLink?: string;
   title: string;
-  participants: Participant[];
-  numberOfExpectedParticipants: number;
-  calendar?: Calendar;
   remarks?: string;
   isPostponed?: boolean;
   postponedTo?: {
@@ -77,7 +97,12 @@ interface Attendance {
     reason: string;
   };
   rescheduledFrom?: string;
-  rescheduledMeetingLink?: string;
+  participants: Participant[];
+  numberOfExpectedParticipants: number;
+  calendar?: Calendar;
+  isDeleted?: boolean;
+  deletedAt?: string;
+  deletedBy?: string;
   createdAt: string;
   updatedAt: string;
   // Additional fields from API response
@@ -96,6 +121,7 @@ interface Meta {
 }
 
 export default function InstructorAttendancePage() {
+  const { userData } = useRole();
   const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -144,6 +170,7 @@ export default function InstructorAttendancePage() {
     filterInstructor,
     dateRangeStart,
     dateRangeEnd,
+    userData?.role,
   ]);
 
   const fetchAttendances = async () => {
@@ -153,6 +180,12 @@ export default function InstructorAttendancePage() {
     const token = getTokenFromCookies();
     if (!token) {
       setError("Authentication required. Please log in.");
+      setLoading(false);
+      return;
+    }
+
+    if (!userData?.role) {
+      setError("User role not available. Please refresh the page.");
       setLoading(false);
       return;
     }
@@ -174,9 +207,30 @@ export default function InstructorAttendancePage() {
       if (dateRangeEnd) params.append("endDate", dateRangeEnd);
       if (searchTerm.trim()) params.append("search", searchTerm.trim());
 
+      // Dynamically select endpoint based on user role
+      let baseEndpoint = "/api/attendance/my-attendances"; // default for student
+
+      switch (userData.role) {
+        case "individualTechProfessional":
+          baseEndpoint =
+            "/api/attendance/individual-tech-professional/my-attendances";
+          break;
+        case "teamTechProfessional":
+          baseEndpoint =
+            "/api/attendance/team-tech-professional/my-attendances";
+          break;
+        case "recruiter":
+          baseEndpoint = "/api/attendance/recruiter/my-attendances";
+          break;
+        case "student":
+        default:
+          baseEndpoint = "/api/attendance/my-attendances";
+          break;
+      }
+
       const endpoint = params.toString()
-        ? `/api/attendance/my-attendances?${params}`
-        : `/api/attendance/my-attendances`;
+        ? `${baseEndpoint}?${params}`
+        : baseEndpoint;
       const response = await getApiRequest(endpoint, token);
 
       if (response?.data?.success) {
@@ -410,8 +464,13 @@ export default function InstructorAttendancePage() {
                 My Sessions & Attendance
               </h1>
               <p className="text-slate-600 text-lg">
-                Manage attendance for your assigned sessions and track student
-                participation
+                {userData?.role === "recruiter"
+                  ? "View and manage your recruitment consultation sessions and attendance"
+                  : userData?.role === "individualTechProfessional"
+                  ? "View and manage your career development sessions and attendance"
+                  : userData?.role === "teamTechProfessional"
+                  ? "View and manage your team training sessions and attendance"
+                  : "View and manage your assigned sessions and track student participation"}
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -612,7 +671,13 @@ export default function InstructorAttendancePage() {
               <BookOpen className="w-12 h-12 text-slate-400 mx-auto mb-4" />
               <p className="text-slate-600 text-lg">No sessions found</p>
               <p className="text-slate-500">
-                You don't have any assigned sessions yet.
+                {userData?.role === "recruiter"
+                  ? "You don't have any recruitment consultation sessions yet."
+                  : userData?.role === "individualTechProfessional"
+                  ? "You don't have any career development sessions yet."
+                  : userData?.role === "teamTechProfessional"
+                  ? "You don't have any team training sessions yet."
+                  : "You don't have any assigned sessions yet."}
               </p>
             </div>
           ) : (

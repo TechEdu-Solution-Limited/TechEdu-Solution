@@ -97,14 +97,7 @@ const techStackOptions = [
   "Other",
 ];
 
-const trainingAvailabilityOptions = [
-  "Weekdays",
-  "Weekends",
-  "Evenings",
-  "Flexible",
-  "Full-time",
-  "Part-time",
-];
+const trainingAvailabilityOptions = ["full-time", "weekends", "custom"];
 
 export function Step3TeamProfile({
   form,
@@ -112,12 +105,21 @@ export function Step3TeamProfile({
   handleChange,
 }: Step3TeamProfileProps) {
   const handleTeamLocationChange = (field: string, value: string) => {
+    // Ensure teamLocation object exists
+    const currentTeamLocation = form.teamLocation || {};
+
+    // Create a synthetic event that properly handles nested objects
     const event = {
       target: {
-        name: `teamLocation.${field}`,
-        value: value,
+        name: "teamLocation",
+        value: {
+          ...currentTeamLocation,
+          [field]: value,
+        },
       },
     } as any;
+
+    console.log("Team location change:", field, value, event.target.value);
     handleChange(event);
   };
 
@@ -249,27 +251,19 @@ export function Step3TeamProfile({
             >
               Country
             </Label>
-            <Select
-              value={form.teamLocation.country}
-              onValueChange={(value) =>
-                handleTeamLocationChange("country", value)
+            <Input
+              id="teamLocation.country"
+              name="teamLocation.country"
+              value={form.teamLocation?.country || ""}
+              onChange={(e) =>
+                handleTeamLocationChange("country", e.target.value)
               }
-            >
-              <SelectTrigger
-                className={`mt-1 ${
-                  errors.teamLocation ? "border-red-500" : "rounded-[10px]"
-                }`}
-              >
-                <SelectValue placeholder="Select country" />
-              </SelectTrigger>
-              <SelectContent className="rounded-[10px] bg-white">
-                {countries.map((country) => (
-                  <SelectItem key={country} value={country}>
-                    {country}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="Enter country name"
+              className={`mt-1 ${
+                errors.teamLocation ? "border-red-500" : "rounded-[10px]"
+              }`}
+              autoComplete="off"
+            />
           </div>
 
           <div>
@@ -279,27 +273,19 @@ export function Step3TeamProfile({
             >
               State
             </Label>
-            <Select
-              value={form.teamLocation.state}
-              onValueChange={(value) =>
-                handleTeamLocationChange("state", value)
+            <Input
+              id="teamLocation.state"
+              name="teamLocation.state"
+              value={form.teamLocation?.state || ""}
+              onChange={(e) =>
+                handleTeamLocationChange("state", e.target.value)
               }
-            >
-              <SelectTrigger
-                className={`mt-1 ${
-                  errors.teamLocation ? "border-red-500" : "rounded-[10px]"
-                }`}
-              >
-                <SelectValue placeholder="Select state" />
-              </SelectTrigger>
-              <SelectContent className="rounded-[10px] bg-white">
-                {states.map((state) => (
-                  <SelectItem key={state} value={state}>
-                    {state}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="Enter state name"
+              className={`mt-1 ${
+                errors.teamLocation ? "border-red-500" : "rounded-[10px]"
+              }`}
+              autoComplete="off"
+            />
           </div>
 
           <div>
@@ -309,25 +295,17 @@ export function Step3TeamProfile({
             >
               City
             </Label>
-            <Select
-              value={form.teamLocation.city}
-              onValueChange={(value) => handleTeamLocationChange("city", value)}
-            >
-              <SelectTrigger
-                className={`mt-1 ${
-                  errors.teamLocation ? "border-red-500" : "rounded-[10px]"
-                }`}
-              >
-                <SelectValue placeholder="Select city" />
-              </SelectTrigger>
-              <SelectContent className="rounded-[10px] bg-white">
-                {cities.map((city) => (
-                  <SelectItem key={city} value={city}>
-                    {city}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              id="teamLocation.city"
+              name="teamLocation.city"
+              value={form.teamLocation?.city || ""}
+              onChange={(e) => handleTeamLocationChange("city", e.target.value)}
+              placeholder="Enter city name"
+              className={`mt-1 ${
+                errors.teamLocation ? "border-red-500" : "rounded-[10px]"
+              }`}
+              autoComplete="off"
+            />
           </div>
         </div>
         {errors.teamLocation && (

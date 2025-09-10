@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { getApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
+import { useRole } from "@/contexts/RoleContext";
 import {
   Calendar,
   Clock,
@@ -20,11 +21,29 @@ import Link from "next/link";
 
 interface Classroom {
   _id: string;
-  bookingId: string;
-  productId: string;
+  bookingId:
+    | string
+    | {
+        _id: string;
+        scheduleAt: string;
+        endAt: string;
+      };
+  productId:
+    | string
+    | {
+        _id: string;
+        service: string;
+        productType: string;
+      };
   productType: string;
   bookingPurpose?: string;
-  instructorId?: string;
+  instructorId?:
+    | string
+    | {
+        _id: string;
+        fullName: string;
+        email: string;
+      };
   scheduleAt: string;
   endAt?: string;
   minutesPerSession?: number;
@@ -35,26 +54,38 @@ interface Classroom {
   participantType?: string;
   sessionsCompleted?: number;
   sessionsRemaining?: number;
+  materialUrl?: string;
+  avgRating?: number;
+  userNotes?: string;
+  internalNotes?: string;
   participants?: Array<{
     participantType: string;
     platformRole: string;
     profileId: string;
     email: string;
     fullName: string;
-    _id: string;
+    _id?: string;
   }>;
-  instructorNotes?: string;
-  internalNotes?: string;
+  createdBy?:
+    | string
+    | {
+        _id: string;
+        fullName: string;
+        email: string;
+      };
   actualDaysAndTime?: Array<{
-    day: string;
-    time: string;
+    day?: string;
+    time?: string;
+    dayOfWeek?: string;
+    startTime?: string;
+    endTime?: string;
   }>;
-  createdBy?: string;
   createdAt: string;
   updatedAt?: string;
 }
 
 export default function StudentClassroomsPage() {
+  const { userData } = useRole();
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,8 +108,33 @@ export default function StudentClassroomsPage() {
         return;
       }
 
+      if (!userData?.role) {
+        setError("User role not available. Please refresh the page.");
+        setLoading(false);
+        return;
+      }
+
       try {
-        const endpoint = "/api/classrooms/student/my-classrooms";
+        // Dynamically select endpoint based on user role
+        let endpoint = "/api/classrooms/student/my-classrooms"; // default
+
+        switch (userData.role) {
+          case "recruiter":
+            endpoint = "/api/classrooms/recruiter/my-classrooms";
+            break;
+          case "individualTechProfessional":
+            endpoint =
+              "/api/classrooms/individual-tech-professional/my-classrooms";
+            break;
+          case "teamTechProfessional":
+            endpoint = "/api/classrooms/team-tech-professional/my-classrooms";
+            break;
+          case "student":
+          default:
+            endpoint = "/api/classrooms/student/my-classrooms";
+            break;
+        }
+
         const response = await getApiRequest(endpoint, token);
 
         if (response?.data?.success) {
@@ -94,7 +150,7 @@ export default function StudentClassroomsPage() {
     };
 
     fetchClassrooms();
-  }, []);
+  }, [userData?.role]);
 
   // Filter and sort logic
   const filteredClassrooms = classrooms.filter((classroom) => {
@@ -215,7 +271,13 @@ export default function StudentClassroomsPage() {
                 My Classrooms
               </h1>
               <p className="text-slate-600 text-lg">
-                View and join your enrolled training sessions
+                {userData?.role === "recruiter"
+                  ? "View and join your enrolled career development sessions"
+                  : userData?.role === "individualTechProfessional"
+                  ? "View and join your enrolled professional development sessions"
+                  : userData?.role === "teamTechProfessional"
+                  ? "View and join your enrolled team training sessions"
+                  : "View and join your enrolled training sessions"}
               </p>
             </div>
           </div>
@@ -337,7 +399,10 @@ export default function StudentClassroomsPage() {
                           <>
                             <span>•</span>
                             <span>
-                              Booking: {String(classroom.bookingId).slice(-8)}
+                              Booking:{" "}
+                              {typeof classroom.bookingId === "string"
+                                ? classroom.bookingId.slice(-8)
+                                : classroom.bookingId._id.slice(-8)}
                             </span>
                           </>
                         )}
@@ -383,6 +448,24 @@ export default function StudentClassroomsPage() {
                     classroom.actualDaysAndTime.length > 0 ? (
                       <div className="text-xs text-slate-500 mt-1">
                         {classroom.actualDaysAndTime.length} recurring sessions
+                        {classroom.actualDaysAndTime[0] && (
+                          <div className="mt-1">
+                            {classroom.actualDaysAndTime[0].dayOfWeek &&
+                            classroom.actualDaysAndTime[0].startTime ? (
+                              <span>
+                                {classroom.actualDaysAndTime[0].dayOfWeek}{" "}
+                                {classroom.actualDaysAndTime[0].startTime}-
+                                {classroom.actualDaysAndTime[0].endTime}
+                              </span>
+                            ) : classroom.actualDaysAndTime[0].day &&
+                              classroom.actualDaysAndTime[0].time ? (
+                              <span>
+                                {classroom.actualDaysAndTime[0].day}{" "}
+                                {classroom.actualDaysAndTime[0].time}
+                              </span>
+                            ) : null}
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="text-xs text-slate-500 mt-1">
@@ -408,6 +491,25 @@ export default function StudentClassroomsPage() {
                     )}
                   </div>
 
+                  {/* Instructor Information */}
+                  {classroom.instructorId &&
+                    typeof classroom.instructorId === "object" && (
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 text-slate-600 mb-2">
+                          <BookOpen className="w-4 h-4" />
+                          <span className="text-sm font-medium">
+                            Instructor
+                          </span>
+                        </div>
+                        <div className="text-sm text-slate-900">
+                          {classroom.instructorId.fullName}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {classroom.instructorId.email}
+                        </div>
+                      </div>
+                    )}
+
                   {/* Participants Information */}
                   <div className="mb-4">
                     <div className="flex items-center gap-2 text-slate-600 mb-2">
@@ -421,6 +523,19 @@ export default function StudentClassroomsPage() {
                       {getParticipantInfo(classroom).type}
                     </div>
                   </div>
+
+                  {/* Rating Information */}
+                  {classroom.avgRating && (
+                    <div className="mb-4">
+                      <div className="flex items-center gap-2 text-slate-600 mb-2">
+                        <CheckCircle className="w-4 h-4" />
+                        <span className="text-sm font-medium">Rating</span>
+                      </div>
+                      <div className="text-sm text-slate-900">
+                        ⭐ {classroom.avgRating.toFixed(1)}/5.0
+                      </div>
+                    </div>
+                  )}
 
                   {/* Meeting Link */}
                   <div className="pt-4 border-t border-slate-200">
@@ -463,7 +578,13 @@ export default function StudentClassroomsPage() {
                     No classrooms found
                   </h3>
                   <p className="text-slate-600">
-                    You haven't joined any classrooms yet
+                    {userData?.role === "recruiter"
+                      ? "You haven't joined any career development classrooms yet"
+                      : userData?.role === "individualTechProfessional"
+                      ? "You haven't joined any professional development classrooms yet"
+                      : userData?.role === "teamTechProfessional"
+                      ? "You haven't joined any team training classrooms yet"
+                      : "You haven't joined any training classrooms yet"}
                   </p>
                 </div>
               </div>

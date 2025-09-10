@@ -465,7 +465,7 @@ export default function TeamTechProfessionalDashboard() {
             </div>
           )}
         </div>
-        <div className="flex space-x-2">
+        {/* <div className="flex space-x-2">
           <Button variant="outline" className="rounded-[10px]">
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
@@ -478,7 +478,7 @@ export default function TeamTechProfessionalDashboard() {
             <Settings className="w-4 h-4 mr-2" />
             Team Settings
           </Button>
-        </div>
+        </div> */}
       </div>
 
       {/* Metrics Cards */}

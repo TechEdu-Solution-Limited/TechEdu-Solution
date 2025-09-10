@@ -21,14 +21,15 @@ interface Step5TeamLearningGoalsProps {
 }
 
 const goalTypes = [
-  "Upskill",
-  "Reskill",
-  "Certification",
-  "Project-based Learning",
-  "Mentorship",
-  "Industry-specific Training",
-  "Leadership Development",
-  "Innovation & Research",
+  { label: "Specific Training", value: "specific_training" },
+  {
+    label: "Roadmap Upskill",
+    value: "roadmap_upskill",
+  },
+  {
+    label: "Custom",
+    value: "custom",
+  },
 ];
 
 const priorityAreas = [
@@ -126,8 +127,8 @@ export function Step5TeamLearningGoals({
           </SelectTrigger>
           <SelectContent className="rounded-[10px] bg-white">
             {goalTypes.map((goal) => (
-              <SelectItem key={goal} value={goal}>
-                {goal}
+              <SelectItem key={goal.value} value={goal.value}>
+                {goal.label}
               </SelectItem>
             ))}
           </SelectContent>

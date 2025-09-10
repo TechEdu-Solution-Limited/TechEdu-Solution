@@ -827,7 +827,7 @@ export default function UserBookingsPage() {
                           participantTypeLabels[
                             booking.participantType as keyof typeof participantTypeLabels
                           ] || booking.participantType
-                        } session`;
+                        }`;
                       })()}
                     </span>
                   </div>

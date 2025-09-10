@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/apiFetch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { getTokenFromCookies } from "@/lib/cookies";
 
 interface TeamMember {
   id: string;
@@ -20,9 +21,18 @@ export default function TeamMembersPage() {
 
   useEffect(() => {
     async function fetchMembers() {
+      const token = getTokenFromCookies();
+      if (!token) {
+        return;
+      }
       setLoading(true);
       try {
-        const res = await apiRequest("/api/teams/me/members", "GET");
+        const res = await apiRequest(
+          "/api/teams/me/members",
+          "GET",
+          undefined,
+          token
+        );
         if (res.data) setMembers(res.data);
       } finally {
         setLoading(false);

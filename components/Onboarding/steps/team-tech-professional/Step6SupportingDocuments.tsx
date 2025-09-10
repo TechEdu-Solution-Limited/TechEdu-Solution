@@ -1,7 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, FileText, FileSpreadsheet } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Upload, FileText, FileSpreadsheet, X } from "lucide-react";
+import { uploadAttachment } from "@/lib/firebase";
+import { toast } from "react-toastify";
 
 interface Step6SupportingDocumentsProps {
   form: any;
@@ -18,6 +21,72 @@ export function Step6SupportingDocuments({
   errors,
   handleChange,
 }: Step6SupportingDocumentsProps) {
+  const [uploadingCompanyIntro, setUploadingCompanyIntro] = useState(false);
+  const [uploadingSkillMatrix, setUploadingSkillMatrix] = useState(false);
+
+  const handleFileUpload = async (
+    file: File,
+    fieldName: string,
+    setUploading: (loading: boolean) => void
+  ) => {
+    // Validate file type
+    const allowedTypes = {
+      companyIntroUrl: [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ],
+      skillMatrixUrl: [
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel",
+        "text/csv",
+      ],
+    };
+
+    if (
+      !allowedTypes[fieldName as keyof typeof allowedTypes]?.includes(file.type)
+    ) {
+      toast.error(`Invalid file type. Please upload a valid document.`);
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size must be less than 10MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const downloadURL = await uploadAttachment(file, "supporting-documents");
+
+      // Update form with the uploaded URL
+      const event = {
+        target: {
+          name: fieldName,
+          value: downloadURL,
+        },
+      } as any;
+      handleChange(event);
+
+      toast.success("Document uploaded successfully");
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      toast.error("Failed to upload document. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeDocument = (fieldName: string) => {
+    const event = {
+      target: {
+        name: fieldName,
+        value: "",
+      },
+    } as any;
+    handleChange(event);
+  };
   return (
     <div className="space-y-6">
       <div className="bg-blue-50 border border-blue-200 rounded-[10px] p-4">
@@ -44,23 +113,65 @@ export function Step6SupportingDocuments({
           </div>
 
           <div className="space-y-3">
+            {/* File Upload */}
             <div>
-              <Label
-                htmlFor="companyIntroUrl"
-                className="text-sm font-medium text-gray-700"
-              >
-                Document URL
-              </Label>
-              <Input
-                id="companyIntroUrl"
-                name="companyIntroUrl"
-                type="url"
-                value={form.companyIntroUrl}
-                onChange={handleChange}
-                className="mt-1"
-                placeholder="https://example.com/company-intro.pdf"
+              <input
+                type="file"
+                id="companyIntroFile"
+                accept=".pdf,.doc,.docx"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleFileUpload(
+                      file,
+                      "companyIntroUrl",
+                      setUploadingCompanyIntro
+                    );
+                  }
+                }}
+                className="hidden"
+                disabled={uploadingCompanyIntro}
               />
+              <label
+                htmlFor="companyIntroFile"
+                className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
+                  uploadingCompanyIntro ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+              >
+                {uploadingCompanyIntro ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-sm text-gray-600">Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm text-gray-600">
+                      Upload Company Introduction
+                    </span>
+                  </>
+                )}
+              </label>
             </div>
+
+            {/* Show uploaded file */}
+            {form.companyIntroUrl && (
+              <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-green-600" />
+                  <span className="text-sm text-green-800">
+                    Document uploaded successfully
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeDocument("companyIntroUrl")}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
 
             <div className="text-xs text-gray-500">
               <p>Recommended formats: PDF, DOC, DOCX</p>
@@ -79,23 +190,65 @@ export function Step6SupportingDocuments({
           </div>
 
           <div className="space-y-3">
+            {/* File Upload */}
             <div>
-              <Label
-                htmlFor="skillMatrixUrl"
-                className="text-sm font-medium text-gray-700"
-              >
-                Document URL
-              </Label>
-              <Input
-                id="skillMatrixUrl"
-                name="skillMatrixUrl"
-                type="url"
-                value={form.skillMatrixUrl}
-                onChange={handleChange}
-                className="mt-1"
-                placeholder="https://example.com/skill-matrix.xlsx"
+              <input
+                type="file"
+                id="skillMatrixFile"
+                accept=".xlsx,.xls,.csv"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleFileUpload(
+                      file,
+                      "skillMatrixUrl",
+                      setUploadingSkillMatrix
+                    );
+                  }
+                }}
+                className="hidden"
+                disabled={uploadingSkillMatrix}
               />
+              <label
+                htmlFor="skillMatrixFile"
+                className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
+                  uploadingSkillMatrix ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+              >
+                {uploadingSkillMatrix ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-sm text-gray-600">Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm text-gray-600">
+                      Upload Skill Matrix
+                    </span>
+                  </>
+                )}
+              </label>
             </div>
+
+            {/* Show uploaded file */}
+            {form.skillMatrixUrl && (
+              <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <FileSpreadsheet className="w-4 h-4 text-green-600" />
+                  <span className="text-sm text-green-800">
+                    Document uploaded successfully
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeDocument("skillMatrixUrl")}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
 
             <div className="text-xs text-gray-500">
               <p>Recommended formats: XLSX, XLS, CSV</p>

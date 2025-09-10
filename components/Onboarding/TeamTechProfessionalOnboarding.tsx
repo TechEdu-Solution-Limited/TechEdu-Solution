@@ -9,6 +9,7 @@ import { postApiRequest } from "@/lib/apiFetch";
 import { getCookie, setCookie, deleteCookie } from "@/lib/cookies";
 import { Button } from "@/components/ui/button";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+import { useRole } from "@/contexts/RoleContext";
 
 import { safeConsole } from "@/lib/console";
 // Step Components
@@ -94,6 +95,7 @@ export default function TeamTechProfessionalOnboarding() {
   const searchParams = useSearchParams();
   const token = getCookie("token") || getCookie("access_token");
   const userType = "teamTechProfessional";
+  const { userData } = useRole();
 
   // All state hooks must be called first
   const [step, setStep] = useState(0);
@@ -135,6 +137,17 @@ export default function TeamTechProfessionalOnboarding() {
       }
     }
   }, [searchParams, router]);
+
+  // Set teamId to current user's ID when userId is available
+  useEffect(() => {
+    console.log("userId", userId);
+    if (userId) {
+      setForm((prevForm) => ({
+        ...prevForm,
+        teamId: userId,
+      }));
+    }
+  }, [userId]);
 
   // Use onboarding status hook with token
   const {

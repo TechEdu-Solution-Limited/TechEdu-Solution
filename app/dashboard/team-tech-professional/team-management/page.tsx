@@ -217,13 +217,29 @@ export default function TeamManagementPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "accepted":
-        return <Badge className="bg-green-100 text-green-800">Accepted</Badge>;
+        return (
+          <Badge className="bg-green-100 text-green-800 border-green-200">
+            Accepted
+          </Badge>
+        );
       case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+            Pending
+          </Badge>
+        );
       case "declined":
-        return <Badge className="bg-red-100 text-red-800">Declined</Badge>;
+        return (
+          <Badge className="bg-red-100 text-red-800 border-red-200">
+            Declined
+          </Badge>
+        );
       default:
-        return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
+        return (
+          <Badge className="bg-gray-100 text-gray-800 border-gray-200">
+            {status}
+          </Badge>
+        );
     }
   };
 
@@ -411,8 +427,8 @@ export default function TeamManagementPage() {
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Invited At</TableHead>
+                  <TableHead>Joined At</TableHead>
                   <TableHead>Invited By</TableHead>
-                  {/* <TableHead>Joined</TableHead> */}
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -447,6 +463,16 @@ export default function TeamManagementPage() {
                         <Calendar className="w-3 h-3" />
                         {formatDate(member.invitedAt)}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {member.joinedAt ? (
+                        <div className="flex items-center gap-1 text-sm text-gray-600">
+                          <Calendar className="w-3 h-3" />
+                          {formatDate(member.joinedAt)}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-sm text-gray-600">

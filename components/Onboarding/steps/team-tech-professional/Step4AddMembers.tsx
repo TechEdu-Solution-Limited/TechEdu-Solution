@@ -47,6 +47,9 @@ export function Step4AddMembers({
   handleChange,
   teamId,
 }: Step4AddMembersProps) {
+  // Debug: Log the teamId to ensure it's being passed correctly
+  console.log("Step4AddMembers - teamId:", teamId);
+  console.log("Step4AddMembers - form.teamId:", form.teamId);
   const [newMember, setNewMember] = useState({
     userId: "",
     fullName: "",
@@ -70,8 +73,16 @@ export function Step4AddMembers({
         throw new Error("Authentication required");
       }
 
+      // Use teamId from prop or fallback to form.teamId
+      const currentTeamId = teamId || form.teamId;
+      if (!currentTeamId) {
+        throw new Error("Team ID is required to add members");
+      }
+
+      console.log("Adding member to team:", currentTeamId);
+
       await postApiRequest(
-        `/api/teams/${teamId}/invite`,
+        `/api/teams/${currentTeamId}/invite`,
         {
           email: newMember.email,
           role: newMember.role,

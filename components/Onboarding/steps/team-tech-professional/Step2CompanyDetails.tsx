@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -8,6 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { uploadAssetImage } from "@/lib/firebase";
+import { Upload, X, Image as ImageIcon } from "lucide-react";
+import { toast } from "react-toastify";
 
 interface Step2CompanyDetailsProps {
   form: any;
@@ -38,11 +42,109 @@ export function Step2CompanyDetails({
   errors,
   handleChange,
 }: Step2CompanyDetailsProps) {
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string | null>(
+    form.logoUrl || null
+  );
+
   const handleLocationChange = (field: string, value: string) => {
+    // Ensure location object exists
+    const currentLocation = form.location || {};
+
+    // Create a synthetic event that properly handles nested objects
     const event = {
       target: {
-        name: `location.${field}`,
+        name: "location",
+        value: {
+          ...currentLocation,
+          [field]: value,
+        },
+      },
+    } as any;
+
+    console.log("Location change:", field, value, event.target.value);
+    handleChange(event);
+  };
+
+  const handleWebsiteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.trim();
+
+    // Normalize website URL
+    if (
+      value &&
+      !value.startsWith("http://") &&
+      !value.startsWith("https://")
+    ) {
+      // If it starts with www., add https://
+      if (value.startsWith("www.")) {
+        value = `https://${value}`;
+      } else {
+        // Otherwise, add https://
+        value = `https://${value}`;
+      }
+    }
+
+    const event = {
+      target: {
+        name: "website",
         value: value,
+      },
+    } as any;
+    handleChange(event);
+  };
+
+  const handleLogoUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size must be less than 5MB");
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    try {
+      // Create preview
+      const previewUrl = URL.createObjectURL(file);
+      setLogoPreview(previewUrl);
+
+      // Upload to Firebase
+      const downloadURL = await uploadAssetImage(file, "company-logos");
+
+      // Update form with the uploaded URL
+      const event = {
+        target: {
+          name: "logoUrl",
+          value: downloadURL,
+        },
+      } as any;
+      handleChange(event);
+
+      toast.success("Company logo uploaded successfully");
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      toast.error("Failed to upload logo. Please try again.");
+      setLogoPreview(null);
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
+  const removeLogo = () => {
+    setLogoPreview(null);
+    const event = {
+      target: {
+        name: "logoUrl",
+        value: "",
       },
     } as any;
     handleChange(event);
@@ -148,9 +250,9 @@ export function Step2CompanyDetails({
             name="website"
             type="url"
             value={form.website}
-            onChange={handleChange}
+            onChange={handleWebsiteChange}
             className="mt-1 rounded-[10px]"
-            placeholder="https://yourcompany.com"
+            placeholder="yourcompany.com or www.yourcompany.com"
           />
         </div>
 
@@ -201,26 +303,86 @@ export function Step2CompanyDetails({
         </div>
       </div>
 
+      {/* Company Logo Upload */}
+      <div>
+        <Label className="text-sm font-medium text-gray-700 mb-3 block">
+          Company Logo
+        </Label>
+        <div className="flex items-center gap-4">
+          {/* Logo Preview */}
+          {logoPreview && (
+            <div className="relative">
+              <img
+                src={logoPreview}
+                alt="Company logo preview"
+                className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+              />
+              <button
+                type="button"
+                onClick={removeLogo}
+                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Upload Button */}
+          <div className="flex-1">
+            <input
+              type="file"
+              id="logoUpload"
+              accept="image/*"
+              onChange={handleLogoUpload}
+              className="hidden"
+              disabled={isUploadingLogo}
+            />
+            <label
+              htmlFor="logoUpload"
+              className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
+                isUploadingLogo ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
+              {isUploadingLogo ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-sm text-gray-600">Uploading...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 text-gray-600" />
+                  <span className="text-sm text-gray-600">
+                    {logoPreview ? "Change Logo" : "Upload Company Logo"}
+                  </span>
+                </>
+              )}
+            </label>
+            <p className="text-xs text-gray-500 mt-1">
+              Recommended: 200x200px, max 5MB. Supports JPG, PNG, GIF
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div>
         <h4 className="text-sm font-medium text-gray-700 mb-3">
           Company Location *
         </h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Country */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* City */}
           <div>
             <Label
-              htmlFor="location.country"
+              htmlFor="location.city"
               className="text-sm font-medium text-gray-700"
             >
-              Country
+              City
             </Label>
             <Input
-              list="country-options"
-              id="location.country"
-              name="location.country"
-              value={form.location.country}
-              onChange={(e) => handleLocationChange("country", e.target.value)}
-              placeholder="Select or type a country"
+              id="location.city"
+              name="location.city"
+              value={form.location?.city || ""}
+              onChange={(e) => handleLocationChange("city", e.target.value)}
+              placeholder="Enter city name"
               className={`mt-1 ${
                 errors.location ? "border-red-500" : "rounded-[10px]"
               }`}
@@ -237,12 +399,11 @@ export function Step2CompanyDetails({
               State
             </Label>
             <Input
-              list="state-options"
               id="location.state"
               name="location.state"
-              value={form.location.state}
+              value={form.location?.state || ""}
               onChange={(e) => handleLocationChange("state", e.target.value)}
-              placeholder="Select or type a state"
+              placeholder="Enter state name"
               className={`mt-1 ${
                 errors.location ? "border-red-500" : "rounded-[10px]"
               }`}
@@ -250,21 +411,20 @@ export function Step2CompanyDetails({
             />
           </div>
 
-          {/* City */}
+          {/* Country */}
           <div>
             <Label
-              htmlFor="location.city"
+              htmlFor="location.country"
               className="text-sm font-medium text-gray-700"
             >
-              City
+              Country
             </Label>
             <Input
-              list="city-options"
-              id="location.city"
-              name="location.city"
-              value={form.location.city}
-              onChange={(e) => handleLocationChange("city", e.target.value)}
-              placeholder="Select or type a city"
+              id="location.country"
+              name="location.country"
+              value={form.location?.country || ""}
+              onChange={(e) => handleLocationChange("country", e.target.value)}
+              placeholder="Enter country name"
               className={`mt-1 ${
                 errors.location ? "border-red-500" : "rounded-[10px]"
               }`}
