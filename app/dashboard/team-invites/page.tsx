@@ -100,9 +100,44 @@ export default function TeamInvitesPage() {
       setProcessingAction("accept");
       const token = getTokenFromCookies();
 
+      // Fetch user's full profile to get complete information
+      const userResponse = await getApiRequest(
+        "/api/users/me",
+        token || undefined
+      );
+
+      if (userResponse.status >= 400) {
+        throw new Error("Failed to fetch user profile");
+      }
+
+      const userProfile = userResponse.data?.data?.data?.profile;
+      const fullName =
+        userProfile?.fullName || userData?.fullName || "Unknown User";
+      const email = userProfile?.email || userData?.email || "";
+
+      // Debug logging
+      safeConsole.log("User profile:", userProfile);
+      safeConsole.log("UserData from context:", userData);
+      safeConsole.log("Extracted fullName:", fullName);
+      safeConsole.log("Extracted email:", email);
+
+      if (!fullName || fullName === "Unknown User") {
+        throw new Error("User full name is required but not available");
+      }
+
+      const requestBody = {
+        invitationToken,
+        fullName,
+        email,
+        teamName: teamInfo?.teamName || "Unknown Team",
+      };
+
+      // Debug logging
+      safeConsole.log("Sending request body:", requestBody);
+
       const response = await postApiRequest(
         "/api/teams/invite/accept",
-        { invitationToken },
+        requestBody,
         { Authorization: `Bearer ${token}` }
       );
 
@@ -111,6 +146,11 @@ export default function TeamInvitesPage() {
       }
 
       toast.success("Invitation accepted successfully!");
+
+      // Redirect to teams page after successful acceptance
+      setTimeout(() => {
+        window.location.href = "/dashboard/my-teams";
+      }, 1500);
     } catch (error: any) {
       safeConsole.error("Error accepting invitation:", error);
       toast.error(
@@ -144,6 +184,11 @@ export default function TeamInvitesPage() {
       }
 
       toast.success("Invitation declined successfully!");
+
+      // Redirect to dashboard after declining
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 1500);
     } catch (error: any) {
       safeConsole.error("Error declining invitation:", error);
       toast.error(

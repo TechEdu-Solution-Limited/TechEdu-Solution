@@ -442,10 +442,10 @@ export default function CareerDevelopment() {
                 Calls are 15–30 minutes with a real strategist — not a bot.
               </p>
               <Link href="/contact#contact-form">
-          <button className="bg-[#0D1140] text-white px-6 py-4 rounded-[8px] hover:bg-blue-700 transition-colors duration-200">
-            Book a Free Consultation
-          </button>
-          </Link>
+                <button className="bg-[#0D1140] text-white px-6 py-4 rounded-[8px] hover:bg-blue-700 transition-colors duration-200">
+                  Book a Free Consultation
+                </button>
+              </Link>
             </div>
 
             {/* <div className="bg-white rounded-[10px] shadow-sm p-4 mb-6">

@@ -23,26 +23,24 @@ export function Step1TeamLeadInfo({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label
-            htmlFor="teamLeadFullName"
+            htmlFor="fullName"
             className="text-sm font-medium text-gray-700"
           >
             Team Lead Full Name *
           </Label>
           <Input
-            id="teamLeadFullName"
-            name="teamLeadFullName"
+            id="fullName"
+            name="fullName"
             type="text"
-            value={form.teamLeadFullName}
+            value={form.fullName}
             onChange={handleChange}
             className={`mt-1 ${
-              errors.teamLeadFullName ? "border-red-500" : "rounded-[10px]"
+              errors.fullName ? "border-red-500" : "rounded-[10px]"
             }`}
             placeholder="Enter team lead's full name"
           />
-          {errors.teamLeadFullName && (
-            <p className="text-red-500 text-xs mt-1">
-              {errors.teamLeadFullName}
-            </p>
+          {errors.fullName && (
+            <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>
           )}
         </div>
 

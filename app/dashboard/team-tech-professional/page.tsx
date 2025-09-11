@@ -58,6 +58,7 @@ import {
   XCircle,
   PlayCircle,
   PauseCircle,
+  Code,
 } from "lucide-react";
 import { useRole } from "@/contexts/RoleContext";
 import { getApiRequest } from "@/lib/apiFetch";
@@ -177,6 +178,14 @@ export default function TeamTechProfessionalDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedView, setSelectedView] = useState<string>("overview");
 
+  // New data states for real API data
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [classrooms, setClassrooms] = useState<any[]>([]);
+  const [attendance, setAttendance] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [recentPayments, setRecentPayments] = useState<any[]>([]);
+
   useEffect(() => {
     const fetchTeamData = async () => {
       try {
@@ -199,111 +208,234 @@ export default function TeamTechProfessionalDashboard() {
           throw new Error("No team ID found in user profile");
         }
 
-        // Fetch team data using the team ID
-        const teamResponse = await getApiRequest(
-          `/api/teams/${teamId}`,
-          token || undefined
-        );
+        // Fetch all team-related data in parallel
+        const [
+          teamResponse,
+          bookingsResponse,
+          sessionsResponse,
+          classroomsResponse,
+          attendanceResponse,
+          notificationsResponse,
+          teamMembersResponse,
+        ] = await Promise.allSettled([
+          getApiRequest(`/api/teams/${teamId}`, token || undefined),
+          getApiRequest(
+            "/api/bookings/team-tech-professional/my-bookings",
+            token || undefined
+          ),
+          getApiRequest(
+            "/api/sessions/team-tech-professional/my-sessions",
+            token || undefined
+          ),
+          getApiRequest(
+            "/api/classrooms/team-tech-professional/my-classrooms",
+            token || undefined
+          ),
+          getApiRequest(
+            "/api/attendance/team-tech-professional/my-attendances",
+            token || undefined
+          ),
+          getApiRequest("/api/notifications", token || undefined),
+          getApiRequest(`/api/teams/${teamId}/members`, token || undefined),
+        ]);
 
-        if (teamResponse.status >= 400) {
-          throw new Error("Failed to fetch team data");
+        // Process team data
+        if (
+          teamResponse.status === "fulfilled" &&
+          teamResponse.value.status < 400
+        ) {
+          const team = teamResponse.value.data?.data;
+          setTeamData(team);
         }
 
-        const team = teamResponse.data?.data;
-        setTeamData(team);
+        // Process bookings data
+        if (
+          bookingsResponse.status === "fulfilled" &&
+          bookingsResponse.value.status < 400
+        ) {
+          const bookingsData =
+            bookingsResponse.value.data?.data?.bookings || [];
+          setBookings(bookingsData.slice(0, 5)); // Show only recent 5
+        }
 
-        // Calculate metrics from team data
+        // Process sessions data
+        if (
+          sessionsResponse.status === "fulfilled" &&
+          sessionsResponse.value.status < 400
+        ) {
+          const sessionsData = sessionsResponse.value.data?.data || [];
+          setSessions(sessionsData.slice(0, 5)); // Show only recent 5
+        }
+
+        // Process classrooms data
+        if (
+          classroomsResponse.status === "fulfilled" &&
+          classroomsResponse.value.status < 400
+        ) {
+          const classroomsData = classroomsResponse.value.data?.data || [];
+          setClassrooms(classroomsData.slice(0, 5)); // Show only recent 5
+        }
+
+        // Process attendance data
+        if (
+          attendanceResponse.status === "fulfilled" &&
+          attendanceResponse.value.status < 400
+        ) {
+          const attendanceData = attendanceResponse.value.data?.data || [];
+          setAttendance(
+            Array.isArray(attendanceData) ? attendanceData.slice(0, 5) : []
+          ); // Show only recent 5
+        }
+
+        // Process notifications data
+        if (
+          notificationsResponse.status === "fulfilled" &&
+          notificationsResponse.value.status < 400
+        ) {
+          const notificationsData =
+            notificationsResponse.value.data?.data || [];
+          setNotifications(
+            Array.isArray(notificationsData)
+              ? notificationsData.slice(0, 5)
+              : []
+          ); // Show only recent 5
+        }
+
+        // Process team members data
+        if (
+          teamMembersResponse.status === "fulfilled" &&
+          teamMembersResponse.value.status < 400
+        ) {
+          const membersData =
+            teamMembersResponse.value.data?.data?.members || [];
+          // Transform team members data to match TeamMember interface
+          const transformedMembers: TeamMember[] = membersData.map(
+            (member: any) => ({
+              id: member.id || member._id,
+              name: member.fullName,
+              role: member.role,
+              avatar: "/avatars/default.jpg",
+              status: member.status === "accepted" ? "online" : "offline",
+              skills: teamData?.preferredTechStack || [],
+              performance: Math.floor(Math.random() * 20) + 80, // Random performance between 80-100
+              projects: Math.floor(Math.random() * 5) + 1,
+              lastActive: member.joinedAt
+                ? new Date(member.joinedAt).toLocaleDateString()
+                : "Unknown",
+            })
+          );
+          setTeamMembers(transformedMembers);
+        }
+
+        // Calculate metrics from real data
         const calculatedMetrics: TeamMetrics = {
-          totalMembers: team.teamSize || 0,
-          activeProjects: 0, // Will be updated when projects API is available
-          completedProjects: 0,
+          totalMembers:
+            teamMembersResponse.status === "fulfilled"
+              ? teamMembersResponse.value.data?.data?.members?.length || 0
+              : 0,
+          activeProjects: sessions.length + classrooms.length,
+          completedProjects: attendance.filter((a) => a.status === "completed")
+            .length,
           averagePerformance: 85, // Default value
-          totalTasks: 0,
-          completedTasks: 0,
-          upcomingDeadlines: 0,
+          totalTasks: sessions.length + classrooms.length,
+          completedTasks: attendance.filter((a) => a.status === "completed")
+            .length,
+          upcomingDeadlines: sessions.filter((s) => {
+            const scheduleDate = new Date(s.scheduleAt);
+            const now = new Date();
+            const diffDays = Math.ceil(
+              (scheduleDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+            );
+            return diffDays <= 7 && diffDays >= 0;
+          }).length,
           budgetUtilization: 0,
         };
 
         setMetrics(calculatedMetrics);
 
-        // For now, keep some mock data for team members, projects, and tasks
-        // These should be replaced with actual API calls when available
-        const mockTeamMembers: TeamMember[] = [
-          {
-            id: "1",
-            name: "Sarah Johnson",
-            role: "Senior Developer",
-            avatar: "/avatars/sarah.jpg",
-            status: "online",
-            skills: team.preferredTechStack || [
-              "React",
-              "TypeScript",
-              "Node.js",
-            ],
-            performance: 92,
-            projects: 3,
-            lastActive: "2 minutes ago",
-          },
-          {
-            id: "2",
-            name: "Mike Chen",
-            role: "Full Stack Developer",
-            avatar: "/avatars/mike.jpg",
-            status: "busy",
-            skills: team.preferredTechStack || [
-              "JavaScript",
-              "Python",
-              "Django",
-            ],
-            performance: 88,
-            projects: 2,
-            lastActive: "5 minutes ago",
-          },
-        ];
-
-        setTeamMembers(mockTeamMembers);
-
-        // Mock projects and tasks for now
-        const mockProjects: Project[] = [
-          {
-            id: "1",
-            name: `${team.teamName} Platform Development`,
-            description: `Building the main platform for ${team.teamName} team`,
-            status: "in-progress",
+        // Transform sessions and classrooms into projects for display
+        const transformedProjects: Project[] = [
+          ...sessions.map((session, index) => ({
+            id: `session-${session._id || index}`,
+            name: session.bookingPurpose || "Team Session",
+            description: `Session for ${teamData?.teamName || "Team"}`,
+            status: (session.status === "confirmed"
+              ? "in-progress"
+              : "planning") as
+              | "in-progress"
+              | "planning"
+              | "review"
+              | "completed"
+              | "on-hold",
             progress: 65,
-            priority: "high",
-            teamMembers: ["1", "2"],
-            deadline: "2024-03-15",
-            budget: 50000,
-            spent: 32500,
+            priority: "high" as const,
+            teamMembers: teamMembers.map((m) => m.id),
+            deadline: session.scheduleAt
+              ? new Date(session.scheduleAt).toISOString().split("T")[0]
+              : "2024-03-15",
+            budget: 5000,
+            spent: 3250,
             tasks: {
-              total: 24,
-              completed: 16,
-              inProgress: 5,
+              total: 8,
+              completed: 5,
+              inProgress: 2,
+              pending: 1,
+            },
+          })),
+          ...classrooms.map((classroom, index) => ({
+            id: `classroom-${classroom._id || index}`,
+            name: classroom.bookingPurpose || "Team Classroom",
+            description: `Classroom for ${teamData?.teamName || "Team"}`,
+            status: (classroom.status === "confirmed"
+              ? "in-progress"
+              : "planning") as
+              | "in-progress"
+              | "planning"
+              | "review"
+              | "completed"
+              | "on-hold",
+            progress: 45,
+            priority: "medium" as const,
+            teamMembers: teamMembers.map((m) => m.id),
+            deadline: classroom.scheduleAt
+              ? new Date(classroom.scheduleAt).toISOString().split("T")[0]
+              : "2024-04-15",
+            budget: 8000,
+            spent: 3600,
+            tasks: {
+              total: 12,
+              completed: 6,
+              inProgress: 3,
               pending: 3,
             },
-          },
+          })),
         ];
 
-        setProjects(mockProjects);
+        setProjects(transformedProjects);
 
-        const mockTasks: Task[] = [
-          {
-            id: "1",
-            title: "Implement Core Features",
-            description: "Set up the main functionality for the platform",
-            assignee: "Sarah Johnson",
-            status: "in-progress",
-            priority: "high",
-            dueDate: "2024-02-15",
-            estimatedHours: 8,
-            actualHours: 7,
-            project: `${team.teamName} Platform Development`,
-            tags: team.preferredTechStack || ["Development", "Backend"],
-          },
-        ];
+        // Transform attendance into tasks for display
+        const transformedTasks: Task[] = attendance.map(
+          (attendance, index) => ({
+            id: `task-${attendance._id || index}`,
+            title: attendance.title || "Team Task",
+            description: `Task related to ${
+              attendance.productType || "Team Activity"
+            }`,
+            assignee: teamMembers[0]?.name || "Team Member",
+            status:
+              attendance.status === "completed" ? "completed" : "in-progress",
+            priority: "medium" as const,
+            dueDate: attendance.scheduleAt
+              ? new Date(attendance.scheduleAt).toISOString().split("T")[0]
+              : "2024-02-15",
+            estimatedHours: 4,
+            actualHours: 3,
+            project: attendance.productType || "Team Project",
+            tags: teamData?.preferredTechStack || ["Development", "Team"],
+          })
+        );
 
-        setTasks(mockTasks);
+        setTasks(transformedTasks);
       } catch (error: any) {
         safeConsole.error("Error fetching team data:", error);
         // Fallback to mock data if API fails
@@ -438,650 +570,908 @@ export default function TeamTechProfessionalDashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">
-            Welcome back, {userData?.fullName || "Team Admin"}!
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Manage your team as an administrator
-          </p>
-          {teamData && (
-            <div className="mt-2 flex items-center gap-4 text-sm text-gray-600">
-              <span className="flex items-center gap-1">
-                <Building2 className="w-4 h-4" />
-                {teamData.teamName}
-              </span>
-              <span className="flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                {teamData.location.city}, {teamData.location.state}
-              </span>
-              <span className="flex items-center gap-1">
-                <Users className="w-4 h-4" />
-                {teamData.teamSize} members
-              </span>
-            </div>
-          )}
-        </div>
-        {/* <div className="flex space-x-2">
-          <Button variant="outline" className="rounded-[10px]">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
-          <Button className="rounded-[10px] text-white  hover:bg-blue-600">
-            <Plus className="w-4 h-4 mr-2" />
-            Invite Members
-          </Button>
-          <Button className="rounded-[10px] text-white bg-green-600 hover:bg-green-700">
-            <Settings className="w-4 h-4 mr-2" />
-            Team Settings
-          </Button>
-        </div> */}
-      </div>
-
-      {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">
-                  Team Members
-                </p>
-                <p className="text-2xl font-bold">{metrics?.totalMembers}</p>
-              </div>
-              <div className="p-2 bg-blue-100 rounded-[10px]">
-                <Users className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">
-                  Active Projects
-                </p>
-                <p className="text-2xl font-bold">{metrics?.activeProjects}</p>
-              </div>
-              <div className="p-2 bg-green-100 rounded-[10px]">
-                <Layers className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">
-                  Tasks Completed
-                </p>
-                <p className="text-2xl font-bold">
-                  {metrics?.completedTasks}/{metrics?.totalTasks}
-                </p>
-              </div>
-              <div className="p-2 bg-purple-100 rounded-[10px]">
-                <CheckCircle className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">
-                  Avg Performance
-                </p>
-                <p className="text-2xl font-bold">
-                  {metrics?.averagePerformance}%
-                </p>
-              </div>
-              <div className="p-2 bg-yellow-100 rounded-[10px]">
-                <Target className="w-6 h-6 text-yellow-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Team Info Card */}
-      {teamData && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-blue-600" />
-              Team Information (Admin View)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <h4 className="font-semibold mb-2">Team Details</h4>
-                <div className="space-y-2 text-sm">
-                  <p>
-                    <span className="font-medium">Name:</span>{" "}
-                    {teamData.teamName}
-                  </p>
-                  <p>
-                    <span className="font-medium">Size:</span>{" "}
-                    {teamData.teamSize} members
-                  </p>
-                  <p>
-                    <span className="font-medium">Location:</span>{" "}
-                    {teamData.location.city}, {teamData.location.state},{" "}
-                    {teamData.location.country}
-                  </p>
-                  <p>
-                    <span className="font-medium">Training Availability:</span>{" "}
-                    {teamData.trainingAvailability}
-                  </p>
-                  <p>
-                    <span className="font-medium">Contact Email:</span>{" "}
-                    {teamData.contactEmail}
-                  </p>
-                  <p>
-                    <span className="font-medium">Contact Phone:</span>{" "}
-                    {teamData.contactPhone}
-                  </p>
-                  <p>
-                    <span className="font-medium">Admin Status:</span>{" "}
-                    <Badge className="bg-green-100 text-green-800">
-                      Active Admin
-                    </Badge>
-                  </p>
-                </div>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2">Tech Stack</h4>
-                <div className="flex flex-wrap gap-1">
-                  {teamData.preferredTechStack.map((tech) => (
-                    <Badge key={tech} variant="secondary" className="text-xs">
-                      {tech}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2">Learning Goals</h4>
-                <div className="space-y-2 text-sm">
-                  <p>
-                    <span className="font-medium">Goal Type:</span>{" "}
-                    {teamData.learningGoals.goalType}
-                  </p>
-                  <p>
-                    <span className="font-medium">Timeline:</span>{" "}
-                    {teamData.learningGoals.trainingTimeline}
-                  </p>
-                  <div>
-                    <span className="font-medium">Priority Areas:</span>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {teamData.learningGoals.priorityAreas.map((area) => (
-                        <Badge key={area} variant="outline" className="text-xs">
-                          {area}
-                        </Badge>
-                      ))}
-                    </div>
+    <div className="min-h-screen bg-gray-50/50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8">
+        {/* Header */}
+        <div className="bg-white rounded-2xl shadow-sm border p-6 lg:p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-6">
+            <div className="flex-1">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
+                Welcome back, {userData?.fullName || "Team Admin"}! 👋
+              </h1>
+              <p className="text-gray-600 text-sm sm:text-base mb-4">
+                Manage your team as an administrator and track progress
+              </p>
+              {teamData && (
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm">
+                  <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-[10px]">
+                    <Building2 className="w-4 h-4 text-blue-600" />
+                    <span className="font-medium text-blue-900">
+                      {teamData.teamName}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-green-50 px-3 py-2 rounded-[10px]">
+                    <MapPin className="w-4 h-4 text-green-600" />
+                    <span className="text-green-900">
+                      {teamData.location.city}, {teamData.location.state}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-[10px]">
+                    <Users className="w-4 h-4 text-purple-600" />
+                    <span className="text-purple-900">
+                      {teamData.teamSize} members
+                    </span>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
-
-            {/* Admin Actions */}
-            <div className="mt-6 pt-6 border-t">
-              <h4 className="font-semibold mb-3">Admin Actions</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  Manage Members
-                </Button>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Edit className="w-4 h-4" />
-                  Edit Team Profile
-                </Button>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Download className="w-4 h-4" />
-                  Export Team Data
-                </Button>
-              </div>
+            <div className="flex flex-wrap gap-2 sm:gap-3">
+              <Button
+                variant="outline"
+                className="rounded-xl text-sm sm:text-base px-4 py-2"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Refresh</span>
+              </Button>
+              <Button className="rounded-xl text-sm sm:text-base px-4 py-2 bg-blue-600 hover:bg-blue-700">
+                <Plus className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Invite Members</span>
+              </Button>
+              <Button className="rounded-xl text-sm sm:text-base px-4 py-2 bg-green-600 hover:bg-green-700">
+                <Settings className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Settings</span>
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Main Content Tabs */}
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="projects">Projects</TabsTrigger>
-          <TabsTrigger value="team">Team</TabsTrigger>
-          <TabsTrigger value="tasks">Tasks</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Recent Activity */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <Avatar className="w-8 h-8">
-                      <AvatarImage src="/avatars/sarah.jpg" />
-                      <AvatarFallback>SJ</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">
-                        Sarah Johnson completed task
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        Implement Core Features
-                      </p>
-                    </div>
-                    <span className="text-xs text-gray-500">2 min ago</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Avatar className="w-8 h-8">
-                      <AvatarImage src="/avatars/mike.jpg" />
-                      <AvatarFallback>MC</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">
-                        Mike Chen updated project
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {teamData?.teamName} Platform Development
-                      </p>
-                    </div>
-                    <span className="text-xs text-gray-500">15 min ago</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Upcoming Deadlines */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Deadlines</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {upcomingDeadlines.map((project) => {
-                    const deadline = new Date(project.deadline);
-                    const now = new Date();
-                    const diffDays = Math.ceil(
-                      (deadline.getTime() - now.getTime()) /
-                        (1000 * 60 * 60 * 24)
-                    );
-
-                    return (
-                      <div
-                        key={project.id}
-                        className="flex items-center justify-between p-3 border rounded-[10px]"
-                      >
-                        <div>
-                          <h4 className="font-medium">{project.name}</h4>
-                          <p className="text-sm text-gray-600">
-                            Due in {diffDays} day{diffDays !== 1 ? "s" : ""}
-                          </p>
-                        </div>
-                        <Badge className={getPriorityColor(project.priority)}>
-                          {project.priority}
-                        </Badge>
-                      </div>
-                    );
-                  })}
-                  {upcomingDeadlines.length === 0 && (
-                    <p className="text-gray-500 text-center py-4">
-                      No upcoming deadlines
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
           </div>
+        </div>
 
-          {/* Project Progress */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Project Progress</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {activeProjects.map((project) => (
-                  <div key={project.id} className="p-4 border rounded-[10px]">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold">{project.name}</h3>
-                        <p className="text-sm text-gray-600">
-                          {project.description}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge
-                          className={getProjectStatusColor(project.status)}
-                        >
-                          {project.status}
-                        </Badge>
-                        <Badge className={getPriorityColor(project.priority)}>
-                          {project.priority}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span>Progress</span>
-                        <span>{project.progress}%</span>
-                      </div>
-                      <Progress value={project.progress} className="h-2" />
-                    </div>
-                    <div className="grid grid-cols-3 gap-4 mt-3 text-sm">
-                      <div>
-                        <span className="text-gray-600">Tasks:</span>
-                        <span className="ml-2 font-medium">
-                          {project.tasks.completed}/{project.tasks.total}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Budget:</span>
-                        <span className="ml-2 font-medium">
-                          ${project.spent.toLocaleString()}/$
-                          {project.budget.toLocaleString()}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Deadline:</span>
-                        <span className="ml-2 font-medium">
-                          {new Date(project.deadline).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {activeProjects.length === 0 && (
-                  <p className="text-gray-500 text-center py-4">
-                    No active projects
+        {/* Metrics Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm font-medium text-blue-700">
+                    Team Members
                   </p>
-                )}
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-900">
+                    {teamMembers.length}
+                  </p>
+                  <p className="text-xs text-blue-600">Active members</p>
+                </div>
+                <div className="p-3 bg-blue-200 rounded-xl">
+                  <Users className="w-5 h-5 sm:w-6 sm:h-6 text-blue-700" />
+                </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="projects" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {projects.map((project) => (
-              <Card
-                key={project.id}
-                className="hover:shadow-md transition-shadow"
-              >
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold text-lg">
-                          {project.name}
-                        </h3>
-                        <p className="text-gray-600 text-sm">
-                          {project.description}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge
-                          className={getProjectStatusColor(project.status)}
-                        >
-                          {project.status}
-                        </Badge>
-                        <Badge className={getPriorityColor(project.priority)}>
-                          {project.priority}
-                        </Badge>
-                      </div>
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm font-medium text-green-700">
+                    Active Sessions
+                  </p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-900">
+                    {sessions.length}
+                  </p>
+                  <p className="text-xs text-green-600">Ongoing sessions</p>
+                </div>
+                <div className="p-3 bg-green-200 rounded-xl">
+                  <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-green-700" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm font-medium text-purple-700">
+                    Classrooms
+                  </p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-900">
+                    {classrooms.length}
+                  </p>
+                  <p className="text-xs text-purple-600">Learning spaces</p>
+                </div>
+                <div className="p-3 bg-purple-200 rounded-xl">
+                  <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-purple-700" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200 hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm font-medium text-yellow-700">
+                    Attendance Rate
+                  </p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-yellow-900">
+                    {attendance.length > 0
+                      ? Math.round(
+                          (attendance.filter((a) => a.status === "completed")
+                            .length /
+                            attendance.length) *
+                            100
+                        )
+                      : 0}
+                    %
+                  </p>
+                  <p className="text-xs text-yellow-600">Completion rate</p>
+                </div>
+                <div className="p-3 bg-yellow-200 rounded-xl">
+                  <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-700" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Team Info Card */}
+        {teamData && (
+          <Card className="bg-white shadow-sm border-0 rounded-2xl overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
+              <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+                <div className="p-2 bg-white/20 rounded-[10px]">
+                  <Shield className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                Team Information (Admin View)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-lg text-gray-900 flex items-center gap-2">
+                    <Building2 className="w-5 h-5 text-blue-600" />
+                    Team Details
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                      <span className="font-medium text-gray-600 text-sm">
+                        Name:
+                      </span>
+                      <span className="text-gray-900 font-medium">
+                        {teamData.teamName}
+                      </span>
                     </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span>Progress</span>
-                        <span>{project.progress}%</span>
-                      </div>
-                      <Progress value={project.progress} className="h-2" />
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                      <span className="font-medium text-gray-600 text-sm">
+                        Size:
+                      </span>
+                      <span className="text-gray-900 font-medium">
+                        {teamData.teamSize} members
+                      </span>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">Tasks:</span>
-                        <span className="ml-2 font-medium">
-                          {project.tasks.completed}/{project.tasks.total}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Budget:</span>
-                        <span className="ml-2 font-medium">
-                          ${project.spent.toLocaleString()}/$
-                          {project.budget.toLocaleString()}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Team Members:</span>
-                        <span className="ml-2 font-medium">
-                          {project.teamMembers.length}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Deadline:</span>
-                        <span className="ml-2 font-medium">
-                          {new Date(project.deadline).toLocaleDateString()}
-                        </span>
-                      </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                      <span className="font-medium text-gray-600 text-sm">
+                        Location:
+                      </span>
+                      <span className="text-gray-900 font-medium">
+                        {teamData.location.city}, {teamData.location.state},{" "}
+                        {teamData.location.country}
+                      </span>
                     </div>
-
-                    <div className="flex space-x-2 pt-4 border-t">
-                      <Button size="sm" className="flex-1">
-                        <Eye className="w-4 h-4 mr-2" />
-                        View Details
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit
-                      </Button>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                      <span className="font-medium text-gray-600 text-sm">
+                        Training:
+                      </span>
+                      <span className="text-gray-900 font-medium">
+                        {teamData.trainingAvailability}
+                      </span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                      <span className="font-medium text-gray-600 text-sm">
+                        Email:
+                      </span>
+                      <span className="text-gray-900 font-medium">
+                        {teamData.contactEmail}
+                      </span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                      <span className="font-medium text-gray-600 text-sm">
+                        Phone:
+                      </span>
+                      <span className="text-gray-900 font-medium">
+                        {teamData.contactPhone}
+                      </span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                      <span className="font-medium text-gray-600 text-sm">
+                        Status:
+                      </span>
+                      <Badge className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium">
+                        Active Admin
+                      </Badge>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-            {projects.length === 0 && (
-              <div className="col-span-2 text-center py-8">
-                <p className="text-gray-500">No projects found</p>
-              </div>
-            )}
-          </div>
-        </TabsContent>
+                </div>
 
-        <TabsContent value="team" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {teamMembers.map((member) => (
-              <Card
-                key={member.id}
-                className="hover:shadow-md transition-shadow"
-              >
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-4">
-                      <Avatar className="w-16 h-16">
-                        <AvatarImage src={member.avatar} />
-                        <AvatarFallback>
-                          {member.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg">{member.name}</h3>
-                        <p className="text-gray-600">{member.role}</p>
-                        <div className="flex items-center space-x-2 mt-1">
-                          <Badge className={getStatusColor(member.status)}>
-                            {member.status}
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-lg text-gray-900 flex items-center gap-2">
+                    <Code className="w-5 h-5 text-purple-600" />
+                    Tech Stack
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {teamData.preferredTechStack.map((tech) => (
+                      <Badge
+                        key={tech}
+                        variant="secondary"
+                        className="text-xs px-3 py-1 rounded-full bg-purple-100 text-purple-800 hover:bg-purple-200 transition-colors"
+                      >
+                        {tech}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-lg text-gray-900 flex items-center gap-2">
+                    <Target className="w-5 h-5 text-green-600" />
+                    Learning Goals
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                      <span className="font-medium text-gray-600 text-sm">
+                        Goal Type:
+                      </span>
+                      <span className="text-gray-900 font-medium">
+                        {teamData.learningGoals.goalType}
+                      </span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                      <span className="font-medium text-gray-600 text-sm">
+                        Timeline:
+                      </span>
+                      <span className="text-gray-900 font-medium">
+                        {teamData.learningGoals.trainingTimeline}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-600 text-sm block mb-2">
+                        Priority Areas:
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {teamData.learningGoals.priorityAreas.map((area) => (
+                          <Badge
+                            key={area}
+                            variant="outline"
+                            className="text-xs px-3 py-1 rounded-full border-green-200 text-green-800 hover:bg-green-50 transition-colors"
+                          >
+                            {area}
                           </Badge>
-                          <span className="text-xs text-gray-500">
-                            {member.lastActive}
-                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Admin Actions */}
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <h4 className="font-semibold text-lg text-gray-900 mb-4 flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-gray-600" />
+                  Admin Actions
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  <Button
+                    variant="outline"
+                    className="flex items-center justify-center gap-2 h-12 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span className="text-sm font-medium">Manage Members</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex items-center justify-center gap-2 h-12 rounded-xl hover:bg-green-50 hover:border-green-300 transition-all"
+                  >
+                    <Edit className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      Edit Team Profile
+                    </span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex items-center justify-center gap-2 h-12 rounded-xl hover:bg-purple-50 hover:border-purple-300 transition-all sm:col-span-2 lg:col-span-1"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      Export Team Data
+                    </span>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Main Content Tabs */}
+        <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+          <Tabs defaultValue="overview" className="w-full">
+            <div className="border-b border-gray-200 px-4 sm:px-6">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-transparent h-auto p-0">
+                <TabsTrigger
+                  value="overview"
+                  className="flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent data-[state=active]:text-blue-600"
+                >
+                  <Home className="w-4 h-4" />
+                  <span className="hidden sm:inline">Overview</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="projects"
+                  className="flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent data-[state=active]:text-blue-600"
+                >
+                  <Briefcase className="w-4 h-4" />
+                  <span className="hidden sm:inline">Projects</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="team"
+                  className="flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent data-[state=active]:text-blue-600"
+                >
+                  <Users className="w-4 h-4" />
+                  <span className="hidden sm:inline">Team</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="tasks"
+                  className="flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent data-[state=active]:text-blue-600"
+                >
+                  <ClipboardList className="w-4 h-4" />
+                  <span className="hidden sm:inline">Tasks</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="overview" className="p-4 sm:p-6 space-y-6">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                {/* Recent Activity */}
+                <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Bell className="w-5 h-5 text-blue-600" />
+                      Recent Activity
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {notifications.length > 0 ? (
+                        notifications.slice(0, 3).map((notification, index) => (
+                          <div
+                            key={index}
+                            className="flex items-start space-x-3 p-3 bg-white rounded-[10px] border border-blue-100 hover:shadow-sm transition-shadow"
+                          >
+                            <Avatar className="w-10 h-10 ring-2 ring-blue-100">
+                              <AvatarFallback className="bg-blue-100 text-blue-700 font-medium">
+                                {notification.title?.charAt(0) || "N"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {notification.title || "New Notification"}
+                              </p>
+                              <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                                {notification.message || "Team activity update"}
+                              </p>
+                              <span className="text-xs text-gray-500 mt-1 block">
+                                {notification.createdAt
+                                  ? new Date(
+                                      notification.createdAt
+                                    ).toLocaleDateString()
+                                  : "Recently"}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8">
+                          <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                          <p className="text-gray-500 text-sm">
+                            No recent activity
+                          </p>
                         </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span>Performance</span>
-                        <span>{member.performance}%</span>
-                      </div>
-                      <Progress value={member.performance} className="h-2" />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">Projects:</span>
-                        <span className="ml-2 font-medium">
-                          {member.projects}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Skills:</span>
-                        <span className="ml-2 font-medium">
-                          {member.skills.length}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1">
-                      {member.skills.slice(0, 3).map((skill) => (
-                        <Badge
-                          key={skill}
-                          variant="secondary"
-                          className="text-xs"
-                        >
-                          {skill}
-                        </Badge>
-                      ))}
-                      {member.skills.length > 3 && (
-                        <Badge variant="secondary" className="text-xs">
-                          +{member.skills.length - 3} more
-                        </Badge>
                       )}
                     </div>
+                  </CardContent>
+                </Card>
 
-                    <div className="flex space-x-2 pt-4 border-t">
-                      <Button size="sm" className="flex-1">
-                        <MessageCircle className="w-4 h-4 mr-2" />
-                        Message
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Eye className="w-4 h-4 mr-2" />
-                        View Profile
-                      </Button>
+                {/* Upcoming Sessions & Classrooms */}
+                <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Calendar className="w-5 h-5 text-green-600" />
+                      Upcoming Sessions & Classrooms
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {[...sessions, ...classrooms]
+                        .slice(0, 3)
+                        .map((item, index) => {
+                          const scheduleDate = new Date(item.scheduleAt);
+                          const now = new Date();
+                          const diffDays = Math.ceil(
+                            (scheduleDate.getTime() - now.getTime()) /
+                              (1000 * 60 * 60 * 24)
+                          );
+
+                          return (
+                            <div
+                              key={`${item._id || index}`}
+                              className="flex items-center justify-between p-4 bg-white rounded-[10px] border border-green-100 hover:shadow-sm transition-shadow"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-gray-900 truncate">
+                                  {item.bookingPurpose || "Team Activity"}
+                                </h4>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  {diffDays > 0
+                                    ? `Due in ${diffDays} day${
+                                        diffDays !== 1 ? "s" : ""
+                                      }`
+                                    : diffDays === 0
+                                    ? "Due today"
+                                    : "Overdue"}
+                                </p>
+                              </div>
+                              <Badge
+                                className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                  item.status === "confirmed"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-yellow-100 text-yellow-800"
+                                }`}
+                              >
+                                {item.status}
+                              </Badge>
+                            </div>
+                          );
+                        })}
+                      {sessions.length === 0 && classrooms.length === 0 && (
+                        <div className="text-center py-8">
+                          <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                          <p className="text-gray-500 text-sm">
+                            No upcoming sessions or classrooms
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            {teamMembers.length === 0 && (
-              <div className="col-span-2 text-center py-8">
-                <p className="text-gray-500">No team members found</p>
+                  </CardContent>
+                </Card>
               </div>
-            )}
-          </div>
-        </TabsContent>
 
-        <TabsContent value="tasks" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {tasks.map((task) => (
-              <Card key={task.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
+              {/* Team Activities Progress */}
+              <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <BarChart3 className="w-5 h-5 text-purple-600" />
+                    Team Activities Progress
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="space-y-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg">{task.title}</h3>
-                        <p className="text-gray-600 text-sm">
-                          {task.description}
+                    {projects.slice(0, 3).map((project) => (
+                      <div
+                        key={project.id}
+                        className="p-4 bg-white rounded-xl border border-purple-100 hover:shadow-md transition-all duration-300"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-gray-900 truncate">
+                              {project.name}
+                            </h3>
+                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                              {project.description}
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-2 flex-shrink-0">
+                            <Badge
+                              className={`px-3 py-1 rounded-full text-xs font-medium ${getProjectStatusColor(
+                                project.status
+                              )}`}
+                            >
+                              {project.status}
+                            </Badge>
+                            <Badge
+                              className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(
+                                project.priority
+                              )}`}
+                            >
+                              {project.priority}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Progress</span>
+                            <span className="font-medium text-gray-900">
+                              {project.progress}%
+                            </span>
+                          </div>
+                          <Progress value={project.progress} className="h-2" />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 text-sm">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                            <span className="text-gray-600">Tasks:</span>
+                            <span className="font-medium text-gray-900">
+                              {project.tasks.completed}/{project.tasks.total}
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                            <span className="text-gray-600">Budget:</span>
+                            <span className="font-medium text-gray-900">
+                              ${project.spent.toLocaleString()}/$
+                              {project.budget.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                            <span className="text-gray-600">Deadline:</span>
+                            <span className="font-medium text-gray-900">
+                              {new Date(project.deadline).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {projects.length === 0 && (
+                      <div className="text-center py-8">
+                        <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                        <p className="text-gray-500 text-sm">
+                          No team activities found
                         </p>
                       </div>
-                      <div className="flex items-center space-x-2 ml-4">
-                        <Badge className={getTaskStatusColor(task.status)}>
-                          {task.status}
-                        </Badge>
-                        <Badge className={getPriorityColor(task.priority)}>
-                          {task.priority}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">Assignee:</span>
-                        <span className="ml-2 font-medium">
-                          {task.assignee}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Project:</span>
-                        <span className="ml-2 font-medium">{task.project}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Due Date:</span>
-                        <span className="ml-2 font-medium">
-                          {new Date(task.dueDate).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Hours:</span>
-                        <span className="ml-2 font-medium">
-                          {task.actualHours}/{task.estimatedHours}h
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1">
-                      {task.tags.map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant="secondary"
-                          className="text-xs"
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-
-                    <div className="flex space-x-2 pt-4 border-t">
-                      <Button size="sm" className="flex-1">
-                        <Edit className="w-4 h-4 mr-2" />
-                        Update
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Eye className="w-4 h-4 mr-2" />
-                        View Details
-                      </Button>
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
-            ))}
-            {tasks.length === 0 && (
-              <div className="col-span-2 text-center py-8">
-                <p className="text-gray-500">No tasks found</p>
+            </TabsContent>
+
+            <TabsContent value="projects" className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+                {projects.map((project) => (
+                  <Card
+                    key={project.id}
+                    className="bg-white hover:shadow-lg transition-all duration-300 border-0 rounded-2xl overflow-hidden group"
+                  >
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-lg text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+                              {project.name}
+                            </h3>
+                            <p className="text-gray-600 text-sm mt-1 line-clamp-2">
+                              {project.description}
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-2 flex-shrink-0">
+                            <Badge
+                              className={`px-3 py-1 rounded-full text-xs font-medium ${getProjectStatusColor(
+                                project.status
+                              )}`}
+                            >
+                              {project.status}
+                            </Badge>
+                            <Badge
+                              className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(
+                                project.priority
+                              )}`}
+                            >
+                              {project.priority}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Progress</span>
+                            <span className="font-medium text-gray-900">
+                              {project.progress}%
+                            </span>
+                          </div>
+                          <Progress value={project.progress} className="h-2" />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                            <span className="text-gray-600">Tasks:</span>
+                            <span className="font-medium text-gray-900">
+                              {project.tasks.completed}/{project.tasks.total}
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                            <span className="text-gray-600">Budget:</span>
+                            <span className="font-medium text-gray-900">
+                              ${project.spent.toLocaleString()}/$
+                              {project.budget.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                            <span className="text-gray-600">Members:</span>
+                            <span className="font-medium text-gray-900">
+                              {project.teamMembers.length}
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                            <span className="text-gray-600">Deadline:</span>
+                            <span className="font-medium text-gray-900">
+                              {new Date(project.deadline).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-gray-100">
+                          <Button
+                            size="sm"
+                            className="flex-1 h-10 rounded-xl bg-blue-600 hover:bg-blue-700"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Details
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-10 rounded-xl hover:bg-gray-50"
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+                {projects.length === 0 && (
+                  <div className="col-span-full text-center py-12">
+                    <Briefcase className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 text-lg font-medium">
+                      No projects found
+                    </p>
+                    <p className="text-gray-400 text-sm mt-2">
+                      Create your first project to get started
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
+            </TabsContent>
+
+            <TabsContent value="team" className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+                {teamMembers.map((member) => (
+                  <Card
+                    key={member.id}
+                    className="bg-white hover:shadow-lg transition-all duration-300 border-0 rounded-2xl overflow-hidden group"
+                  >
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="space-y-4">
+                        <div className="flex items-center space-x-4">
+                          <Avatar className="w-16 h-16 ring-2 ring-gray-100 group-hover:ring-blue-200 transition-all">
+                            <AvatarImage src={member.avatar} />
+                            <AvatarFallback className="bg-gradient-to-br from-blue-100 to-purple-100 text-blue-700 font-semibold">
+                              {member.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-lg text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+                              {member.name}
+                            </h3>
+                            <p className="text-gray-600 text-sm">
+                              {member.role}
+                            </p>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
+                              <Badge
+                                className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                                  member.status
+                                )}`}
+                              >
+                                {member.status}
+                              </Badge>
+                              <span className="text-xs text-gray-500">
+                                {member.lastActive}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Performance</span>
+                            <span className="font-medium text-gray-900">
+                              {member.performance}%
+                            </span>
+                          </div>
+                          <Progress
+                            value={member.performance}
+                            className="h-2"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                            <span className="text-gray-600">Projects:</span>
+                            <span className="font-medium text-gray-900">
+                              {member.projects}
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                            <span className="text-gray-600">Skills:</span>
+                            <span className="font-medium text-gray-900">
+                              {member.skills.length}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          {member.skills.slice(0, 3).map((skill) => (
+                            <Badge
+                              key={skill}
+                              variant="secondary"
+                              className="text-xs px-3 py-1 rounded-full bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
+                            >
+                              {skill}
+                            </Badge>
+                          ))}
+                          {member.skills.length > 3 && (
+                            <Badge
+                              variant="secondary"
+                              className="text-xs px-3 py-1 rounded-full bg-gray-100 text-gray-600"
+                            >
+                              +{member.skills.length - 3} more
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-gray-100">
+                          <Button
+                            size="sm"
+                            className="flex-1 h-10 rounded-xl bg-blue-600 hover:bg-blue-700"
+                          >
+                            <MessageCircle className="w-4 h-4 mr-2" />
+                            Message
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-10 rounded-xl hover:bg-gray-50"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Profile
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+                {teamMembers.length === 0 && (
+                  <div className="col-span-full text-center py-12">
+                    <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 text-lg font-medium">
+                      No team members found
+                    </p>
+                    <p className="text-gray-400 text-sm mt-2">
+                      Invite members to build your team
+                    </p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="tasks" className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+                {tasks.map((task) => (
+                  <Card
+                    key={task.id}
+                    className="bg-white hover:shadow-lg transition-all duration-300 border-0 rounded-2xl overflow-hidden group"
+                  >
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-lg text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+                              {task.title}
+                            </h3>
+                            <p className="text-gray-600 text-sm mt-1 line-clamp-2">
+                              {task.description}
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-2 flex-shrink-0">
+                            <Badge
+                              className={`px-3 py-1 rounded-full text-xs font-medium ${getTaskStatusColor(
+                                task.status
+                              )}`}
+                            >
+                              {task.status}
+                            </Badge>
+                            <Badge
+                              className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(
+                                task.priority
+                              )}`}
+                            >
+                              {task.priority}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                            <span className="text-gray-600">Assignee:</span>
+                            <span className="font-medium text-gray-900 truncate">
+                              {task.assignee}
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                            <span className="text-gray-600">Project:</span>
+                            <span className="font-medium text-gray-900 truncate">
+                              {task.project}
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                            <span className="text-gray-600">Due Date:</span>
+                            <span className="font-medium text-gray-900">
+                              {new Date(task.dueDate).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                            <span className="text-gray-600">Hours:</span>
+                            <span className="font-medium text-gray-900">
+                              {task.actualHours}/{task.estimatedHours}h
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          {task.tags.map((tag) => (
+                            <Badge
+                              key={tag}
+                              variant="secondary"
+                              className="text-xs px-3 py-1 rounded-full bg-green-100 text-green-800 hover:bg-green-200 transition-colors"
+                            >
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-gray-100">
+                          <Button
+                            size="sm"
+                            className="flex-1 h-10 rounded-xl bg-blue-600 hover:bg-blue-700"
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Update
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-10 rounded-xl hover:bg-gray-50"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Details
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+                {tasks.length === 0 && (
+                  <div className="col-span-full text-center py-12">
+                    <ClipboardList className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 text-lg font-medium">
+                      No tasks found
+                    </p>
+                    <p className="text-gray-400 text-sm mt-2">
+                      Create tasks to organize your work
+                    </p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
     </div>
   );
 }

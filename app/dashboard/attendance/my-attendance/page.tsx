@@ -139,15 +139,13 @@ export default function InstructorAttendancePage() {
   const [instructors, setInstructors] = useState<string[]>([]);
 
   const PRODUCT_TYPE_OPTIONS = [
-    "AcademicService",
-    "TrainingProgram",
-    "Workshop",
-    "Seminar",
-    "Course",
-    "Bootcamp",
-    "Certification",
-    "Mentoring",
-    "Consultation",
+    "Training & Certification",
+    "Academic Support Services",
+    "Career Development & Mentorship",
+    "Institutional & Team Services",
+    "AI-Powered or Automation Services",
+    "Career Connect",
+    "Marketing, Consultation & Free Services",
   ];
 
   const STATUS_OPTIONS = [

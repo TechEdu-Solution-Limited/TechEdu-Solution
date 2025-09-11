@@ -54,12 +54,16 @@ interface CatalogPageProps {
   productType?: string;
   title?: string;
   description?: string;
+  emptyStateTitle?: string;
+  emptyStateDescription?: string;
 }
 
 export default function CatalogPage({
   productType = "Training & Certification",
   title = "Training & Certification Programs",
   description = "Discover comprehensive training programs and certifications to advance your career",
+  emptyStateTitle = "No Training Programs Found",
+  emptyStateDescription = "We couldn't find any training programs matching your current filters. Try adjusting your search criteria or browse our complete catalog.",
 }: CatalogPageProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,6 +78,29 @@ export default function CatalogPage({
   const [difficulty, setDifficulty] = useState("");
   const [sortBy, setSortBy] = useState("default");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  // Additional filter states
+  const [isRecurring, setIsRecurring] = useState<boolean | null>(null);
+  const [requiresBooking, setRequiresBooking] = useState<boolean | null>(null);
+  const [hasCertificate, setHasCertificate] = useState<boolean | null>(null);
+  const [hasClassroom, setHasClassroom] = useState<boolean | null>(null);
+  const [hasSession, setHasSession] = useState<boolean | null>(null);
+  const [hasAssessment, setHasAssessment] = useState<boolean | null>(null);
+  const [isBookableService, setIsBookableService] = useState<boolean | null>(
+    null
+  );
+  const [requiresEnrollment, setRequiresEnrollment] = useState<boolean | null>(
+    null
+  );
+  const [mode, setMode] = useState("all");
+  const [minPrice, setMinPrice] = useState<number | null>(null);
+  const [maxPrice, setMaxPrice] = useState<number | null>(null);
+  const [minDiscount, setMinDiscount] = useState<number | null>(null);
+  const [maxDiscount, setMaxDiscount] = useState<number | null>(null);
+  const [minDuration, setMinDuration] = useState<number | null>(null);
+  const [maxDuration, setMaxDuration] = useState<number | null>(null);
+  const [minProgramLength, setMinProgramLength] = useState<number | null>(null);
+  const [maxProgramLength, setMaxProgramLength] = useState<number | null>(null);
   const perPage = 12;
   const { addToCart, isInCart } = useCart();
   const [flyingItem, setFlyingItem] = useState<any>(null);
@@ -202,6 +229,27 @@ export default function CatalogPage({
     if (difficulty) params.difficultyLevel = difficulty;
     if (sortBy && sortBy !== "default") params.sortBy = sortBy;
     if (sortOrder) params.sortOrder = sortOrder;
+
+    // Additional filters
+    if (isRecurring !== null) params.isRecurring = isRecurring;
+    if (requiresBooking !== null) params.requiresBooking = requiresBooking;
+    if (hasCertificate !== null) params.hasCertificate = hasCertificate;
+    if (hasClassroom !== null) params.hasClassroom = hasClassroom;
+    if (hasSession !== null) params.hasSession = hasSession;
+    if (hasAssessment !== null) params.hasAssessment = hasAssessment;
+    if (isBookableService !== null)
+      params.isBookableService = isBookableService;
+    if (requiresEnrollment !== null)
+      params.requiresEnrollment = requiresEnrollment;
+    if (mode && mode !== "all") params.mode = mode;
+    if (minPrice !== null) params.minPrice = minPrice;
+    if (maxPrice !== null) params.maxPrice = maxPrice;
+    if (minDiscount !== null) params.minDiscount = minDiscount;
+    if (maxDiscount !== null) params.maxDiscount = maxDiscount;
+    if (minDuration !== null) params.minDuration = minDuration;
+    if (maxDuration !== null) params.maxDuration = maxDuration;
+    if (minProgramLength !== null) params.minProgramLength = minProgramLength;
+    if (maxProgramLength !== null) params.maxProgramLength = maxProgramLength;
     getApiRequest<any>("/api/products/public", undefined, params)
       .then((data) => {
         setProducts(data?.data?.data?.products || []);
@@ -223,6 +271,23 @@ export default function CatalogPage({
     difficulty,
     sortBy,
     sortOrder,
+    isRecurring,
+    requiresBooking,
+    hasCertificate,
+    hasClassroom,
+    hasSession,
+    hasAssessment,
+    isBookableService,
+    requiresEnrollment,
+    mode,
+    minPrice,
+    maxPrice,
+    minDiscount,
+    maxDiscount,
+    minDuration,
+    maxDuration,
+    minProgramLength,
+    maxProgramLength,
   ]);
 
   const handleAddToCart = (product: Product, event: React.MouseEvent) => {
@@ -592,7 +657,7 @@ export default function CatalogPage({
       </div>
 
       {/* Advanced Filters */}
-      <div className="flex flex-wrap justify-center gap-4 mb-8">
+      {/* <div className="flex flex-wrap justify-center gap-4 mb-8">
         <Select
           value={deliveryMode}
           onValueChange={(value) => {
@@ -610,59 +675,342 @@ export default function CatalogPage({
             <SelectItem value="hybrid">Hybrid</SelectItem>
           </SelectContent>
         </Select>
+      </div> */}
 
-        <Select
-          value={sessionType}
-          onValueChange={(value) => {
-            setSessionType(value);
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-40 rounded-xl border-gray-200">
-            <SelectValue placeholder="Session Type" />
-          </SelectTrigger>
-          <SelectContent className="bg-white">
-            <SelectItem value="all">All Sessions</SelectItem>
-            <SelectItem value="1-on-1">1-on-1</SelectItem>
-            <SelectItem value="group">Group</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* Advanced Filters Section */}
+      <div className="mb-8">
+        <div className="text-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">
+            Advanced Filters
+          </h3>
+          <p className="text-sm text-gray-500">
+            Refine your search with detailed filters
+          </p>
+        </div>
 
-        <Select
-          value={sortBy}
-          onValueChange={(value) => {
-            setSortBy(value);
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-40 rounded-xl border-gray-200">
-            <SelectValue placeholder="Sort By" />
-          </SelectTrigger>
-          <SelectContent className="bg-white">
-            <SelectItem value="default">Default</SelectItem>
-            {SORT_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {/* Program Mode */}
+          <Select
+            value={mode}
+            onValueChange={(value) => {
+              setMode(value);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-full rounded-xl border-gray-200">
+              <SelectValue placeholder="Program Mode" />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              <SelectItem value="all">All Modes</SelectItem>
+              <SelectItem value="weeks">Weeks</SelectItem>
+              <SelectItem value="days">Days</SelectItem>
+              <SelectItem value="hours">Hours</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Select
-          value={sortOrder}
-          onValueChange={(value: "asc" | "desc") => {
-            setSortOrder(value);
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-32 rounded-xl border-gray-200">
-            <SelectValue placeholder="Order" />
-          </SelectTrigger>
-          <SelectContent className="bg-white">
-            <SelectItem value="asc">Ascending</SelectItem>
-            <SelectItem value="desc">Descending</SelectItem>
-          </SelectContent>
-        </Select>
+          <Select
+            value={sessionType}
+            onValueChange={(value) => {
+              setSessionType(value);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-full rounded-xl border-gray-200">
+              <SelectValue placeholder="Session Type" />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              <SelectItem value="all">All Sessions</SelectItem>
+              <SelectItem value="1-on-1">1-on-1</SelectItem>
+              <SelectItem value="group">Group</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={sortBy}
+            onValueChange={(value) => {
+              setSortBy(value);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-full rounded-xl border-gray-200">
+              <SelectValue placeholder="Sort By" />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              <SelectItem value="default">Default</SelectItem>
+              {SORT_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={sortOrder}
+            onValueChange={(value: "asc" | "desc") => {
+              setSortOrder(value);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-full rounded-xl border-gray-200">
+              <SelectValue placeholder="Order" />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              <SelectItem value="asc">Ascending</SelectItem>
+              <SelectItem value="desc">Descending</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Price Range */}
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              placeholder="Min Price"
+              value={minPrice || ""}
+              onChange={(e) =>
+                setMinPrice(e.target.value ? Number(e.target.value) : null)
+              }
+              className="rounded-xl border-gray-200"
+            />
+            <Input
+              type="number"
+              placeholder="Max Price"
+              value={maxPrice || ""}
+              onChange={(e) =>
+                setMaxPrice(e.target.value ? Number(e.target.value) : null)
+              }
+              className="rounded-xl border-gray-200"
+            />
+          </div>
+
+          {/* Discount Range */}
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              placeholder="Min Discount %"
+              value={minDiscount || ""}
+              onChange={(e) =>
+                setMinDiscount(e.target.value ? Number(e.target.value) : null)
+              }
+              className="rounded-xl border-gray-200"
+            />
+            <Input
+              type="number"
+              placeholder="Max Discount %"
+              value={maxDiscount || ""}
+              onChange={(e) =>
+                setMaxDiscount(e.target.value ? Number(e.target.value) : null)
+              }
+              className="rounded-xl border-gray-200"
+            />
+          </div>
+
+          {/* Duration Range */}
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              placeholder="Min Duration (min)"
+              value={minDuration || ""}
+              onChange={(e) =>
+                setMinDuration(e.target.value ? Number(e.target.value) : null)
+              }
+              className="rounded-xl border-gray-200"
+            />
+            <Input
+              type="number"
+              placeholder="Max Duration (min)"
+              value={maxDuration || ""}
+              onChange={(e) =>
+                setMaxDuration(e.target.value ? Number(e.target.value) : null)
+              }
+              className="rounded-xl border-gray-200"
+            />
+          </div>
+
+          {/* Program Length Range */}
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              placeholder="Min Length"
+              value={minProgramLength || ""}
+              onChange={(e) =>
+                setMinProgramLength(
+                  e.target.value ? Number(e.target.value) : null
+                )
+              }
+              className="rounded-xl border-gray-200"
+            />
+            <Input
+              type="number"
+              placeholder="Max Length"
+              value={maxProgramLength || ""}
+              onChange={(e) =>
+                setMaxProgramLength(
+                  e.target.value ? Number(e.target.value) : null
+                )
+              }
+              className="rounded-xl border-gray-200"
+            />
+          </div>
+        </div>
+
+        {/* Boolean Filters */}
+        <div className="mt-4">
+          <div className="text-sm font-medium text-gray-700 mb-3">
+            Features & Options
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {/* Recurring */}
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isRecurring === true}
+                onChange={(e) => setIsRecurring(e.target.checked ? true : null)}
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm text-gray-700">Recurring</span>
+            </label>
+
+            {/* Requires Booking */}
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={requiresBooking === true}
+                onChange={(e) =>
+                  setRequiresBooking(e.target.checked ? true : null)
+                }
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm text-gray-700">Requires Booking</span>
+            </label>
+
+            {/* Has Certificate */}
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hasCertificate === true}
+                onChange={(e) =>
+                  setHasCertificate(e.target.checked ? true : null)
+                }
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm text-gray-700">Has Certificate</span>
+            </label>
+
+            {/* Has Classroom */}
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hasClassroom === true}
+                onChange={(e) =>
+                  setHasClassroom(e.target.checked ? true : null)
+                }
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm text-gray-700">Has Classroom</span>
+            </label>
+
+            {/* Has Session */}
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hasSession === true}
+                onChange={(e) => setHasSession(e.target.checked ? true : null)}
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm text-gray-700">Has Session</span>
+            </label>
+
+            {/* Has Assessment */}
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hasAssessment === true}
+                onChange={(e) =>
+                  setHasAssessment(e.target.checked ? true : null)
+                }
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm text-gray-700">Has Assessment</span>
+            </label>
+
+            {/* Bookable Service */}
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isBookableService === true}
+                onChange={(e) =>
+                  setIsBookableService(e.target.checked ? true : null)
+                }
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm text-gray-700">Bookable Service</span>
+            </label>
+
+            {/* Requires Enrollment */}
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={requiresEnrollment === true}
+                onChange={(e) =>
+                  setRequiresEnrollment(e.target.checked ? true : null)
+                }
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm text-gray-700">Requires Enrollment</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Clear Filters Button */}
+        <div className="mt-4 flex justify-center">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSearch("");
+              setCategory("");
+              setDeliveryMode("all");
+              setSessionType("all");
+              setDifficulty("");
+              setSortBy("default");
+              setSortOrder("asc");
+              setIsRecurring(null);
+              setRequiresBooking(null);
+              setHasCertificate(null);
+              setHasClassroom(null);
+              setHasSession(null);
+              setHasAssessment(null);
+              setIsBookableService(null);
+              setRequiresEnrollment(null);
+              setMode("all");
+              setMinPrice(null);
+              setMaxPrice(null);
+              setMinDiscount(null);
+              setMaxDiscount(null);
+              setMinDuration(null);
+              setMaxDuration(null);
+              setMinProgramLength(null);
+              setMaxProgramLength(null);
+              setPage(1);
+            }}
+            className="border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2 rounded-xl font-medium transition-colors"
+          >
+            <svg
+              className="w-4 h-4 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            Clear All Filters
+          </Button>
+        </div>
       </div>
 
       {/* Product Grid */}
@@ -715,12 +1063,10 @@ export default function CatalogPage({
 
               {/* Empty State Text */}
               <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                No Training Programs Found
+                {emptyStateTitle}
               </h3>
               <p className="text-gray-600 mb-8 leading-relaxed">
-                We couldn't find any training programs matching your current
-                filters. Try adjusting your search criteria or browse our
-                complete catalog.
+                {emptyStateDescription}
               </p>
 
               {/* Action Buttons */}
@@ -733,6 +1079,24 @@ export default function CatalogPage({
                     setSessionType("all");
                     setDifficulty("");
                     setSortBy("default");
+                    setSortOrder("asc");
+                    setIsRecurring(null);
+                    setRequiresBooking(null);
+                    setHasCertificate(null);
+                    setHasClassroom(null);
+                    setHasSession(null);
+                    setHasAssessment(null);
+                    setIsBookableService(null);
+                    setRequiresEnrollment(null);
+                    setMode("all");
+                    setMinPrice(null);
+                    setMaxPrice(null);
+                    setMinDiscount(null);
+                    setMaxDiscount(null);
+                    setMinDuration(null);
+                    setMaxDuration(null);
+                    setMinProgramLength(null);
+                    setMaxProgramLength(null);
                     setPage(1);
                   }}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-colors"

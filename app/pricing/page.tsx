@@ -1,6 +1,7 @@
 "use client";
 
 import StoryCarousel, { Story } from "@/components/Stories/StoryCarousel";
+import CatalogPage from "@/components/CatalogPage";
 import { useState } from "react";
 import {
   Clock,
@@ -26,6 +27,53 @@ type TabType =
   | "ai"
   | "talent"
   | "training";
+
+// Product type mapping to TabType
+const PRODUCT_TYPE_MAPPING: Record<TabType, string> = {
+  academic: "Academic Support Services",
+  career: "Career Development & Mentorship",
+  corporate: "Marketing, Consultation & Free Services",
+  ai: "AI-Powered or Automation Services",
+  talent: "Institutional & Team Services",
+  training: "Training & Certification",
+};
+
+// Empty state messages for each product type
+const EMPTY_STATE_MESSAGES: Record<
+  TabType,
+  { title: string; description: string }
+> = {
+  academic: {
+    title: "No Academic Services Found",
+    description:
+      "We couldn't find any academic support services matching your current filters. Try adjusting your search criteria or browse our complete catalog of academic services.",
+  },
+  career: {
+    title: "No Career Services Found",
+    description:
+      "We couldn't find any career development services matching your current filters. Try adjusting your search criteria or explore our full range of career services.",
+  },
+  corporate: {
+    title: "No Corporate Services Found",
+    description:
+      "We couldn't find any corporate consultancy services matching your current filters. Try adjusting your search criteria or browse our complete business services catalog.",
+  },
+  ai: {
+    title: "No AI Services Found",
+    description:
+      "We couldn't find any AI-powered services matching your current filters. Try adjusting your search criteria or explore our full range of AI and automation services.",
+  },
+  talent: {
+    title: "No Institutional Services Found",
+    description:
+      "We couldn't find any institutional or team services matching your current filters. Try adjusting your search criteria or browse our complete institutional services catalog.",
+  },
+  training: {
+    title: "No Training Programs Found",
+    description:
+      "We couldn't find any training programs matching your current filters. Try adjusting your search criteria or browse our complete training catalog.",
+  },
+};
 
 type ServiceCategory = {
   icon: LucideIcon;
@@ -317,7 +365,7 @@ export default function Pricing() {
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-200 pb-4 pt-20">
           Comprehensive Professional Services
         </h1>
-        <p className="text-base sm:text-lg font-medium text-white sm:text-xl max-w-4xl mx-auto">
+        <p className="text-base sm:text-lg font-medium text-white max-w-4xl mx-auto">
           From academic mentoring to AI governance, we offer specialized
           services designed to accelerate your success across education, career,
           and business.
@@ -367,60 +415,15 @@ export default function Pricing() {
           })}
         </div>
 
-        {/* SERVICE DETAILS */}
+        {/* SERVICE DETAILS - Now using Catalog Component */}
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-6 sm:mb-8">
-            <h3 className="text-xl sm:text-2xl font-bold text-[#011F72] mb-2">
-              {serviceCategories[tab].title}
-            </h3>
-            <p className="text-gray-600 text-sm sm:text-base">
-              {serviceCategories[tab].description}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
-            {serviceCategories[tab].services.map((service, idx) => (
-              <div
-                key={idx}
-                className="bg-gray-50 p-8 rounded-xl border border-gray-200 hover:shadow-md transition-shadow flex flex-col justify-between w-full sm:w-80 lg:w-96"
-              >
-                <div className="space-y-10 mb-8">
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
-                    <div className="flex-1">
-                      <h4 className="font-bold text-base sm:text-lg text-gray-800">
-                        {service.name}
-                      </h4>
-                      {service.tier && (
-                        <span className="inline-block bg-blue-100 text-blue-800 text-xs sm:text-sm px-2 sm:px-3 py-1 rounded-full mt-1">
-                          {service.tier}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-left sm:text-right">
-                      <p className="text-xl sm:text-2xl font-bold text-blue-600">
-                        {service.price}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 text-xs sm:text-sm text-gray-600">
-                    <p>
-                      <strong>Format:</strong> {service.format}
-                    </p>
-                    {service.delivery && (
-                      <p>
-                        <strong>Delivery:</strong> {service.delivery}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <button className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-[10px] transition-colors text-sm sm:text-base">
-                  Book Now
-                </button>
-              </div>
-            ))}
-          </div>
+          <CatalogPage
+            productType={PRODUCT_TYPE_MAPPING[tab]}
+            title={serviceCategories[tab].title}
+            description={serviceCategories[tab].description}
+            emptyStateTitle={EMPTY_STATE_MESSAGES[tab].title}
+            emptyStateDescription={EMPTY_STATE_MESSAGES[tab].description}
+          />
         </div>
       </section>
 
