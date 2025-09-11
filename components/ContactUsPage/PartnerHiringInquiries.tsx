@@ -35,10 +35,10 @@ export default function PartnerHiringInquiries() {
           <p className="text-[1rem] text-blue-100 mt-8">
             <strong className="font-semibold">Please reach us at:</strong>{" "}
             <Link
-              href="mailto:partnerships@techedusolution.com"
+              href="mailto:info@techedusolution.com"
               className="focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-700 hover:underline"
             >
-              partnerships@techedusolution.com
+              info@techedusolution.com
             </Link>
           </p>
         </div>

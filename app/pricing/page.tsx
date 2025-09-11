@@ -385,7 +385,7 @@ export default function Pricing() {
         </div>
 
         <div
-          className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-8 sm:mb-10 px-2"
+          className="flex flex-wrap justify-center gap-2 sm:gap-4 px-2"
           role="tablist"
         >
           {Object.entries(serviceCategories).map(([key, category]) => {
@@ -416,7 +416,7 @@ export default function Pricing() {
         </div>
 
         {/* SERVICE DETAILS - Now using Catalog Component */}
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto -mb-32">
           <CatalogPage
             productType={PRODUCT_TYPE_MAPPING[tab]}
             title={serviceCategories[tab].title}

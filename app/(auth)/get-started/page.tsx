@@ -17,7 +17,7 @@ const paths = [
     ],
   },
   {
-    title: "Professionals",
+    title: "Individual Professionals",
     role: "individualTechProfessional",
     description: "I'm employed and want to improve or transition.",
     img: "/icons/undraw_online-learning_tgmv.svg",
@@ -58,6 +58,19 @@ const paths = [
         urlpath:
           "/career-connect/package-estimator/start#estimator-wizard-steps",
       },
+    ],
+  },
+  {
+    title: "Team Tech Professional",
+    role: "teamTechProfessional",
+    description:
+      "I'm part of a tech team and want to collaborate on projects, share knowledge, and grow together.",
+    img: "/icons/undraw_team_work_80e1.svg",
+    alt: "Team of tech professionals collaborating",
+    actions: [
+      { label: "Join a Team", urlpath: "/register" },
+      { label: "Create a Team", urlpath: "/register" },
+      { label: "Browse Team Projects", urlpath: "/register" },
     ],
   },
 ];

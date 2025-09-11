@@ -127,6 +127,8 @@ export default function AcademicServices() {
         productType="Academic Support Services"
         title="Academic Support Services"
         description="Get expert academic assistance, mentorship, and support to excel in your educational journey"
+        emptyStateTitle="No Academic Services Found"
+        emptyStateDescription="We couldn't find any academic support services matching your current filters. Try adjusting your search criteria or browse our complete catalog of academic services."
       />
 
       <StudentSuccessStories />
