@@ -569,6 +569,7 @@ export default function BookingPage() {
           formData.sessionType || sessionType
         } Session`,
         price: parseFloat(productData?.price || price || "50"),
+        currency: productData.currency || "usd",
         discountPercentage: productData?.discountPercentage || 0,
         category: productData?.category || productType || "Service",
         productType:

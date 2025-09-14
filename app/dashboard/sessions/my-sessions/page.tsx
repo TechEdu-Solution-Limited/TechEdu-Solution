@@ -19,35 +19,7 @@ import {
   Star,
 } from "lucide-react";
 import Link from "next/link";
-
-interface Session {
-  _id: string;
-  bookingId: string;
-  productId: string;
-  productType: string;
-  bookingPurpose: string;
-  instructorId: string;
-  scheduleAt: string;
-  endAt?: string;
-  minutesPerSession: number;
-  numberOfExpectedParticipants: number;
-  meetingLink?: string;
-  sessionType: "group" | "1-on-1";
-  status: "upcoming" | "confirmed" | "completed" | "cancelled";
-  avgRating?: number;
-  userNotes?: string;
-  internalNotes?: string;
-  participants: Array<{
-    participantType: string;
-    platformRole: string;
-    profileId?: string;
-    email: string;
-    fullName: string;
-  }>;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { Session } from "@/types/session";
 
 export default function StudentSessionsPage() {
   const { userData } = useRole();
@@ -123,9 +95,16 @@ export default function StudentSessionsPage() {
       session.bookingPurpose
         ?.toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
+      session.productId?.service
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
       session.productType.toLowerCase().includes(searchTerm.toLowerCase()) ||
       session.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.sessionType?.toLowerCase().includes(searchTerm.toLowerCase());
+      session.sessionType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      session.instructorId?.fullName
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      session.productId?.price?.toString().includes(searchTerm);
 
     const matchesStatus =
       filterStatus === "all" || session.status === filterStatus;
@@ -354,6 +333,9 @@ export default function StudentSessionsPage() {
                       Product Type
                     </th>
                     <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                      Price
+                    </th>
+                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
                       Session Type
                     </th>
                     <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
@@ -383,10 +365,16 @@ export default function StudentSessionsPage() {
                         <td className="px-8 py-6 whitespace-nowrap">
                           <div>
                             <div className="text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors duration-300">
-                              {session.bookingPurpose || "Mentoring Session"}
+                              {session.bookingPurpose ||
+                                session.productId?.service ||
+                                "Mentoring Session"}
                             </div>
                             <div className="text-sm text-slate-500">
                               ID: {session._id.slice(-8)}
+                            </div>
+                            <div className="text-xs text-slate-400 mt-1">
+                              Instructor:{" "}
+                              {session.instructorId?.fullName || "N/A"}
                             </div>
                           </div>
                         </td>
@@ -394,6 +382,16 @@ export default function StudentSessionsPage() {
                           <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border border-blue-200">
                             {session.productType}
                           </span>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="text-sm font-semibold text-slate-900">
+                            {session.productId?.price
+                              ? new Intl.NumberFormat("en-US", {
+                                  style: "currency",
+                                  currency: session.productId.currency || "USD",
+                                }).format(session.productId.price)
+                              : "N/A"}
+                          </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
                           <span
@@ -468,7 +466,7 @@ export default function StudentSessionsPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={8} className="px-8 py-16 text-center">
+                      <td colSpan={9} className="px-8 py-16 text-center">
                         <div className="flex flex-col items-center gap-4">
                           <div className="w-20 h-20 bg-gradient-to-r from-slate-100 to-blue-100 rounded-full flex items-center justify-center">
                             <BookOpen className="w-10 h-10 text-slate-400" />

@@ -144,6 +144,7 @@ export default function CatalogPage({
     })
       .then((data) => {
         const products = data?.data?.data?.products || [];
+        console.log("Products", JSON.stringify(products));
         // Extract unique subcategories from Training & Certification products
         const categoryMap: Record<string, string> = {};
         const uniqueCategories = [
@@ -358,6 +359,7 @@ export default function CatalogPage({
         title: product.service,
         description: product.description || "",
         price: product.price,
+        currency: product.currency,
         discountPercentage: product.discountPercentage || 0,
         category:
           product.productCategoryTitle || product.category || "Uncategorized",
@@ -539,15 +541,22 @@ export default function CatalogPage({
                   <div className="flex items-center justify-between pt-1">
                     <div className="flex items-baseline gap-1">
                       <span className="text-lg font-bold text-blue-600">
-                        ${product.price.toFixed(2)}
+                        {new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: product.currency || "USD",
+                        }).format(
+                          product.price -
+                            (product.price *
+                              (product.discountPercentage ?? 0)) /
+                              100
+                        )}
                       </span>
                       {(product.discountPercentage ?? 0) > 0 && (
                         <span className="text-xs text-gray-500 line-through">
-                          $
-                          {(
-                            product.price /
-                            (1 - (product.discountPercentage ?? 0) / 100)
-                          ).toFixed(2)}
+                          {new Intl.NumberFormat("en-US", {
+                            style: "currency",
+                            currency: product.currency || "USD",
+                          }).format(product.price)}
                         </span>
                       )}
                     </div>
@@ -1230,15 +1239,22 @@ export default function CatalogPage({
                     <div className="flex items-end justify-between mt-auto">
                       <div className="flex flex-col items-baseline gap-1">
                         <span className="text-lg font-bold text-blue-600">
-                          £{product.price.toFixed(2)}
+                          {new Intl.NumberFormat("en-US", {
+                            style: "currency",
+                            currency: product.currency || "USD",
+                          }).format(
+                            product.price -
+                              (product.price *
+                                (product.discountPercentage ?? 0)) /
+                                100
+                          )}
                         </span>
                         {(product.discountPercentage ?? 0) > 0 && (
                           <span className="text-xs text-gray-500 line-through">
-                            £
-                            {(
-                              product.price /
-                              (1 - (product.discountPercentage ?? 0) / 100)
-                            ).toFixed(2)}
+                            {new Intl.NumberFormat("en-US", {
+                              style: "currency",
+                              currency: product.currency || "USD",
+                            }).format(product.price)}
                           </span>
                         )}
                       </div>
@@ -1447,7 +1463,15 @@ export default function CatalogPage({
                     </div>
                     <div className="space-y-3">
                       <div className="text-xl font-bold text-blue-900">
-                        ${selectedProduct.price.toFixed(2)}
+                        {new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: selectedProduct.currency || "USD",
+                        }).format(
+                          selectedProduct.price -
+                            (selectedProduct.price *
+                              (selectedProduct.discountPercentage ?? 0)) /
+                              100
+                        )}
                         {(selectedProduct.discountPercentage ?? 0) > 0 && (
                           <span className="ml-2 text-xs text-green-600">
                             -{selectedProduct.discountPercentage ?? 0}%

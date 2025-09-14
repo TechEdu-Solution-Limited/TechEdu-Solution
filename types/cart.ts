@@ -3,6 +3,7 @@ export interface CartItem {
   title: string;
   description: string;
   price: number;
+  currency: string;
   discountPercentage: number;
   category: string;
   productType: string;

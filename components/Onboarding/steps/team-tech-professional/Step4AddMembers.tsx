@@ -1,17 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { X, Plus, Search, User, Loader2, Mail } from "lucide-react";
+import { X, Plus, Search, User, Mail } from "lucide-react";
 import { postApiRequest, getApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 import { toast } from "react-toastify";
@@ -27,21 +20,6 @@ interface Step4AddMembersProps {
   teamId?: string;
 }
 
-const roles = [
-  "developer",
-  "designer",
-  "project_manager",
-  "qa_tester",
-  "devops_engineer",
-  "data_scientist",
-  "ui_ux_designer",
-  "frontend_developer",
-  "backend_developer",
-  "full_stack_developer",
-  "mobile_developer",
-  "other",
-];
-
 export function Step4AddMembers({
   form,
   errors,
@@ -51,93 +29,95 @@ export function Step4AddMembers({
   // Debug: Log the teamId to ensure it's being passed correctly
   console.log("Step4AddMembers - teamId:", teamId);
   console.log("Step4AddMembers - form.teamId:", form.teamId);
+
   const [newMember, setNewMember] = useState({
     userId: "",
-    fullName: "",
     email: "",
+    fullName: "",
     role: "",
-    teamId: "",
   });
 
   const [pendingMembers, setPendingMembers] = useState<any[]>([]);
   const [loadingInvite, setLoadingInvite] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
-  const [searchingUser, setSearchingUser] = useState(false);
-  const [userFound, setUserFound] = useState(false);
 
-  // Live search states
+  // Individual Tech Professionals search
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [searchingUser, setSearchingUser] = useState(false);
+  const [searchTimeoutRef, setSearchTimeoutRef] =
+    useState<NodeJS.Timeout | null>(null);
 
-  // Live search function using the single endpoint
-  const performLiveSearch = async (query: string) => {
-    if (!query || query.length < 3) {
+  // Search individual tech professional by email
+  const searchUserByEmail = async (email: string) => {
+    if (!email.trim() || email.trim().length < 2) {
       setSearchResults([]);
       setShowSearchResults(false);
       return;
     }
 
     setSearchingUser(true);
-    setInviteError(null);
-
     try {
       const token = getTokenFromCookies();
       if (!token) {
         throw new Error("Authentication required");
       }
 
-      // Try to search with the exact email first
       const response = await getApiRequest(
-        `/api/users/individual-tech-professional/email/${encodeURIComponent(
-          query
-        )}`,
+        `/api/users/profile/email/${encodeURIComponent(email)}`,
         token
       );
+      console.log("Full email response", JSON.stringify(response));
 
-      if (response.status < 400) {
-        const userData = response.data?.data;
-        if (userData) {
-          // If we found a user, show it as a single result
-          setSearchResults([userData]);
-          setShowSearchResults(true);
-        } else {
-          setSearchResults([]);
-          setShowSearchResults(false);
-        }
+      if (response.status < 400 && response.data?.data?.user) {
+        // Extract user data from the nested response structure
+        const userData = {
+          _id: response.data.data.user._id,
+          email: response.data.data.user.email,
+          fullName: response.data.data.user.fullName,
+          isVerified: response.data.data.user.isVerified,
+          profile: response.data.data.profile,
+        };
+        setSearchResults([userData]);
+        setShowSearchResults(true);
       } else {
         setSearchResults([]);
-        setShowSearchResults(false);
+        setShowSearchResults(true);
       }
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Failed to search user:", error);
       setSearchResults([]);
-      setShowSearchResults(false);
-      // Don't show error for live search, just clear results
+      setShowSearchResults(true);
     } finally {
       setSearchingUser(false);
     }
   };
 
-  // Debounced search effect
+  // Debounced search functionality
   useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
+    // Clear existing timeout
+    if (searchTimeoutRef) {
+      clearTimeout(searchTimeoutRef);
     }
 
-    if (searchQuery.length >= 3) {
-      searchTimeoutRef.current = setTimeout(() => {
-        performLiveSearch(searchQuery);
-      }, 500); // 500ms debounce for live search
-    } else {
-      setSearchResults([]);
-      setShowSearchResults(false);
-    }
+    // Set new timeout for debounced search
+    const timeout = setTimeout(() => {
+      if (searchQuery.trim().length >= 2) {
+        searchUserByEmail(searchQuery.trim());
+      } else {
+        setSearchResults([]);
+        setShowSearchResults(false);
+      }
+    }, 500); // 500ms delay
 
+    setSearchTimeoutRef(timeout);
+
+    // Cleanup function
     return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
+      if (timeout) {
+        clearTimeout(timeout);
       }
     };
   }, [searchQuery]);
@@ -145,10 +125,8 @@ export function Step4AddMembers({
   // Click outside handler to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        searchInputRef.current &&
-        !searchInputRef.current.contains(event.target as Node)
-      ) {
+      const target = event.target as HTMLElement;
+      if (!target.closest(".search-dropdown")) {
         setShowSearchResults(false);
       }
     };
@@ -159,80 +137,27 @@ export function Step4AddMembers({
     };
   }, []);
 
-  // Handle search input change
-  const handleSearchInputChange = (value: string) => {
-    setSearchQuery(value);
-    setNewMember((prev) => ({ ...prev, email: value }));
-    setUserFound(false);
-    setInviteError(null);
-  };
-
-  // Select user from search results
   const selectUser = (user: any) => {
-    setNewMember((prev) => ({
-      ...prev,
+    setSelectedUser(user);
+    setNewMember({
       userId: user._id || user.id || "",
-      fullName: user.fullName || "",
       email: user.email || "",
-    }));
-    setUserFound(true);
-    setShowSearchResults(false);
+      fullName: user.fullName || "",
+      role: user.role || "",
+    });
     setSearchQuery(user.email || "");
+    setShowSearchResults(false);
     toast.success("User selected successfully!");
   };
 
-  const searchUserByEmail = async (email: string) => {
-    if (!email || !email.includes("@")) {
-      setUserFound(false);
-      return;
-    }
-
-    setSearchingUser(true);
-    setInviteError(null);
-
-    try {
-      const token = getTokenFromCookies();
-      if (!token) {
-        throw new Error("Authentication required");
-      }
-
-      const response = await getApiRequest(
-        `/api/users/individual-tech-professional/email/${encodeURIComponent(
-          email
-        )}`,
-        token
-      );
-
-      if (response.status >= 400) {
-        throw new Error("User not found");
-      }
-
-      const userData = response.data?.data;
-      if (userData) {
-        setNewMember((prev) => ({
-          ...prev,
-          userId: userData._id || userData.id || "",
-          fullName: userData.fullName || "",
-          email: userData.email || email,
-        }));
-        setUserFound(true);
-        toast.success("User found successfully!");
-      } else {
-        setUserFound(false);
-        toast.warning("User not found with this email");
-      }
-    } catch (error: any) {
-      setUserFound(false);
-      setInviteError(error.message || "Failed to search user");
-      toast.error("User not found with this email");
-    } finally {
-      setSearchingUser(false);
-    }
-  };
-
   const addToPendingList = () => {
-    if (!newMember.fullName || !newMember.email || !newMember.role) {
-      toast.error("Please fill in all required fields");
+    if (
+      !newMember.userId ||
+      !newMember.email ||
+      !newMember.fullName ||
+      !newMember.role
+    ) {
+      toast.error("Please search and select a user, then fill in the role");
       return;
     }
 
@@ -252,12 +177,11 @@ export function Step4AddMembers({
     // Reset new member inputs
     setNewMember({
       userId: "",
-      fullName: "",
       email: "",
+      fullName: "",
       role: "",
-      teamId: "",
     });
-    setUserFound(false);
+    setSelectedUser(null);
     setSearchQuery("");
 
     toast.success("Member added to pending list!");
@@ -298,8 +222,6 @@ export function Step4AddMembers({
           {
             email: member.email,
             role: member.role,
-            userId: member.userId,
-            fullName: member.fullName,
           },
           {
             Authorization: `Bearer ${token}`,
@@ -353,10 +275,10 @@ export function Step4AddMembers({
       <div className="bg-blue-50 border border-blue-200 rounded-[10px] p-4">
         <h4 className="font-medium text-blue-900 mb-2">Add Team Members</h4>
         <p className="text-sm text-blue-800">
-          Add existing Individual Tech Professionals from the platform to your
-          team. Search for members by their email address, add them to your
-          pending list, then invite all members at once. Each member will
-          receive an invitation to join your team.
+          Search for existing Individual Tech Professionals by their email
+          address, select them, assign a role, and add them to your pending
+          list. Once you've added all desired members, invite them all at once.
+          Each member will receive an invitation to join your team.
         </p>
       </div>
 
@@ -376,9 +298,8 @@ export function Step4AddMembers({
                   <div className="flex items-center space-x-4">
                     <div>
                       <p className="font-medium text-gray-900">
-                        {member.fullName}
+                        {member.email}
                       </p>
-                      <p className="text-sm text-gray-600">{member.email}</p>
                     </div>
                     <div>
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -450,55 +371,34 @@ export function Step4AddMembers({
           Add New Member
         </h4>
         <div className="space-y-4">
-          {/* Live Email Search */}
-          <div className="relative">
+          {/* Email Search */}
+          <div className="relative search-dropdown">
             <Label
               htmlFor="newMemberEmail"
               className="text-sm font-medium text-gray-700"
             >
-              Search by Email * (Live Search)
+              Search Individual Tech Professional *
             </Label>
-            <div className="flex gap-2 mt-1">
-              <div className="flex-1 relative">
-                <Input
-                  ref={searchInputRef}
-                  id="newMemberEmail"
-                  type="email"
-                  value={searchQuery}
-                  onChange={(e) => handleSearchInputChange(e.target.value)}
-                  onFocus={() => {
-                    if (searchResults.length > 0) {
-                      setShowSearchResults(true);
-                    }
-                  }}
-                  className="flex-1 rounded-[10px] pr-10"
-                  placeholder="Type email address to search live..."
-                />
-                {searchingUser && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                  </div>
-                )}
-                {!searchingUser && searchQuery && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <Search className="w-4 h-4 text-gray-400" />
-                  </div>
+            <div className="relative mt-1">
+              <Input
+                id="newMemberEmail"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="rounded-[10px] pr-10"
+                placeholder="Type email address to search..."
+                disabled={searchingUser}
+              />
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                {searchingUser ? (
+                  <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+                ) : (
+                  <Search className="w-4 h-4 text-gray-400" />
                 )}
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => searchUserByEmail(searchQuery)}
-                disabled={
-                  !searchQuery || !searchQuery.includes("@") || searchingUser
-                }
-                className="rounded-[10px]"
-              >
-                {searchingUser ? "Searching..." : "Manual Search"}
-              </Button>
             </div>
 
-            {/* Live Search Results Dropdown */}
+            {/* Search Results Dropdown */}
             {showSearchResults && searchResults.length > 0 && (
               <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-[10px] shadow-lg max-h-60 overflow-y-auto">
                 {searchResults.map((user, index) => (
@@ -520,6 +420,25 @@ export function Step4AddMembers({
                         <Mail className="w-3 h-3 mr-1" />
                         {user.email}
                       </p>
+                      {user.profile && (
+                        <div className="flex items-center gap-2 mt-1">
+                          {user.profile.currentJobTitle && (
+                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                              {user.profile.currentJobTitle}
+                            </span>
+                          )}
+                          {user.profile.yearsOfExperience && (
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                              {user.profile.yearsOfExperience} years exp
+                            </span>
+                          )}
+                          {user.isVerified && (
+                            <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
+                              Verified
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="flex-shrink-0">
                       <span className="text-xs text-blue-600 font-medium">
@@ -534,26 +453,38 @@ export function Step4AddMembers({
             {/* No results message */}
             {showSearchResults &&
               searchResults.length === 0 &&
-              searchQuery.length >= 3 &&
-              !searchingUser && (
+              searchQuery.length >= 2 && (
                 <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-[10px] shadow-lg p-3">
                   <div className="flex items-center space-x-3 text-gray-500">
                     <Search className="w-4 h-4" />
                     <span className="text-sm">
-                      No users found for "{searchQuery}"
+                      No professional found with email "{searchQuery}"
                     </span>
                   </div>
                 </div>
               )}
 
-            {userFound && (
-              <p className="mt-1 text-sm text-green-600">
-                ✓ User found successfully!
-              </p>
+            {/* Selected User Display */}
+            {selectedUser && (
+              <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-[10px]">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <User className="w-4 h-4 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-green-900">
+                      {selectedUser.fullName}
+                    </p>
+                    <p className="text-xs text-green-700">
+                      {selectedUser.email}
+                    </p>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
-          {/* User Details (Auto-filled after search) */}
+          {/* User Details (Auto-filled after selection) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label
@@ -615,10 +546,10 @@ export function Step4AddMembers({
               type="button"
               onClick={addToPendingList}
               disabled={
-                !newMember.fullName ||
+                !newMember.userId ||
                 !newMember.email ||
-                !newMember.role ||
-                !userFound
+                !newMember.fullName ||
+                !newMember.role
               }
               className="flex items-center space-x-2 rounded-[10px] bg-blue-600 hover:bg-blue-700 text-white"
             >
@@ -644,12 +575,6 @@ export function Step4AddMembers({
               </Button>
             )}
           </div>
-
-          {!userFound && newMember.email && (
-            <p className="text-sm text-amber-600">
-              ⚠️ Please search for the user first before adding to the list
-            </p>
-          )}
 
           {inviteError && <p className="text-sm text-red-600">{inviteError}</p>}
         </div>

@@ -184,7 +184,10 @@ const LoginPage = () => {
               token
             );
           } catch (progressError) {
-            safeConsole.error("Error fetching progress details:", progressError);
+            safeConsole.error(
+              "Error fetching progress details:",
+              progressError
+            );
           }
           return getOnboardingRoute(role, id);
         }
@@ -392,8 +395,8 @@ const LoginPage = () => {
           type="button"
           className="w-full flex items-center justify-center gap-2 border-2 border-gray-200 py-3 rounded-[10px] text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Login with Google"
-          onClick={handleGoogleLogin}
-          disabled={isSubmitting || isGoogleLoading}
+          // onClick={handleGoogleLogin}
+          disabled
         >
           <Image src="/icons/search.png" height={20} width={20} alt="Google" />
           {isGoogleLoading ? "Redirecting..." : "Sign in with Google"}
@@ -403,7 +406,7 @@ const LoginPage = () => {
           type="button"
           className="w-full flex items-center justify-center gap-2 border-2 border-gray-200 py-2 rounded-[10px] text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
           aria-label="Login with LinkedIn"
-          disabled={isSubmitting || isGoogleLoading}
+          disabled
         >
           <Image
             src="/icons/linkedin.png"

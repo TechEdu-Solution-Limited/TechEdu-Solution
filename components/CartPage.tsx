@@ -92,56 +92,7 @@ export default function CartPage() {
   const [paymentAmountCents, setPaymentAmountCents] = useState<number | null>(
     null
   );
-  const [paymentCurrency, setPaymentCurrency] = useState<string>("gbp"); // Default to GBP for UK users
   const [paymentBookingId, setPaymentBookingId] = useState<string | null>(null);
-  const [currencyRates, setCurrencyRates] = useState({
-    usd: 1.0,
-    gbp: 0.79, // Fallback rates
-    eur: 0.92,
-  });
-  const [isLoadingRates, setIsLoadingRates] = useState(false);
-  const [ratesError, setRatesError] = useState(false);
-
-  // Fetch real-time exchange rates
-  const fetchExchangeRates = async () => {
-    setIsLoadingRates(true);
-    setRatesError(false);
-    try {
-      // Using ExchangeRate-API (free tier: 1500 requests/month)
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_EXCHANGE_RATE_API_URL}/v4/latest/USD`
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.rates) {
-        setCurrencyRates({
-          usd: 1.0,
-          gbp: data.rates.GBP || 0.79,
-          eur: data.rates.EUR || 0.92,
-        });
-        safeConsole.log("Exchange rates updated:", {
-          GBP: data.rates.GBP,
-          EUR: data.rates.EUR,
-        });
-      }
-    } catch (error) {
-      safeConsole.error("Failed to fetch exchange rates:", error);
-      setRatesError(true);
-      // Keep fallback rates if API fails
-    } finally {
-      setIsLoadingRates(false);
-    }
-  };
-
-  // Fetch rates on component mount
-  useEffect(() => {
-    fetchExchangeRates();
-  }, []);
 
   // Two-step checkout state for bookable services
   const [showBookingDetailsForm, setShowBookingDetailsForm] = useState(false);
@@ -153,27 +104,21 @@ export default function CartPage() {
   });
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
 
-  // Convert price from USD to selected currency
-  const convertPrice = (usdPrice: number, targetCurrency: string) => {
-    const rate =
-      currencyRates[targetCurrency as keyof typeof currencyRates] || 1;
-    return usdPrice * rate;
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-GB", {
+  const formatCurrency = (amount: number, currency: string = "USD") => {
+    return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: paymentCurrency, // Use the user's currency preference
+      currency: currency,
     }).format(amount);
   };
 
-  // Calculate total with currency conversion
-  const calculateConvertedTotal = () => {
-    const totalInUSD = cartItems.reduce(
-      (sum, item) => sum + (item.price || 0),
-      0
-    );
-    return convertPrice(totalInUSD, paymentCurrency);
+  // Calculate total using the currency from the first item (assuming all items have the same currency)
+  const calculateTotal = () => {
+    return cartItems.reduce((sum, item) => sum + (item.price || 0), 0);
+  };
+
+  // Get currency from the first cart item (assuming all items have the same currency)
+  const getCartCurrency = () => {
+    return cartItems[0]?.currency || "USD";
   };
 
   // Function to update booking details in cart item
@@ -319,8 +264,7 @@ export default function CartPage() {
         );
       }
 
-      const convertedPrice = convertPrice(item.price || 0, paymentCurrency);
-      const amountCents = Math.round(convertedPrice * 100);
+      const amountCents = Math.round((item.price || 0) * 100);
 
       // For bookable services, we need to create a booking first and get bookingId
       let currentBookingId = item.bookingDetails?.bookingId || "";
@@ -479,7 +423,7 @@ export default function CartPage() {
         response = await PaymentService.createSimplePaymentIntent(
           paymentData,
           amountCents,
-          paymentCurrency,
+          item.currency || "USD",
           token
         );
         safeConsole.log("Payment intent response:", response);
@@ -523,7 +467,6 @@ export default function CartPage() {
 
       setPaymentClientSecret(secret);
       setPaymentAmountCents(amountCents);
-      setPaymentCurrency(paymentCurrency);
       setShowPaymentForm(true);
       toast.success("Secure payment initialized");
     } catch (err: any) {
@@ -918,14 +861,14 @@ export default function CartPage() {
                 </p>
               </div>
               <div className="space-y-4">
-                <Link href="/training/catalog">
+                <Link href="/pricing">
                   <Button className="bg-[#0D1140] hover:bg-blue-700 text-white px-8 py-3 rounded-[10px]">
                     Browse Courses
                   </Button>
                 </Link>
                 <div>
                   <Link
-                    href="/training/catalog"
+                    href="/pricing"
                     className="text-[#011F72] hover:underline flex items-center justify-center gap-2"
                   >
                     <ArrowLeft size={16} />
@@ -1090,58 +1033,6 @@ export default function CartPage() {
               )}
 
               <CardContent className="space-y-4">
-                {/* Currency Selector */}
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-700">
-                        Payment Currency
-                      </h3>
-                      <p className="text-xs text-gray-500">
-                        Select your preferred currency for payment
-                        {isLoadingRates && (
-                          <span className="ml-2 text-blue-600">
-                            • Updating rates...
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={fetchExchangeRates}
-                        disabled={isLoadingRates}
-                        className="p-2 text-gray-500 hover:text-gray-700 disabled:opacity-50"
-                        title="Refresh exchange rates"
-                      >
-                        <svg
-                          className={`w-4 h-4 ${
-                            isLoadingRates ? "animate-spin" : ""
-                          }`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                          />
-                        </svg>
-                      </button>
-                      <select
-                        value={paymentCurrency}
-                        onChange={(e) => setPaymentCurrency(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="gbp">GBP (£) - British Pound</option>
-                        <option value="usd">USD ($) - US Dollar</option>
-                        <option value="eur">EUR (€) - Euro</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Cart Total */}
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                   <div className="flex items-center justify-between">
@@ -1156,27 +1047,10 @@ export default function CartPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-bold text-blue-600">
-                        {formatCurrency(calculateConvertedTotal())}
+                        {formatCurrency(calculateTotal(), getCartCurrency())}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {isLoadingRates ? (
-                          "Updating exchange rates..."
-                        ) : ratesError ? (
-                          "Using fallback rates • Click refresh to retry"
-                        ) : (
-                          <>
-                            Converted from USD • Live rates
-                            {paymentCurrency !== "usd" && (
-                              <span className="ml-1">
-                                (1 USD ={" "}
-                                {currencyRates[
-                                  paymentCurrency as keyof typeof currencyRates
-                                ]?.toFixed(3)}{" "}
-                                {paymentCurrency.toUpperCase()})
-                              </span>
-                            )}
-                          </>
-                        )}
+                        Prices as provided by the service
                       </p>
                     </div>
                   </div>
@@ -1286,7 +1160,8 @@ export default function CartPage() {
                       <div className="text-center lg:text-right">
                         <p className="text-3xl font-bold text-[#011F72] mb-1">
                           {formatCurrency(
-                            convertPrice(item.price || 0, paymentCurrency)
+                            item.price || 0,
+                            item.currency || "USD"
                           )}
                         </p>
                         <p className="text-sm text-gray-500">per course</p>
@@ -1461,7 +1336,7 @@ export default function CartPage() {
         {/* Continue Shopping Section */}
         <div className="mt-8 text-center">
           <Link
-            href="/training/catalog"
+            href="/pricing"
             className="inline-flex items-center gap-2 text-[#011F72] hover:text-blue-700 font-semibold text-lg hover:underline transition-colors"
           >
             <ArrowLeft size={20} />
@@ -1495,7 +1370,10 @@ export default function CartPage() {
                 <StripePaymentForm
                   clientSecret={paymentClientSecret}
                   amount={paymentAmountCents ?? 0}
-                  currency={paymentCurrency}
+                  currency={
+                    cartItems.find((ci) => ci.id === selectedCheckoutItemId)
+                      ?.currency || "USD"
+                  }
                   onSuccess={handlePaymentSuccess}
                   onError={handlePaymentError}
                   onClose={handleClosePaymentForm}

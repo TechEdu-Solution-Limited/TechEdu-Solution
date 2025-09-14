@@ -131,6 +131,7 @@ export interface UserBooking {
         service: string;
         productType: string;
         price: number;
+        currency: string;
       };
   productType: string;
   instructorId:
@@ -145,6 +146,7 @@ export interface UserBooking {
   // New fields from updated API response structure
   productName?: string;
   productPrice?: number;
+  productCurrency?: string;
   instructorName?: string;
   instructorEmail?: string;
   scheduleAt?: string; // Legacy field - use scheduledStart instead

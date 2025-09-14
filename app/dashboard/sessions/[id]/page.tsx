@@ -20,35 +20,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
-
-interface Session {
-  _id: string;
-  bookingId: string;
-  productId: string;
-  productType: string;
-  bookingPurpose: string;
-  instructorId: string;
-  scheduleAt: string;
-  endAt?: string;
-  minutesPerSession: number;
-  numberOfExpectedParticipants: number;
-  meetingLink?: string;
-  sessionType: "group" | "1-on-1";
-  status: "upcoming" | "confirmed" | "completed" | "cancelled";
-  avgRating?: number;
-  userNotes?: string;
-  internalNotes?: string;
-  participants: Array<{
-    participantType: string;
-    platformRole: string;
-    profileId?: string;
-    email: string;
-    fullName: string;
-  }>;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { Session } from "@/types/session";
 
 export default function SessionDetailPage() {
   const params = useParams();
@@ -226,7 +198,7 @@ export default function SessionDetailPage() {
           </div>
 
           {/* Session Overview */}
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-4 lg gap-6">
             <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 border border-blue-100">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -243,11 +215,15 @@ export default function SessionDetailPage() {
                 </div>
                 <div>
                   <span className="font-medium">Booking ID:</span>{" "}
-                  {session.bookingId}
+                  {session.bookingId?._id?.slice(-8) || "N/A"}
                 </div>
                 <div>
                   <span className="font-medium">Product ID:</span>{" "}
-                  {session.productId}
+                  {session.productId?._id?.slice(-8) || "N/A"}
+                </div>
+                <div>
+                  <span className="font-medium">Service:</span>{" "}
+                  {session.productId.service}
                 </div>
               </div>
             </div>
@@ -302,6 +278,32 @@ export default function SessionDetailPage() {
                     <span>{session.avgRating.toFixed(1)}</span>
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-6 border border-yellow-100">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <span className="text-yellow-600 font-bold text-lg">£</span>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Pricing
+                </h3>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div>
+                  <span className="font-medium">Price:</span>{" "}
+                  {session.productId?.price
+                    ? new Intl.NumberFormat("en-US", {
+                        style: "currency",
+                        currency: session.productId.currency || "USD",
+                      }).format(session.productId.price)
+                    : "N/A"}
+                </div>
+                <div>
+                  <span className="font-medium">Currency:</span>{" "}
+                  {session.productId?.currency?.toUpperCase() || "N/A"}
+                </div>
               </div>
             </div>
           </div>
@@ -359,7 +361,7 @@ export default function SessionDetailPage() {
                     Meeting Link
                   </label>
                   {session.meetingLink ? (
-                    <a
+                    <Link
                       href={session.meetingLink}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -367,12 +369,79 @@ export default function SessionDetailPage() {
                     >
                       <Video className="w-4 h-4" />
                       Join Meeting
-                    </a>
+                    </Link>
                   ) : (
                     <span className="text-sm text-slate-500">
                       No link available
                     </span>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Instructor
+                  </label>
+                  <div className="text-slate-900 bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                    <div className="font-medium">
+                      {session.instructorId?.fullName || "N/A"}
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      {session.instructorId?.email || "N/A"}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Price
+                  </label>
+                  <div className="text-slate-900 bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                    <div className="text-lg font-semibold">
+                      {session.productId?.price
+                        ? new Intl.NumberFormat("en-US", {
+                            style: "currency",
+                            currency: session.productId.currency || "USD",
+                          }).format(session.productId.price)
+                        : "N/A"}
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      {session.productId?.currency?.toUpperCase() || "N/A"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Participants
+                  </label>
+                  <div className="text-slate-900 bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                    {session.participants && session.participants.length > 0 ? (
+                      <div className="space-y-2">
+                        {session.participants.map((participant, index) => (
+                          <div
+                            key={participant._id || index}
+                            className="flex justify-between items-center"
+                          >
+                            <div>
+                              <div className="font-medium">
+                                {participant.fullName}
+                              </div>
+                              <div className="text-sm text-slate-600">
+                                {participant.email}
+                              </div>
+                            </div>
+                            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                              {participant.platformRole}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-slate-500 italic">
+                        No participants listed
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="md:col-span-2">
@@ -455,7 +524,7 @@ export default function SessionDetailPage() {
                 )}
 
                 {session.meetingLink && session.status === "confirmed" && (
-                  <a
+                  <Link
                     href={session.meetingLink}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -463,7 +532,7 @@ export default function SessionDetailPage() {
                   >
                     <Video className="w-4 h-4" />
                     Join Meeting
-                  </a>
+                  </Link>
                 )}
               </div>
             </div>
@@ -490,12 +559,20 @@ export default function SessionDetailPage() {
                   </div>
                 )}
                 {session.instructorId && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Instructor ID:</span>
-                    <span className="font-medium text-slate-900">
-                      {session.instructorId.slice(-8)}
-                    </span>
-                  </div>
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Instructor:</span>
+                      <span className="font-medium text-slate-900">
+                        {session.instructorId.fullName}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Instructor ID:</span>
+                      <span className="font-medium text-slate-900 font-mono">
+                        {session.instructorId?._id?.slice(-8) || "N/A"}
+                      </span>
+                    </div>
+                  </>
                 )}
                 <div className="flex justify-between">
                   <span className="text-slate-600">Session ID:</span>

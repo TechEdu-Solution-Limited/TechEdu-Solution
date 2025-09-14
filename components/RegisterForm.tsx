@@ -600,8 +600,8 @@ const Page = () => {
             type="button"
             className="w-full flex items-center justify-center gap-2 border-2 border-gray-200 py-2 rounded-[10px] text-gray-700 hover:bg-gray-200"
             aria-label="Login with Google"
-            onClick={handleGoogleLogin}
-            disabled={isLoading || isGoogleLoading}
+            // onClick={handleGoogleLogin}
+            disabled
           >
             <Image
               src="/icons/search.png"
@@ -617,7 +617,7 @@ const Page = () => {
             type="button"
             className="w-full flex items-center justify-center gap-2 border-2 border-gray-200 py-2 rounded-[10px] text-gray-700 hover:bg-gray-200"
             aria-label="Login with LinkedIn"
-            disabled={isLoading || isGoogleLoading}
+            disabled
           >
             <Image
               src="/icons/linkedin.png"

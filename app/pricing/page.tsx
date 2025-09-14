@@ -2,7 +2,11 @@
 
 import StoryCarousel, { Story } from "@/components/Stories/StoryCarousel";
 import CatalogPage from "@/components/CatalogPage";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  generatePricingMetadata,
+  generateServiceStructuredData,
+} from "@/lib/metadata/pricing";
 import {
   Clock,
   CheckCircle,
@@ -358,9 +362,34 @@ const addOns = [
 
 export default function Pricing() {
   const [tab, setTab] = useState<TabType>("academic");
+  const [products, setProducts] = useState<any[]>([]);
+
+  // Update document title and meta description based on selected tab
+  useEffect(() => {
+    const metadata = generatePricingMetadata(tab);
+    document.title = String(
+      metadata.title || "Professional Services Pricing | TechEdu Solution"
+    );
+
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute(
+        "content",
+        String(metadata.description || "")
+      );
+    }
+  }, [tab]);
 
   return (
     <>
+      {/* Dynamic Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(generateServiceStructuredData(tab, products)),
+        }}
+      />
+
       <header className="mx-auto px-4 md:px-16 pt-20 pb-16 flex flex-col items-center justify-center text-center bg-[#0D1140] w-full md:h-[70vh]">
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-200 pb-4 pt-20">
           Comprehensive Professional Services

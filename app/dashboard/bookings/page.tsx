@@ -110,6 +110,8 @@ export default function UserBookingsPage() {
               booking.productName ||
               "Unknown Service",
             productPrice: booking.productId?.price || booking.productPrice || 0,
+            productCurrency:
+              booking.productId?.currency || booking.productCurrency || "USD",
 
             // Extract instructor information from instructorId object
             instructorName:
@@ -833,11 +835,8 @@ export default function UserBookingsPage() {
                   </div>
 
                   {booking.productPrice && (
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <DollarSign className="w-4 h-4" />
-                      <span className="font-semibold text-green-600">
-                        ${booking.productPrice}
-                      </span>
+                    <div className="font-semibold text-green-600">
+                      {booking.productPrice} {booking.productCurrency}
                     </div>
                   )}
 
@@ -875,27 +874,27 @@ export default function UserBookingsPage() {
                         {booking.meetingLink && (
                           <div className="flex items-center gap-2">
                             <Video className="w-4 h-4 text-blue-600" />
-                            <a
+                            <Link
                               href={booking.meetingLink}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:text-blue-800 underline text-xs"
                             >
                               Join Meeting
-                            </a>
+                            </Link>
                           </div>
                         )}
                         {booking.calendlyUrl && (
                           <div className="flex items-center gap-2">
                             <Calendar className="w-4 h-4 text-green-600" />
-                            <a
+                            <Link
                               href={booking.calendlyUrl}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-green-600 hover:text-green-800 underline text-xs"
                             >
                               Reschedule
-                            </a>
+                            </Link>
                           </div>
                         )}
                       </div>

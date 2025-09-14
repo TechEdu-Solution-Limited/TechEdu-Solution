@@ -16,6 +16,7 @@ export interface Product {
 
   // Pricing
   price: number;
+  currency: string;
   discountPercentage?: number;
   originalPrice?: number;
 

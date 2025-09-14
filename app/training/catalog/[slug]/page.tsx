@@ -5,56 +5,10 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import { CartItem } from "@/types/cart";
+import { Product } from "@/types/product";
 import { useParams, notFound } from "next/navigation";
 
 import { safeConsole } from "@/lib/console";
-interface Product {
-  _id: string;
-  productType: string;
-  productCategoryId: {
-    _id: string;
-    title: string;
-    productType: string;
-  };
-  productCategoryTitle: string;
-  productSubCategoryId: {
-    _id: string;
-    name: string;
-    productType: string;
-  };
-  productSubcategoryName: string;
-  service: string;
-  deliveryMode: string;
-  sessionType: string;
-  isRecurring: boolean;
-  programLength: number;
-  mode: string;
-  durationInMinutes: number;
-  minutesPerSession: number;
-  hasClassroom: boolean;
-  hasSession: boolean;
-  hasAssessment: boolean;
-  hasCertificate: boolean;
-  requiresBooking: boolean;
-  requiresEnrollment: boolean;
-  isBookableService: boolean;
-  instructorId: string;
-  instructorName?: string;
-  virtualPlatform?: string;
-  classroomCapacity?: number;
-  classroomRequirements?: string[];
-  price: number;
-  discountPercentage?: number;
-  description: string;
-  tags: string[];
-  slug: string;
-  iconUrl?: string;
-  thumbnailUrl?: string;
-  enabled: boolean;
-  isDeleted: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
 
 export default function ProductPage() {
   const { slug } = useParams();
@@ -118,8 +72,9 @@ export default function ProductPage() {
       title: product.service,
       description: product.description || "",
       price: product.price,
+      currency: product.currency,
       discountPercentage: product.discountPercentage || 0,
-      category: product.productCategoryTitle,
+      category: product.productCategoryTitle || "Uncategorized",
       productType: product.productType,
       image:
         product.thumbnailUrl ||
@@ -128,7 +83,7 @@ export default function ProductPage() {
       duration: `${product.programLength} ${product.mode}`,
       certificate: product.hasCertificate,
       status: product.enabled ? "active" : "inactive",
-      level: product.productSubcategoryName,
+      level: product.productSubcategoryName || "",
       requiresBooking: false,
 
       // Product details for booking
@@ -246,12 +201,28 @@ export default function ProductPage() {
           </div>
 
           <div className="flex items-center gap-4 mb-4">
-            <span className="text-2xl font-bold text-blue-900">
-              ${product.price.toFixed(2)}
-            </span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-blue-900">
+                {new Intl.NumberFormat("en-US", {
+                  style: "currency",
+                  currency: product.currency || "USD",
+                }).format(
+                  product.price -
+                    (product.price * (product.discountPercentage ?? 0)) / 100
+                )}
+              </span>
+              {product.discountPercentage && product.discountPercentage > 0 && (
+                <span className="text-green-600 font-semibold text-lg">
+                  -{product.discountPercentage}%
+                </span>
+              )}
+            </div>
             {product.discountPercentage && product.discountPercentage > 0 && (
-              <span className="text-green-600 font-semibold text-lg">
-                -{product.discountPercentage}%
+              <span className="text-lg text-gray-500 line-through">
+                {new Intl.NumberFormat("en-US", {
+                  style: "currency",
+                  currency: product.currency || "USD",
+                }).format(product.price)}
               </span>
             )}
           </div>

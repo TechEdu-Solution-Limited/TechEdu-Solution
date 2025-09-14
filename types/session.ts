@@ -1,30 +1,50 @@
 export interface Session {
   _id: string;
-  bookingId: string;
-  instructorId: string;
-  studentIds: string[];
-  scheduledDate: Date;
-  startTime?: Date;
-  endTime?: Date;
-  duration: number; // minutes
-  sessionType: "1-on-1" | "group" | "classroom";
-  deliveryMode: "online" | "physical" | "hybrid";
-  status: "scheduled" | "in-progress" | "completed" | "cancelled" | "no-show";
+  bookingId: {
+    _id: string;
+    scheduleAt: string | null;
+    endAt: string | null;
+  };
+  productId: {
+    _id: string;
+    productType: string;
+    service: string;
+    price: number;
+    currency: string;
+  };
+  productType: string;
+  bookingPurpose: string;
+  instructorId: {
+    _id: string;
+    email: string;
+    fullName: string;
+  };
+  scheduleAt: string;
+  endAt: string;
+  minutesPerSession: number;
+  numberOfExpectedParticipants: number;
   meetingLink?: string;
-  meetingId?: string;
-  classroomId?: string;
-  notes?: string;
-  summary?: string;
-  nextSteps?: string;
-  materials?: string[]; // URLs to session materials
-  recordingUrl?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  startedAt?: Date;
-  endedAt?: Date;
-  cancelledAt?: Date;
-  cancelledBy?: string;
-  cancellationReason?: string;
+  sessionType: "group" | "1-on-1";
+  status: "upcoming" | "confirmed" | "completed" | "cancelled";
+  avgRating?: number;
+  userNotes?: string;
+  internalNotes?: string;
+  participants: Array<{
+    participantType: string;
+    platformRole: string;
+    profileId: string;
+    email: string;
+    fullName: string;
+    _id: string;
+  }>;
+  createdBy: {
+    _id: string;
+    email: string;
+    fullName: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+  materialUrl?: string | null;
 }
 
 export interface SessionRequest {

@@ -888,9 +888,12 @@ export default function PaymentsPage() {
                           <TableHead className="font-semibold">
                             Status
                           </TableHead>
-                          {/* <TableHead className="font-semibold">
+                          <TableHead className="font-semibold">
                             Provider
-                          </TableHead> */}
+                          </TableHead>
+                          <TableHead className="font-semibold">
+                            Payment Method
+                          </TableHead>
                           <TableHead className="font-semibold">
                             Product Type
                           </TableHead>
@@ -932,14 +935,37 @@ export default function PaymentsPage() {
                             <TableCell>
                               {getStatusBadge(payment.status)}
                             </TableCell>
-                            {/* <TableCell>
+                            <TableCell>
                               <div className="flex items-center gap-2">
                                 {getProviderIcon(payment.provider)}
                                 <span className="capitalize font-medium">
                                   {payment.provider}
                                 </span>
                               </div>
-                            </TableCell> */}
+                            </TableCell>
+                            <TableCell>
+                              {(() => {
+                                const paymentMethod =
+                                  payment.metadata?.webhookEvent?.charges
+                                    ?.data?.[0]?.payment_method_details;
+                                if (paymentMethod?.card) {
+                                  return (
+                                    <div className="flex items-center gap-2">
+                                      <CreditCard className="w-4 h-4 text-gray-500" />
+                                      <span className="text-sm font-medium">
+                                        {paymentMethod.card.brand.toUpperCase()}{" "}
+                                        •••• {paymentMethod.card.last4}
+                                      </span>
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <span className="text-sm text-gray-500">
+                                    {payment.provider}
+                                  </span>
+                                );
+                              })()}
+                            </TableCell>
                             <TableCell>
                               <div className="max-w-[200px]">
                                 <div
