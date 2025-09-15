@@ -23,61 +23,11 @@ import {
 import { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { MdEmail } from "react-icons/md";
-
-type TabType =
-  | "academic"
-  | "career"
-  | "corporate"
-  | "ai"
-  | "talent"
-  | "training";
-
-// Product type mapping to TabType
-const PRODUCT_TYPE_MAPPING: Record<TabType, string> = {
-  academic: "Academic Support Services",
-  career: "Career Development & Mentorship",
-  corporate: "Marketing, Consultation & Free Services",
-  ai: "AI-Powered or Automation Services",
-  talent: "Institutional & Team Services",
-  training: "Training & Certification",
-};
-
-// Empty state messages for each product type
-const EMPTY_STATE_MESSAGES: Record<
+import {
   TabType,
-  { title: string; description: string }
-> = {
-  academic: {
-    title: "No Academic Services Found",
-    description:
-      "We couldn't find any academic support services matching your current filters. Try adjusting your search criteria or browse our complete catalog of academic services.",
-  },
-  career: {
-    title: "No Career Services Found",
-    description:
-      "We couldn't find any career development services matching your current filters. Try adjusting your search criteria or explore our full range of career services.",
-  },
-  corporate: {
-    title: "No Corporate Services Found",
-    description:
-      "We couldn't find any corporate consultancy services matching your current filters. Try adjusting your search criteria or browse our complete business services catalog.",
-  },
-  ai: {
-    title: "No AI Services Found",
-    description:
-      "We couldn't find any AI-powered services matching your current filters. Try adjusting your search criteria or explore our full range of AI and automation services.",
-  },
-  talent: {
-    title: "No Institutional Services Found",
-    description:
-      "We couldn't find any institutional or team services matching your current filters. Try adjusting your search criteria or browse our complete institutional services catalog.",
-  },
-  training: {
-    title: "No Training Programs Found",
-    description:
-      "We couldn't find any training programs matching your current filters. Try adjusting your search criteria or browse our complete training catalog.",
-  },
-};
+  PRODUCT_TYPE_MAPPING,
+  EMPTY_STATE_MESSAGES,
+} from "@/lib/constants/productTypes";
 
 type ServiceCategory = {
   icon: LucideIcon;
@@ -93,7 +43,7 @@ type ServiceCategory = {
 };
 
 const serviceCategories: Record<TabType, ServiceCategory> = {
-  academic: {
+  "academic services": {
     icon: GraduationCap,
     title: "Academic Services",
     description: "Comprehensive academic support for students and researchers",
@@ -142,7 +92,7 @@ const serviceCategories: Record<TabType, ServiceCategory> = {
       },
     ],
   },
-  career: {
+  "career development": {
     icon: Briefcase,
     title: "Career Development Services",
     description: "Professional career guidance and development support",
@@ -170,9 +120,9 @@ const serviceCategories: Record<TabType, ServiceCategory> = {
       },
     ],
   },
-  corporate: {
+  "corporate & business consultancy": {
     icon: Users,
-    title: "Corporate Consultancy & Business Training",
+    title: "Corporate & Business Consultancy",
     description: "Professional business analysis and leadership development",
     services: [
       {
@@ -219,79 +169,9 @@ const serviceCategories: Record<TabType, ServiceCategory> = {
       },
     ],
   },
-  ai: {
-    icon: Brain,
-    title: "AI Consultancy Packages",
-    description: "Comprehensive AI governance and ethics consultation",
-    services: [
-      {
-        name: "AI Ethics Consultation",
-        tier: "Essentials",
-        format: "1-hour live session + summary brief",
-        price: "£150/hr",
-        delivery: "48-hour advance booking recommended",
-      },
-      {
-        name: "AI Ethics Consultation",
-        tier: "Executive Workshop",
-        format: "2.5-hour live workshop + toolkit + Q&A",
-        price: "£400",
-        delivery: "Scheduled 2 weeks in advance",
-      },
-      {
-        name: "AI Governance Framework",
-        tier: "Core Advisory",
-        format: "3 strategy sessions + framework blueprint",
-        price: "£800",
-        delivery: "4-6 week engagement",
-      },
-      {
-        name: "AI Governance Framework",
-        tier: "Comprehensive",
-        format: "Advisory + draft policy + roadmap + final review",
-        price: "£1,200",
-        delivery: "4-6 week engagement (recommended)",
-      },
-      {
-        name: "Enterprise AI Governance",
-        tier: "Advisory Only",
-        format: "4 strategy sessions + executive report",
-        price: "£2,000",
-        delivery: "6-10 weeks based on scope",
-      },
-      {
-        name: "Enterprise AI Governance",
-        tier: "Full Suite",
-        format: "Includes audits, risk matrix, policies, training resources",
-        price: "£3,500-£5,000",
-        delivery: "6-10 weeks based on scope",
-      },
-    ],
-  },
-  talent: {
-    icon: Target,
-    title: "Tech Talent Resourcing",
-    description: "Specialized recruitment and talent acquisition services",
-    services: [
-      {
-        name: "Tech Talent Sourcing",
-        tier: "Standard Search",
-        format: "Targeted candidate sourcing + shortlist",
-        price: "£500/hire",
-        delivery: "2-6 weeks per hire",
-      },
-      {
-        name: "Tech Talent Sourcing",
-        tier: "Executive & Specialized Search",
-        format: "Full-cycle recruitment, interviews, + strategic fit analysis",
-        price: "£1,500/hire",
-        delivery: "2-6 weeks per hire",
-      },
-    ],
-  },
   training: {
     icon: BookOpen,
-    title: "Technology-Enhanced Learning",
+    title: "Training & Certification",
     description: "Interactive workshops and comprehensive training programs",
     services: [
       {
@@ -361,7 +241,7 @@ const addOns = [
 ];
 
 export default function Pricing() {
-  const [tab, setTab] = useState<TabType>("academic");
+  const [tab, setTab] = useState<TabType>("academic services");
   const [products, setProducts] = useState<any[]>([]);
 
   // Update document title and meta description based on selected tab
@@ -414,7 +294,7 @@ export default function Pricing() {
         </div>
 
         <div
-          className="flex flex-wrap justify-center gap-2 sm:gap-4 px-2"
+          className="flex justify-flex-start gap-2 sm:gap-4 px-2 overflow-x-auto scrollbar-hide"
           role="tablist"
         >
           {Object.entries(serviceCategories).map(([key, category]) => {
@@ -426,19 +306,15 @@ export default function Pricing() {
                 role="tab"
                 aria-selected={tab === key}
                 onClick={() => setTab(key as TabType)}
-                className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 rounded-full font-semibold transition-all duration-300 ease-in-out text-xs sm:text-sm md:text-base ${
+                className={`flex items-center gap-1 sm:gap-2 px-4 md:px-6 py-2.5 font-medium transition-all whitespace-nowrap flex-shrink-0 rounded-full border ${
                   tab === key
                     ? "bg-blue-600 text-white shadow-lg"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
                 <Icon size={16} className="sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">
-                  {category.title.split(" ")[0]}
-                </span>
-                <span className="sm:hidden">
-                  {category.title.split(" ")[0].slice(0, 3)}
-                </span>
+                <span className="hidden sm:inline">{category.title}</span>
+                <span className="sm:hidden">{category.title}</span>
               </button>
             );
           })}

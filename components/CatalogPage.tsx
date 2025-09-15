@@ -33,22 +33,11 @@ import { getApiRequest } from "@/lib/apiFetch";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 import { safeConsole } from "@/lib/console";
-const PRODUCT_TYPE_OPTIONS = [
-  "Training & Certification",
-  "Academic Support Services",
-  "Career Development & Mentorship",
-  "Institutional & Team Services",
-  "AI-Powered or Automation Services",
-  "Career Connect",
-  "Marketing, Consultation & Free Services",
-];
-
-const DIFFICULTY_LEVEL_OPTIONS = ["Beginner", "Intermediate", "Advanced"];
-const SORT_OPTIONS = [
-  { value: "price", label: "Price" },
-  { value: "service", label: "Name" },
-  { value: "category", label: "Category" },
-];
+import {
+  PRODUCT_TYPE_OPTIONS,
+  DIFFICULTY_LEVEL_OPTIONS,
+  SORT_OPTIONS,
+} from "@/lib/constants/productTypes";
 
 interface CatalogPageProps {
   productType?: string;

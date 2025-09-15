@@ -371,7 +371,7 @@ export default function CorporateConsultancy() {
       /> */}
 
       <CatalogPage
-        productType="Marketing, Consultation & Free Services"
+        productType="Corporate & Business Consultancy"
         title="Corporate Consultancy Services"
         description="Get expert corporate consultancy services, mentorship, and support to excel in your corporate journey"
       />

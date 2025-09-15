@@ -1,12 +1,5 @@
 import type { Metadata } from "next";
-
-type TabType =
-  | "academic"
-  | "career"
-  | "corporate"
-  | "ai"
-  | "talent"
-  | "training";
+import { TabType } from "@/lib/constants/productTypes";
 
 interface ServiceCategory {
   title: string;
@@ -16,7 +9,7 @@ interface ServiceCategory {
 }
 
 const serviceCategories: Record<TabType, ServiceCategory> = {
-  academic: {
+  "academic services": {
     title: "Academic Support Services",
     description:
       "PhD mentoring, academic transition training, thesis review, and publication support for students and researchers.",
@@ -38,7 +31,7 @@ const serviceCategories: Record<TabType, ServiceCategory> = {
       "thesis review",
     ],
   },
-  career: {
+  "career development": {
     title: "Career Development & Mentorship",
     description:
       "Professional CV services, interview preparation, and career coaching to advance your professional journey.",
@@ -56,7 +49,7 @@ const serviceCategories: Record<TabType, ServiceCategory> = {
     ],
     focusKeywords: ["CV services", "interview preparation", "career coaching"],
   },
-  corporate: {
+  "corporate & business consultancy": {
     title: "Corporate Consultancy & Business Training",
     description:
       "Business analysis training, professional consultancy, and leadership development for organizations.",
@@ -77,42 +70,6 @@ const serviceCategories: Record<TabType, ServiceCategory> = {
       "corporate consultancy",
       "leadership development",
     ],
-  },
-  ai: {
-    title: "AI Consultancy Packages",
-    description:
-      "AI ethics consultation, governance frameworks, and enterprise AI services for responsible AI implementation.",
-    keywords: [
-      "AI consultancy",
-      "AI ethics",
-      "AI governance",
-      "artificial intelligence",
-      "AI policy",
-      "AI strategy",
-      "machine learning",
-      "AI implementation",
-      "AI risk management",
-      "AI compliance",
-    ],
-    focusKeywords: ["AI consultancy", "AI ethics", "AI governance"],
-  },
-  talent: {
-    title: "Institutional & Team Services",
-    description:
-      "Tech talent sourcing and recruitment services for organizations seeking specialized professionals.",
-    keywords: [
-      "tech recruitment",
-      "talent sourcing",
-      "hiring services",
-      "tech professionals",
-      "recruitment consultancy",
-      "talent acquisition",
-      "tech hiring",
-      "specialized recruitment",
-      "executive search",
-      "tech talent",
-    ],
-    focusKeywords: ["tech recruitment", "talent sourcing", "hiring services"],
   },
   training: {
     title: "Training & Certification",

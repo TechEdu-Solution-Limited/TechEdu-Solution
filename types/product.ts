@@ -1,13 +1,10 @@
+import { PRODUCT_TYPE_OPTIONS } from "@/lib/constants/productTypes";
+
+export type ProductType = (typeof PRODUCT_TYPE_OPTIONS)[number];
+
 export interface Product {
   _id: string;
-  productType:
-    | "Training & Certification"
-    | "Academic Support Services"
-    | "Career Development & Mentorship"
-    | "Institutional & Team Services"
-    | "AI-Powered or Automation Services"
-    | "Recruitment & Job Matching"
-    | "Marketing, Consultation & Free Services";
+  productType: ProductType;
 
   // Basic Information
   service: string;
