@@ -18,7 +18,7 @@ const tools = [
     description: "Refine your story, proposal, and strategy to secure funding",
   },
   {
-    image: "/assets/pricing.jpg",
+    image: "/assets/package-estimator.jpg",
     alt: "Illustration of Package Estimator",
     title: "Package Estimator",
     url: "/tools/package-estimator",
