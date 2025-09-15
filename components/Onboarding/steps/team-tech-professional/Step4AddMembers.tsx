@@ -27,8 +27,9 @@ export function Step4AddMembers({
   teamId,
 }: Step4AddMembersProps) {
   // Debug: Log the teamId to ensure it's being passed correctly
-  console.log("Step4AddMembers - teamId:", teamId);
-  console.log("Step4AddMembers - form.teamId:", form.teamId);
+  console.log("🔍 Step4AddMembers - teamId prop:", teamId);
+  console.log("🔍 Step4AddMembers - form.teamId:", form.teamId);
+  console.log("🔍 Step4AddMembers - form object:", form);
 
   const [newMember, setNewMember] = useState({
     userId: "",
@@ -47,8 +48,6 @@ export function Step4AddMembers({
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [searchingUser, setSearchingUser] = useState(false);
-  const [searchTimeoutRef, setSearchTimeoutRef] =
-    useState<NodeJS.Timeout | null>(null);
 
   // Search individual tech professional by email
   const searchUserByEmail = async (email: string) => {
@@ -95,32 +94,22 @@ export function Step4AddMembers({
     }
   };
 
-  // Debounced search functionality
-  useEffect(() => {
-    // Clear existing timeout
-    if (searchTimeoutRef) {
-      clearTimeout(searchTimeoutRef);
+  // Manual search functionality
+  const handleSearch = () => {
+    if (searchQuery.trim().length >= 2) {
+      searchUserByEmail(searchQuery.trim());
+    } else {
+      toast.warning("Please enter at least 2 characters to search");
     }
+  };
 
-    // Set new timeout for debounced search
-    const timeout = setTimeout(() => {
-      if (searchQuery.trim().length >= 2) {
-        searchUserByEmail(searchQuery.trim());
-      } else {
-        setSearchResults([]);
-        setShowSearchResults(false);
-      }
-    }, 500); // 500ms delay
-
-    setSearchTimeoutRef(timeout);
-
-    // Cleanup function
-    return () => {
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-    };
-  }, [searchQuery]);
+  // Handle Enter key press
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSearch();
+    }
+  };
 
   // Click outside handler to close dropdown
   useEffect(() => {
@@ -209,27 +198,62 @@ export function Step4AddMembers({
 
       // Use teamId from prop or fallback to form.teamId
       const currentTeamId = teamId || form.teamId;
+      console.log("🔍 TeamId from prop:", teamId);
+      console.log("🔍 TeamId from form:", form.teamId);
+      console.log("🔍 Current teamId being used:", currentTeamId);
+
       if (!currentTeamId) {
         throw new Error("Team ID is required to add members");
       }
 
       console.log("Adding members to team:", currentTeamId);
 
-      // Send all pending members
-      const invitePromises = pendingMembers.map((member) =>
-        postApiRequest(
-          `/api/teams/${currentTeamId}/invite`,
-          {
-            email: member.email,
-            role: member.role,
-          },
-          {
-            Authorization: `Bearer ${token}`,
-          }
-        )
-      );
+      // First, verify the team exists
+      try {
+        console.log("🔍 Verifying team exists...");
+        const teamCheckResponse = await getApiRequest(
+          `/api/teams/${currentTeamId}`,
+          token
+        );
+        console.log("✅ Team verification response:", teamCheckResponse);
+      } catch (teamCheckError) {
+        console.log("❌ Team verification failed:", teamCheckError);
+        throw new Error(`Team ${currentTeamId} not found or not accessible`);
+      }
 
-      await Promise.all(invitePromises);
+      // Send all pending members
+      const invitePromises = pendingMembers.map((member) => {
+        const inviteUrl = `/api/teams/${currentTeamId}/invite`;
+        const inviteData = {
+          email: member.email,
+          role: member.role,
+        };
+
+        console.log("📤 Sending invite to:", inviteUrl);
+        console.log("📤 Invite data:", inviteData);
+
+        return postApiRequest(inviteUrl, inviteData, {
+          Authorization: `Bearer ${token}`,
+        });
+      });
+
+      const results = await Promise.allSettled(invitePromises);
+
+      // Check for any failures
+      const failures = results.filter((result) => result.status === "rejected");
+      if (failures.length > 0) {
+        console.log("❌ Some invites failed:", failures);
+        failures.forEach((failure, index) => {
+          console.log(`❌ Invite ${index + 1} failed:`, failure.reason);
+        });
+      }
+
+      const successes = results.filter(
+        (result) => result.status === "fulfilled"
+      );
+      console.log(
+        `✅ ${successes.length} invites succeeded, ${failures.length} failed`
+      );
 
       // On success, add all members locally to form state
       const updatedMembers = [...(form.members || []), ...pendingMembers];
@@ -379,23 +403,34 @@ export function Step4AddMembers({
             >
               Search Individual Tech Professional *
             </Label>
-            <div className="relative mt-1">
-              <Input
-                id="newMemberEmail"
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="rounded-[10px] pr-10"
-                placeholder="Type email address to search..."
-                disabled={searchingUser}
-              />
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                {searchingUser ? (
-                  <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
-                ) : (
-                  <Search className="w-4 h-4 text-gray-400" />
-                )}
+            <div className="flex gap-2 mt-1">
+              <div className="flex-1 relative">
+                <Input
+                  id="newMemberEmail"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className="rounded-[10px] pr-10"
+                  placeholder="Type email address to search..."
+                  disabled={searchingUser}
+                />
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  {searchingUser ? (
+                    <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+                  ) : (
+                    <Search className="w-4 h-4 text-gray-400" />
+                  )}
+                </div>
               </div>
+              <Button
+                type="button"
+                onClick={handleSearch}
+                disabled={searchingUser || searchQuery.trim().length < 2}
+                className="rounded-[10px] bg-blue-600 hover:bg-blue-700 text-white px-4"
+              >
+                <Search className="w-4 h-4" />
+              </Button>
             </div>
 
             {/* Search Results Dropdown */}

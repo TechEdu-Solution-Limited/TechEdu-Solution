@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { apiRequest } from "@/lib/apiFetch";
+import { getApiRequest } from "@/lib/apiFetch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { getTokenFromCookies } from "@/lib/cookies";
+import { useRole } from "@/contexts/RoleContext";
 
 interface TeamMember {
   id: string;
@@ -18,28 +19,59 @@ interface TeamMember {
 export default function TeamMembersPage() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const [teamId, setTeamId] = useState<string | null>(null);
+  const { userData } = useRole();
 
+  // First, get the user's teamId
   useEffect(() => {
-    async function fetchMembers() {
+    async function getTeamId() {
       const token = getTokenFromCookies();
       if (!token) {
         return;
       }
+
+      try {
+        // Get user's teams to find the teamId
+        const res = await getApiRequest("/api/teams/my-teams", token);
+        if (res.data && res.data.length > 0) {
+          // Use the first team's ID
+          const firstTeam = res.data[0];
+          setTeamId(firstTeam.id || firstTeam._id);
+          console.log("Found teamId:", firstTeam.id || firstTeam._id);
+        }
+      } catch (error) {
+        console.error("Failed to get teamId:", error);
+      }
+    }
+    getTeamId();
+  }, []);
+
+  // Then fetch members using the teamId
+  useEffect(() => {
+    async function fetchMembers() {
+      if (!teamId) {
+        return;
+      }
+
+      const token = getTokenFromCookies();
+      if (!token) {
+        return;
+      }
+
       setLoading(true);
       try {
-        const res = await apiRequest(
-          "/api/teams/me/members",
-          "GET",
-          undefined,
-          token
-        );
+        console.log("Fetching members for teamId:", teamId);
+        const res = await getApiRequest(`/api/teams/${teamId}/members`, token);
+        console.log("Members response:", res);
         if (res.data) setMembers(res.data);
+      } catch (error) {
+        console.error("Failed to fetch members:", error);
       } finally {
         setLoading(false);
       }
     }
     fetchMembers();
-  }, []);
+  }, [teamId]);
 
   return (
     <div className="p-6">

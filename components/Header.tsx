@@ -22,7 +22,6 @@ function isDropdownLink(item: INavLink): item is INavLink & {
 }
 
 export const Header = () => {
-  const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [hasToken, setHasToken] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -35,19 +34,14 @@ export const Header = () => {
   const { isAuthenticated, userData } = useRole();
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
     document.body.style.overflow = isOpen ? "hidden" : "unset";
     return () => {
       document.body.style.overflow = "unset";
     };
-  }, [isOpen, mounted]);
+  }, [isOpen]);
 
   useEffect(() => {
-    if (!mounted || !isOpen) return;
+    if (!isOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(event.target as Node)) {
         closeMenu();
@@ -55,22 +49,20 @@ export const Header = () => {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen, mounted]);
+  }, [isOpen]);
 
   useEffect(() => {
-    if (!mounted) return;
     const token = getTokenFromCookies();
     if (token) setHasToken(true);
-  }, [mounted]);
+  }, []);
 
   useEffect(() => {
-    if (!mounted) return;
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [mounted]);
+  }, []);
 
   const closeMenu = () => {
     setIsOpen(false);
@@ -94,10 +86,7 @@ export const Header = () => {
 
   if (shouldHideHeader) return null;
 
-  // Don't render anything until mounted to prevent hydration mismatch
-  if (!mounted) {
-    return null;
-  }
+  // Render immediately with fallback values
 
   const navVariants = {
     hidden: { clipPath: "circle(0% at 100% 0%)", opacity: 0 },

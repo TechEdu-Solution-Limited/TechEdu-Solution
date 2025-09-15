@@ -26,7 +26,7 @@ import {
 const initialForm = {
   // Step 1: Team Lead Information
   isTeam: true,
-  teamLeadFullName: "",
+  fullName: "",
   teamLeadEmail: "",
   teamLeadPhoneNumber: "",
   jobTitle: "",
@@ -470,8 +470,8 @@ export default function TeamTechProfessionalOnboarding() {
     const newErrors: { [key: string]: string } = {};
 
     if (stepTitle === "Team Type & Lead Information") {
-      if (!form.teamLeadFullName)
-        newErrors.teamLeadFullName = "Team lead full name is required.";
+      if (!form.fullName)
+        newErrors.fullName = "Team lead full name is required.";
       if (!form.teamLeadEmail)
         newErrors.teamLeadEmail = "Team lead email is required.";
       if (!form.teamLeadPhoneNumber)
@@ -497,19 +497,17 @@ export default function TeamTechProfessionalOnboarding() {
       if (!form.teamName) newErrors.teamName = "Team name is required.";
       if (!form.teamSize || form.teamSize <= 0)
         newErrors.teamSize = "Team size must be greater than 0.";
-      if (!form.teamLocation.country)
-        newErrors.teamLocation = "Country is required.";
-      if (!form.teamLocation.state)
-        newErrors.teamLocation = "State is required.";
-      if (!form.teamLocation.city) newErrors.teamLocation = "City is required.";
+      if (!form.location.country) newErrors.location = "Country is required.";
+      if (!form.location.state) newErrors.location = "State is required.";
+      if (!form.location.city) newErrors.location = "City is required.";
       if (!form.techStack.length)
         newErrors.techStack = "Select at least one tech stack.";
       if (!form.trainingAvailability)
         newErrors.trainingAvailability = "Training availability is required.";
-      if (!form.teamContactEmail)
-        newErrors.teamContactEmail = "Team contact email is required.";
-      if (!form.teamContactPhone)
-        newErrors.teamContactPhone = "Team contact phone is required.";
+      if (!form.contactEmail)
+        newErrors.contactEmail = "Team contact email is required.";
+      if (!form.contactPhone)
+        newErrors.contactPhone = "Team contact phone is required.";
     }
 
     if (stepTitle === "Add Team Members") {
@@ -543,7 +541,17 @@ export default function TeamTechProfessionalOnboarding() {
   // Update navigation and validation to use currentStep
   const handleNextOrFinish = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!validateStep()) return;
+
+    console.log("🔍 Current step:", step);
+    console.log("🔍 Step title:", stepTitle);
+    console.log("🔍 Form data:", form);
+
+    if (!validateStep()) {
+      console.log("❌ Validation failed, errors:", errors);
+      return;
+    }
+
+    console.log("✅ Validation passed, proceeding with submission");
 
     // Check if current step is already completed
     if (completedSteps.has(step)) {
@@ -568,7 +576,7 @@ export default function TeamTechProfessionalOnboarding() {
         case 0: // Team Lead Information
           stepData = {
             isTeam: form.isTeam,
-            teamLeadFullName: form.teamLeadFullName,
+            fullName: form.fullName,
             teamLeadEmail: form.teamLeadEmail,
             teamLeadPhoneNumber: form.teamLeadPhoneNumber,
             jobTitle: form.jobTitle,
@@ -590,15 +598,75 @@ export default function TeamTechProfessionalOnboarding() {
           };
           break;
         case 2: // Team Profile
+          // First create the team using the /api/teams endpoint to get teamId
+          const teamCreationData = {
+            teamName: form.teamName,
+            teamSize: form.teamSize,
+            primarySpecialization: form.industry || "Technology",
+            experienceLevel: "Senior", // Default or could be from form
+            preferredTechStack: form.techStack,
+            lookingForJobs: true, // Default or could be from form
+            interestedInTraining: true, // Default or could be from form
+            teamLead: {
+              id: userId,
+              fullName: form.fullName,
+              email: form.teamLeadEmail,
+            },
+            location: form.location,
+            trainingAvailability: form.trainingAvailability,
+            contactEmail: form.contactEmail,
+            contactPhone: form.contactPhone,
+          };
+
+          console.log(
+            "🚀 Sending team creation data to /api/teams:",
+            JSON.stringify(teamCreationData, null, 2)
+          );
+
+          // Create team and get teamId
+          const teamResponse = await postApiRequest(
+            "/api/teams",
+            teamCreationData,
+            token ? { Authorization: `Bearer ${token}` } : {}
+          );
+
+          console.log(
+            "📥 Team creation response:",
+            JSON.stringify(teamResponse, null, 2)
+          );
+
+          let createdTeamId = "";
+          if (teamResponse?.data?.data?.team?.id) {
+            createdTeamId = teamResponse.data.data.team.id;
+            // Update form with teamId for use in next steps
+            setForm((prevForm) => ({
+              ...prevForm,
+              teamId: createdTeamId,
+            }));
+            console.log("✅ Team created successfully with ID:", createdTeamId);
+            console.log("✅ TeamId stored in form:", createdTeamId);
+          } else {
+            console.log("❌ Team creation failed - no team ID in response");
+            console.log("❌ Response structure:", teamResponse);
+            throw new Error("Failed to create team or get team ID");
+          }
+
+          // Prepare step data for onboarding endpoint
           stepData = {
             teamName: form.teamName,
             teamSize: form.teamSize,
-            location: form.teamLocation,
+            location: form.location,
             techStack: form.techStack,
             trainingAvailability: form.trainingAvailability,
-            contactEmail: form.teamContactEmail,
-            contactPhone: form.teamContactPhone,
+            contactEmail: form.contactEmail,
+            contactPhone: form.contactPhone,
+            teamId: createdTeamId, // Include teamId in step data
           };
+
+          console.log(
+            "📋 Sending step data to onboarding endpoint:",
+            JSON.stringify(stepData, null, 2)
+          );
           break;
         case 3: // Add Members
           stepData = {
@@ -644,11 +712,17 @@ export default function TeamTechProfessionalOnboarding() {
         throw new Error(`No step identifier found for step ${step + 1}`);
       }
 
+      console.log(
+        `🔄 Sending onboarding data to /api/onboarding/team-tech-professional/${userId}/${stepIdentifier}`
+      );
+
       const result = await postApiRequest(
         `/api/onboarding/team-tech-professional/${userId}/${stepIdentifier}`,
         stepData,
         token ? { Authorization: `Bearer ${token}` } : {}
       );
+
+      console.log("📥 Onboarding response:", JSON.stringify(result, null, 2));
 
       // If this is the final step, mark onboarding as completed
       if (step === dynamicSteps.length - 1) {

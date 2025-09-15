@@ -20,45 +20,6 @@ interface Step3TeamProfileProps {
   ) => void;
 }
 
-const countries = [
-  "Nigeria",
-  "United States",
-  "United Kingdom",
-  "Canada",
-  "India",
-  "Australia",
-  "Germany",
-  "France",
-  "Netherlands",
-  "Other",
-];
-
-const states = [
-  "Lagos",
-  "Abuja",
-  "Kano",
-  "Rivers",
-  "Kaduna",
-  "Katsina",
-  "Oyo",
-  "Imo",
-  "Borno",
-  "Anambra",
-  "Other",
-];
-
-const cities = [
-  "Victoria Island",
-  "Ikeja",
-  "Lekki",
-  "Surulere",
-  "Yaba",
-  "Gbagada",
-  "Oshodi",
-  "Ikorodu",
-  "Other",
-];
-
 const techStackOptions = [
   "JavaScript",
   "Python",
@@ -104,16 +65,16 @@ export function Step3TeamProfile({
   errors,
   handleChange,
 }: Step3TeamProfileProps) {
-  const handleTeamLocationChange = (field: string, value: string) => {
-    // Ensure teamLocation object exists
-    const currentTeamLocation = form.teamLocation || {};
+  const handleLocationChange = (field: string, value: string) => {
+    // Ensure location object exists
+    const currentLocation = form.location || {};
 
     // Create a synthetic event that properly handles nested objects
     const event = {
       target: {
-        name: "teamLocation",
+        name: "location",
         value: {
-          ...currentTeamLocation,
+          ...currentLocation,
           [field]: value,
         },
       },
@@ -190,51 +151,47 @@ export function Step3TeamProfile({
 
         <div>
           <Label
-            htmlFor="teamContactEmail"
+            htmlFor="contactEmail"
             className="text-sm font-medium text-gray-700"
           >
             Team Contact Email *
           </Label>
           <Input
-            id="teamContactEmail"
-            name="teamContactEmail"
+            id="contactEmail"
+            name="contactEmail"
             type="email"
-            value={form.teamContactEmail}
+            value={form.contactEmail}
             onChange={handleChange}
             className={`mt-1 ${
-              errors.teamContactEmail ? "border-red-500" : "rounded-[10px]"
+              errors.contactEmail ? "border-red-500" : "rounded-[10px]"
             }`}
             placeholder="Enter team contact email"
           />
-          {errors.teamContactEmail && (
-            <p className="text-red-500 text-xs mt-1">
-              {errors.teamContactEmail}
-            </p>
+          {errors.contactEmail && (
+            <p className="text-red-500 text-xs mt-1">{errors.contactEmail}</p>
           )}
         </div>
 
         <div>
           <Label
-            htmlFor="teamContactPhone"
+            htmlFor="contactPhone"
             className="text-sm font-medium text-gray-700"
           >
             Team Contact Phone *
           </Label>
           <Input
-            id="teamContactPhone"
-            name="teamContactPhone"
+            id="contactPhone"
+            name="contactPhone"
             type="tel"
-            value={form.teamContactPhone}
+            value={form.contactPhone}
             onChange={handleChange}
             className={`mt-1 ${
-              errors.teamContactPhone ? "border-red-500" : "rounded-[10px]"
+              errors.contactPhone ? "border-red-500" : "rounded-[10px]"
             }`}
             placeholder="+2348012345678"
           />
-          {errors.teamContactPhone && (
-            <p className="text-red-500 text-xs mt-1">
-              {errors.teamContactPhone}
-            </p>
+          {errors.contactPhone && (
+            <p className="text-red-500 text-xs mt-1">{errors.contactPhone}</p>
           )}
         </div>
       </div>
@@ -246,21 +203,19 @@ export function Step3TeamProfile({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <Label
-              htmlFor="teamLocation.country"
+              htmlFor="location.country"
               className="text-sm font-medium text-gray-700"
             >
               Country
             </Label>
             <Input
-              id="teamLocation.country"
-              name="teamLocation.country"
-              value={form.teamLocation?.country || ""}
-              onChange={(e) =>
-                handleTeamLocationChange("country", e.target.value)
-              }
+              id="location.country"
+              name="location.country"
+              value={form.location?.country || ""}
+              onChange={(e) => handleLocationChange("country", e.target.value)}
               placeholder="Enter country name"
               className={`mt-1 ${
-                errors.teamLocation ? "border-red-500" : "rounded-[10px]"
+                errors.location ? "border-red-500" : "rounded-[10px]"
               }`}
               autoComplete="off"
             />
@@ -268,21 +223,19 @@ export function Step3TeamProfile({
 
           <div>
             <Label
-              htmlFor="teamLocation.state"
+              htmlFor="location.state"
               className="text-sm font-medium text-gray-700"
             >
               State
             </Label>
             <Input
-              id="teamLocation.state"
-              name="teamLocation.state"
-              value={form.teamLocation?.state || ""}
-              onChange={(e) =>
-                handleTeamLocationChange("state", e.target.value)
-              }
+              id="location.state"
+              name="location.state"
+              value={form.location?.state || ""}
+              onChange={(e) => handleLocationChange("state", e.target.value)}
               placeholder="Enter state name"
               className={`mt-1 ${
-                errors.teamLocation ? "border-red-500" : "rounded-[10px]"
+                errors.location ? "border-red-500" : "rounded-[10px]"
               }`}
               autoComplete="off"
             />
@@ -290,26 +243,26 @@ export function Step3TeamProfile({
 
           <div>
             <Label
-              htmlFor="teamLocation.city"
+              htmlFor="location.city"
               className="text-sm font-medium text-gray-700"
             >
               City
             </Label>
             <Input
-              id="teamLocation.city"
-              name="teamLocation.city"
-              value={form.teamLocation?.city || ""}
-              onChange={(e) => handleTeamLocationChange("city", e.target.value)}
+              id="location.city"
+              name="location.city"
+              value={form.location?.city || ""}
+              onChange={(e) => handleLocationChange("city", e.target.value)}
               placeholder="Enter city name"
               className={`mt-1 ${
-                errors.teamLocation ? "border-red-500" : "rounded-[10px]"
+                errors.location ? "border-red-500" : "rounded-[10px]"
               }`}
               autoComplete="off"
             />
           </div>
         </div>
-        {errors.teamLocation && (
-          <p className="text-red-500 text-xs mt-1">{errors.teamLocation}</p>
+        {errors.location && (
+          <p className="text-red-500 text-xs mt-1">{errors.location}</p>
         )}
       </div>
 

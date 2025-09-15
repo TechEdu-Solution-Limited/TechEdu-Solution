@@ -33,7 +33,28 @@ export default function ProductPage() {
       .finally(() => setLoading(false));
   }, [slug]);
 
-  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (loading)
+    return (
+      <div className="max-w-3xl mx-auto py-12 px-4 md:px-0 mt-24">
+        <div className="flex flex-col md:flex-row gap-8">
+          <div className="flex-shrink-0 w-full md:w-1/2">
+            <div className="w-full aspect-square bg-gray-200 rounded-xl animate-pulse" />
+          </div>
+          <div className="flex-1 flex flex-col gap-4">
+            <div className="h-8 bg-gray-200 rounded animate-pulse w-3/4" />
+            <div className="h-4 bg-gray-200 rounded animate-pulse w-full" />
+            <div className="h-4 bg-gray-200 rounded animate-pulse w-2/3" />
+            <div className="flex gap-2">
+              <div className="h-6 bg-gray-200 rounded-full animate-pulse w-20" />
+              <div className="h-6 bg-gray-200 rounded-full animate-pulse w-24" />
+              <div className="h-6 bg-gray-200 rounded-full animate-pulse w-16" />
+            </div>
+            <div className="h-8 bg-gray-200 rounded animate-pulse w-32" />
+            <div className="h-10 bg-gray-200 rounded animate-pulse w-40" />
+          </div>
+        </div>
+      </div>
+    );
   if (!product) return notFound();
 
   const handleEnroll = () => {
@@ -41,32 +62,7 @@ export default function ProductPage() {
     const requiresBooking =
       product.requiresBooking || product.isBookableService || false;
 
-    if (requiresBooking) {
-      // Redirect to public bookings page for bookable products
-      const bookingUrl = `/bookings?productId=${
-        product._id
-      }&productName=${encodeURIComponent(
-        product.service
-      )}&productType=${encodeURIComponent(
-        product.productType
-      )}&deliveryMode=${encodeURIComponent(
-        product.deliveryMode
-      )}&sessionType=${encodeURIComponent(
-        product.sessionType
-      )}&duration=${encodeURIComponent(
-        `${product.programLength} ${product.mode}`
-      )}&minutesPerSession=${product.minutesPerSession}&price=${
-        product.price
-      }&instructorId=${product.instructorId}&isClassroom=${
-        product.hasClassroom
-      }&isSession=${product.hasSession}&durationInMinutes=${
-        product.durationInMinutes
-      }`;
-      window.location.href = bookingUrl;
-      return;
-    }
-
-    // For non-bookable products, add directly to cart
+    // NEW FLOW: Add all products to cart (both bookable and non-bookable)
     const cartItem: CartItem = {
       id: product._id,
       title: product.service,
@@ -74,7 +70,8 @@ export default function ProductPage() {
       price: product.price,
       currency: product.currency,
       discountPercentage: product.discountPercentage || 0,
-      category: product.productCategoryTitle || "Uncategorized",
+      category:
+        product.productCategoryTitle || product.category || "Uncategorized",
       productType: product.productType,
       image:
         product.thumbnailUrl ||
@@ -84,7 +81,7 @@ export default function ProductPage() {
       certificate: product.hasCertificate,
       status: product.enabled ? "active" : "inactive",
       level: product.productSubcategoryName || "",
-      requiresBooking: false,
+      requiresBooking: requiresBooking,
 
       // Product details for booking
       deliveryMode: product.deliveryMode,
@@ -100,11 +97,46 @@ export default function ProductPage() {
       hasCertificate: product.hasCertificate,
       requiresEnrollment: product.requiresEnrollment,
       isBookableService: product.isBookableService,
+      isAttachmentRequired: product.isAttachmentRequired || false,
       instructorId: product.instructorId,
       instructorName: product.instructorName,
       virtualPlatform: product.virtualPlatform,
       classroomCapacity: product.classroomCapacity,
       classroomRequirements: product.classroomRequirements,
+
+      // NEW: Add booking details for bookable services
+      bookingDetails: requiresBooking
+        ? {
+            fullName: "", // Will be filled in cart
+            email: "", // Will be filled in cart
+            phone: "", // Will be filled in cart
+            preferredDate: undefined, // Will be filled in cart
+            preferredTime: "", // Will be filled in cart
+            numberOfParticipants: 1,
+            participantType: "individual" as const,
+            userNotes: "",
+            bookingId: "", // Will be generated during payment intent creation
+            bookingData: {
+              productId: product._id,
+              productType: product.productType,
+              instructorId: product.instructorId,
+              bookingPurpose: product.service,
+              minutesPerSession: product.minutesPerSession,
+              durationInMinutes: product.durationInMinutes,
+              numberOfExpectedParticipants: 1,
+              isClassroom: product.hasClassroom,
+              isSession: product.hasSession,
+              participantType: "individual",
+              platformRole: "student", // Will be updated based on user role
+              email: "", // Will be filled in cart
+              fullName: "", // Will be filled in cart
+              createdBy: "", // Will be filled in cart
+              profileId: "", // Will be filled in cart
+              participants: [], // Will be filled in cart
+              actualDaysAndTime: [], // Will be filled in cart
+            },
+          }
+        : undefined,
     };
     addToCart(cartItem);
   };

@@ -101,6 +101,7 @@ export default function CatalogPage({
   const [maxDuration, setMaxDuration] = useState<number | null>(null);
   const [minProgramLength, setMinProgramLength] = useState<number | null>(null);
   const [maxProgramLength, setMaxProgramLength] = useState<number | null>(null);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const perPage = 12;
   const { addToCart, isInCart } = useCart();
   const [flyingItem, setFlyingItem] = useState<any>(null);
@@ -448,15 +449,15 @@ export default function CatalogPage({
   return (
     <section className="flex flex-col gap-6 px-4 py-16 md:py-20 md:px-8 bg-white">
       {/* Main Heading and Description */}
-      <div className="text-center mb-8">
+      {/* <div className="text-center mb-8">
         <h1 className="text-3xl md:text-5xl font-extrabold uppercase text-outline text-white">
           {title}
         </h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">{description}</p>
-      </div>
+      </div> */}
 
       {/* Latest Programs Section */}
-      <div className="mb-8">
+      {/* <div className="mb-8">
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             Latest {productType} Programs
@@ -479,7 +480,7 @@ export default function CatalogPage({
                 className="flex-shrink-0 bg-white border border-gray-200 rounded-xl p-4 w-[240px] cursor-pointer group hover:shadow-lg hover:border-blue-200 transition-all duration-300 transform hover:-translate-y-1"
                 onClick={() => handleViewDetails(product._id)}
               >
-                {/* Product Image */}
+                
                 <div className="relative w-full h-24 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg mb-3 overflow-hidden">
                   <Image
                     src={
@@ -491,7 +492,7 @@ export default function CatalogPage({
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  {/* Icon Overlay */}
+                  
                   {product.thumbnailUrl && product.iconUrl && (
                     <div className="absolute top-1 right-1 w-6 h-6 bg-white rounded-full shadow-sm flex items-center justify-center">
                       <Image
@@ -503,7 +504,7 @@ export default function CatalogPage({
                       />
                     </div>
                   )}
-                  {/* Discount Badge */}
+                  
                   {(product.discountPercentage ?? 0) > 0 && (
                     <div className="absolute top-1 left-1 bg-gradient-to-r from-yellow-500 to-amber-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow-sm">
                       -{product.discountPercentage ?? 0}%
@@ -511,7 +512,7 @@ export default function CatalogPage({
                   )}
                 </div>
 
-                {/* Content */}
+                
                 <div className="space-y-2">
                   <div>
                     <h3 className="font-semibold text-sm text-gray-900 mb-1 line-clamp-2 group-hover:text-blue-600 transition-colors">
@@ -523,7 +524,7 @@ export default function CatalogPage({
                     </p>
                   </div>
 
-                  {/* Tags */}
+                  
                   <div className="flex flex-wrap gap-1">
                     <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-medium">
                       {product.productCategoryTitle ||
@@ -537,7 +538,7 @@ export default function CatalogPage({
                     )}
                   </div>
 
-                  {/* Price and Action */}
+                  
                   <div className="flex items-center justify-between pt-1">
                     <div className="flex items-baseline gap-1">
                       <span className="text-lg font-bold text-blue-600">
@@ -582,7 +583,7 @@ export default function CatalogPage({
             ))}
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Training Categories Navigation */}
       <div className="mb-8">
@@ -595,7 +596,7 @@ export default function CatalogPage({
           </p>
         </div>
         <div className="flex justify-center px-4 md:px-0">
-          <div className="flex gap-3 md:gap-4 overflow-x-auto pb-2 md:pb-0 w-full">
+          <div className="flex gap-3 md:gap-4 overflow-x-auto pb-2 md:pb-0 w-full scrollbar-hide">
             <button
               onClick={() => {
                 setCategory("");
@@ -689,323 +690,15 @@ export default function CatalogPage({
       {/* Advanced Filters Section */}
       <div className="mb-8">
         <div className="text-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">
-            Advanced Filters
-          </h3>
-          <p className="text-sm text-gray-500">
-            Refine your search with detailed filters
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {/* Program Mode */}
-          <Select
-            value={mode}
-            onValueChange={(value) => {
-              setMode(value);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="w-full rounded-xl border-gray-200">
-              <SelectValue placeholder="Program Mode" />
-            </SelectTrigger>
-            <SelectContent className="bg-white">
-              <SelectItem value="all">All Modes</SelectItem>
-              <SelectItem value="weeks">Weeks</SelectItem>
-              <SelectItem value="days">Days</SelectItem>
-              <SelectItem value="hours">Hours</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={sessionType}
-            onValueChange={(value) => {
-              setSessionType(value);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="w-full rounded-xl border-gray-200">
-              <SelectValue placeholder="Session Type" />
-            </SelectTrigger>
-            <SelectContent className="bg-white">
-              <SelectItem value="all">All Sessions</SelectItem>
-              <SelectItem value="1-on-1">1-on-1</SelectItem>
-              <SelectItem value="group">Group</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={sortBy}
-            onValueChange={(value) => {
-              setSortBy(value);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="w-full rounded-xl border-gray-200">
-              <SelectValue placeholder="Sort By" />
-            </SelectTrigger>
-            <SelectContent className="bg-white">
-              <SelectItem value="default">Default</SelectItem>
-              {SORT_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={sortOrder}
-            onValueChange={(value: "asc" | "desc") => {
-              setSortOrder(value);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="w-full rounded-xl border-gray-200">
-              <SelectValue placeholder="Order" />
-            </SelectTrigger>
-            <SelectContent className="bg-white">
-              <SelectItem value="asc">Ascending</SelectItem>
-              <SelectItem value="desc">Descending</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Price Range */}
-          <div className="flex gap-2">
-            <Input
-              type="number"
-              placeholder="Min Price"
-              value={minPrice || ""}
-              onChange={(e) =>
-                setMinPrice(e.target.value ? Number(e.target.value) : null)
-              }
-              className="rounded-xl border-gray-200"
-            />
-            <Input
-              type="number"
-              placeholder="Max Price"
-              value={maxPrice || ""}
-              onChange={(e) =>
-                setMaxPrice(e.target.value ? Number(e.target.value) : null)
-              }
-              className="rounded-xl border-gray-200"
-            />
-          </div>
-
-          {/* Discount Range */}
-          <div className="flex gap-2">
-            <Input
-              type="number"
-              placeholder="Min Discount %"
-              value={minDiscount || ""}
-              onChange={(e) =>
-                setMinDiscount(e.target.value ? Number(e.target.value) : null)
-              }
-              className="rounded-xl border-gray-200"
-            />
-            <Input
-              type="number"
-              placeholder="Max Discount %"
-              value={maxDiscount || ""}
-              onChange={(e) =>
-                setMaxDiscount(e.target.value ? Number(e.target.value) : null)
-              }
-              className="rounded-xl border-gray-200"
-            />
-          </div>
-
-          {/* Duration Range */}
-          <div className="flex gap-2">
-            <Input
-              type="number"
-              placeholder="Min Duration (min)"
-              value={minDuration || ""}
-              onChange={(e) =>
-                setMinDuration(e.target.value ? Number(e.target.value) : null)
-              }
-              className="rounded-xl border-gray-200"
-            />
-            <Input
-              type="number"
-              placeholder="Max Duration (min)"
-              value={maxDuration || ""}
-              onChange={(e) =>
-                setMaxDuration(e.target.value ? Number(e.target.value) : null)
-              }
-              className="rounded-xl border-gray-200"
-            />
-          </div>
-
-          {/* Program Length Range */}
-          <div className="flex gap-2">
-            <Input
-              type="number"
-              placeholder="Min Length"
-              value={minProgramLength || ""}
-              onChange={(e) =>
-                setMinProgramLength(
-                  e.target.value ? Number(e.target.value) : null
-                )
-              }
-              className="rounded-xl border-gray-200"
-            />
-            <Input
-              type="number"
-              placeholder="Max Length"
-              value={maxProgramLength || ""}
-              onChange={(e) =>
-                setMaxProgramLength(
-                  e.target.value ? Number(e.target.value) : null
-                )
-              }
-              className="rounded-xl border-gray-200"
-            />
-          </div>
-        </div>
-
-        {/* Boolean Filters */}
-        <div className="mt-4">
-          <div className="text-sm font-medium text-gray-700 mb-3">
-            Features & Options
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {/* Recurring */}
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isRecurring === true}
-                onChange={(e) => setIsRecurring(e.target.checked ? true : null)}
-                className="rounded border-gray-300"
-              />
-              <span className="text-sm text-gray-700">Recurring</span>
-            </label>
-
-            {/* Requires Booking */}
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={requiresBooking === true}
-                onChange={(e) =>
-                  setRequiresBooking(e.target.checked ? true : null)
-                }
-                className="rounded border-gray-300"
-              />
-              <span className="text-sm text-gray-700">Requires Booking</span>
-            </label>
-
-            {/* Has Certificate */}
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={hasCertificate === true}
-                onChange={(e) =>
-                  setHasCertificate(e.target.checked ? true : null)
-                }
-                className="rounded border-gray-300"
-              />
-              <span className="text-sm text-gray-700">Has Certificate</span>
-            </label>
-
-            {/* Has Classroom */}
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={hasClassroom === true}
-                onChange={(e) =>
-                  setHasClassroom(e.target.checked ? true : null)
-                }
-                className="rounded border-gray-300"
-              />
-              <span className="text-sm text-gray-700">Has Classroom</span>
-            </label>
-
-            {/* Has Session */}
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={hasSession === true}
-                onChange={(e) => setHasSession(e.target.checked ? true : null)}
-                className="rounded border-gray-300"
-              />
-              <span className="text-sm text-gray-700">Has Session</span>
-            </label>
-
-            {/* Has Assessment */}
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={hasAssessment === true}
-                onChange={(e) =>
-                  setHasAssessment(e.target.checked ? true : null)
-                }
-                className="rounded border-gray-300"
-              />
-              <span className="text-sm text-gray-700">Has Assessment</span>
-            </label>
-
-            {/* Bookable Service */}
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isBookableService === true}
-                onChange={(e) =>
-                  setIsBookableService(e.target.checked ? true : null)
-                }
-                className="rounded border-gray-300"
-              />
-              <span className="text-sm text-gray-700">Bookable Service</span>
-            </label>
-
-            {/* Requires Enrollment */}
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={requiresEnrollment === true}
-                onChange={(e) =>
-                  setRequiresEnrollment(e.target.checked ? true : null)
-                }
-                className="rounded border-gray-300"
-              />
-              <span className="text-sm text-gray-700">Requires Enrollment</span>
-            </label>
-          </div>
-        </div>
-
-        {/* Clear Filters Button */}
-        <div className="mt-4 flex justify-center">
           <Button
             variant="outline"
-            onClick={() => {
-              setSearch("");
-              setCategory("");
-              setDeliveryMode("all");
-              setSessionType("all");
-              setDifficulty("");
-              setSortBy("default");
-              setSortOrder("asc");
-              setIsRecurring(null);
-              setRequiresBooking(null);
-              setHasCertificate(null);
-              setHasClassroom(null);
-              setHasSession(null);
-              setHasAssessment(null);
-              setIsBookableService(null);
-              setRequiresEnrollment(null);
-              setMode("all");
-              setMinPrice(null);
-              setMaxPrice(null);
-              setMinDiscount(null);
-              setMaxDiscount(null);
-              setMinDuration(null);
-              setMaxDuration(null);
-              setMinProgramLength(null);
-              setMaxProgramLength(null);
-              setPage(1);
-            }}
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
             className="border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2 rounded-xl font-medium transition-colors"
           >
             <svg
-              className="w-4 h-4 mr-2"
+              className={`w-4 h-4 mr-2 transition-transform ${
+                showAdvancedFilters ? "rotate-180" : ""
+              }`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1014,12 +707,364 @@ export default function CatalogPage({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                d="M19 9l-7 7-7-7"
               />
             </svg>
-            Clear All Filters
+            {showAdvancedFilters ? "Hide" : "Show"} Advanced Filters
           </Button>
+          {showAdvancedFilters && (
+            <p className="text-sm text-gray-500 mt-2">
+              Refine your search with detailed filters
+            </p>
+          )}
         </div>
+
+        {showAdvancedFilters && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {/* Program Mode */}
+              <Select
+                value={mode}
+                onValueChange={(value) => {
+                  setMode(value);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-full rounded-xl border-gray-200">
+                  <SelectValue placeholder="Program Mode" />
+                </SelectTrigger>
+                <SelectContent className="bg-white">
+                  <SelectItem value="all">All Modes</SelectItem>
+                  <SelectItem value="weeks">Weeks</SelectItem>
+                  <SelectItem value="days">Days</SelectItem>
+                  <SelectItem value="hours">Hours</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={sessionType}
+                onValueChange={(value) => {
+                  setSessionType(value);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-full rounded-xl border-gray-200">
+                  <SelectValue placeholder="Session Type" />
+                </SelectTrigger>
+                <SelectContent className="bg-white">
+                  <SelectItem value="all">All Sessions</SelectItem>
+                  <SelectItem value="1-on-1">1-on-1</SelectItem>
+                  <SelectItem value="group">Group</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={sortBy}
+                onValueChange={(value) => {
+                  setSortBy(value);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-full rounded-xl border-gray-200">
+                  <SelectValue placeholder="Sort By" />
+                </SelectTrigger>
+                <SelectContent className="bg-white">
+                  <SelectItem value="default">Default</SelectItem>
+                  {SORT_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={sortOrder}
+                onValueChange={(value: "asc" | "desc") => {
+                  setSortOrder(value);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-full rounded-xl border-gray-200">
+                  <SelectValue placeholder="Order" />
+                </SelectTrigger>
+                <SelectContent className="bg-white">
+                  <SelectItem value="asc">Ascending</SelectItem>
+                  <SelectItem value="desc">Descending</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Price Range */}
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  placeholder="Min Price"
+                  value={minPrice || ""}
+                  onChange={(e) =>
+                    setMinPrice(e.target.value ? Number(e.target.value) : null)
+                  }
+                  className="rounded-xl border-gray-200"
+                />
+                <Input
+                  type="number"
+                  placeholder="Max Price"
+                  value={maxPrice || ""}
+                  onChange={(e) =>
+                    setMaxPrice(e.target.value ? Number(e.target.value) : null)
+                  }
+                  className="rounded-xl border-gray-200"
+                />
+              </div>
+
+              {/* Discount Range */}
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  placeholder="Min Discount %"
+                  value={minDiscount || ""}
+                  onChange={(e) =>
+                    setMinDiscount(
+                      e.target.value ? Number(e.target.value) : null
+                    )
+                  }
+                  className="rounded-xl border-gray-200"
+                />
+                <Input
+                  type="number"
+                  placeholder="Max Discount %"
+                  value={maxDiscount || ""}
+                  onChange={(e) =>
+                    setMaxDiscount(
+                      e.target.value ? Number(e.target.value) : null
+                    )
+                  }
+                  className="rounded-xl border-gray-200"
+                />
+              </div>
+
+              {/* Duration Range */}
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  placeholder="Min Duration (min)"
+                  value={minDuration || ""}
+                  onChange={(e) =>
+                    setMinDuration(
+                      e.target.value ? Number(e.target.value) : null
+                    )
+                  }
+                  className="rounded-xl border-gray-200"
+                />
+                <Input
+                  type="number"
+                  placeholder="Max Duration (min)"
+                  value={maxDuration || ""}
+                  onChange={(e) =>
+                    setMaxDuration(
+                      e.target.value ? Number(e.target.value) : null
+                    )
+                  }
+                  className="rounded-xl border-gray-200"
+                />
+              </div>
+
+              {/* Program Length Range */}
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  placeholder="Min Length"
+                  value={minProgramLength || ""}
+                  onChange={(e) =>
+                    setMinProgramLength(
+                      e.target.value ? Number(e.target.value) : null
+                    )
+                  }
+                  className="rounded-xl border-gray-200"
+                />
+                <Input
+                  type="number"
+                  placeholder="Max Length"
+                  value={maxProgramLength || ""}
+                  onChange={(e) =>
+                    setMaxProgramLength(
+                      e.target.value ? Number(e.target.value) : null
+                    )
+                  }
+                  className="rounded-xl border-gray-200"
+                />
+              </div>
+            </div>
+
+            {/* Boolean Filters */}
+            <div className="mt-4">
+              <div className="text-sm font-medium text-gray-700 mb-3">
+                Features & Options
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                {/* Recurring */}
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isRecurring === true}
+                    onChange={(e) =>
+                      setIsRecurring(e.target.checked ? true : null)
+                    }
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm text-gray-700">Recurring</span>
+                </label>
+
+                {/* Requires Booking */}
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={requiresBooking === true}
+                    onChange={(e) =>
+                      setRequiresBooking(e.target.checked ? true : null)
+                    }
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm text-gray-700">
+                    Requires Booking
+                  </span>
+                </label>
+
+                {/* Has Certificate */}
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={hasCertificate === true}
+                    onChange={(e) =>
+                      setHasCertificate(e.target.checked ? true : null)
+                    }
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm text-gray-700">Has Certificate</span>
+                </label>
+
+                {/* Has Classroom */}
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={hasClassroom === true}
+                    onChange={(e) =>
+                      setHasClassroom(e.target.checked ? true : null)
+                    }
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm text-gray-700">Has Classroom</span>
+                </label>
+
+                {/* Has Session */}
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={hasSession === true}
+                    onChange={(e) =>
+                      setHasSession(e.target.checked ? true : null)
+                    }
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm text-gray-700">Has Session</span>
+                </label>
+
+                {/* Has Assessment */}
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={hasAssessment === true}
+                    onChange={(e) =>
+                      setHasAssessment(e.target.checked ? true : null)
+                    }
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm text-gray-700">Has Assessment</span>
+                </label>
+
+                {/* Bookable Service */}
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isBookableService === true}
+                    onChange={(e) =>
+                      setIsBookableService(e.target.checked ? true : null)
+                    }
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm text-gray-700">
+                    Bookable Service
+                  </span>
+                </label>
+
+                {/* Requires Enrollment */}
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={requiresEnrollment === true}
+                    onChange={(e) =>
+                      setRequiresEnrollment(e.target.checked ? true : null)
+                    }
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm text-gray-700">
+                    Requires Enrollment
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* Clear Filters Button */}
+            <div className="mt-4 flex justify-center">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearch("");
+                  setCategory("");
+                  setDeliveryMode("all");
+                  setSessionType("all");
+                  setDifficulty("");
+                  setSortBy("default");
+                  setSortOrder("asc");
+                  setIsRecurring(null);
+                  setRequiresBooking(null);
+                  setHasCertificate(null);
+                  setHasClassroom(null);
+                  setHasSession(null);
+                  setHasAssessment(null);
+                  setIsBookableService(null);
+                  setRequiresEnrollment(null);
+                  setMode("all");
+                  setMinPrice(null);
+                  setMaxPrice(null);
+                  setMinDiscount(null);
+                  setMaxDiscount(null);
+                  setMinDuration(null);
+                  setMaxDuration(null);
+                  setMinProgramLength(null);
+                  setMaxProgramLength(null);
+                  setPage(1);
+                  setShowAdvancedFilters(false);
+                }}
+                className="border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2 rounded-xl font-medium transition-colors"
+              >
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                Clear All Filters
+              </Button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Product Grid */}
@@ -1175,7 +1220,7 @@ export default function CatalogPage({
                   key={product._id}
                   className="flex flex-col h-full bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 group cursor-pointer"
                   onClick={(e) => {
-                    // Prevent modal if Add to Cart button is clicked
+                    // Prevent navigation if Add to Cart button is clicked
                     if (
                       (e.target as HTMLElement).closest(
                         "button[data-add-to-cart]"
@@ -1183,7 +1228,14 @@ export default function CatalogPage({
                       (e.target as HTMLElement).closest("svg")
                     )
                       return;
-                    handleViewDetails(product._id);
+
+                    // Navigate to product slug page if available
+                    if (product.slug) {
+                      window.location.href = `/training/catalog/${product.slug}`;
+                    } else {
+                      // Fallback to modal if no slug available
+                      handleViewDetails(product._id);
+                    }
                   }}
                 >
                   <div className="relative w-full aspect-square bg-gray-100 rounded-t-xl overflow-hidden">
