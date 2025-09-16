@@ -198,54 +198,13 @@ export function Step4AddMembers({
         throw new Error("Authentication required");
       }
 
-      // Use teamId from prop or fallback to form.teamId
-      const currentTeamId = teamId || form.teamId;
-      console.log("🔍 TeamId from prop:", teamId);
-      console.log("🔍 TeamId from form:", form.teamId);
-      console.log("🔍 Current teamId being used:", currentTeamId);
-
-      if (!currentTeamId) {
-        throw new Error("Team ID is required to add members");
-      }
-
-      console.log("Adding members to team:", currentTeamId);
-
-      // First, verify the team exists
-      try {
-        console.log("🔍 Verifying team exists...");
-        const teamCheckResponse = await getApiRequest(
-          `/api/teams/${currentTeamId}`,
-          token
-        );
-        console.log("✅ Team verification response:", teamCheckResponse);
-      } catch (teamCheckError) {
-        console.log("❌ Team verification failed:", teamCheckError);
-        throw new Error(`Team ${currentTeamId} not found or not accessible`);
-      }
-
-      // Send all pending members using the onboarding endpoint
-      // const invitePromises = pendingMembers.map((member) => {
-      //   const inviteUrl = `/api/teams/${currentTeamId}/invite`;
-      //   const inviteData = {
-      //     email: member.email,
-      //     role: member.role,
-      //   };
-
-      //   console.log("📤 Sending invite to:", inviteUrl);
-      //   console.log("📤 Invite data:", inviteData);
-
-      //   return postApiRequest(inviteUrl, inviteData, {
-      //     Authorization: `Bearer ${token}`,
-      //   });
-      // });
-
-      // Use the onboarding endpoint instead
+      // Use the onboarding endpoint to add all members
       const onboardingUrl = `/api/onboarding/team-tech-professional/${
         userId || "unknown"
       }/add-members`;
       const onboardingData = {
         members: pendingMembers.map((member) => ({
-          techProId: member.techProId,
+          techProId: member.userId, // Use userId from the member object
           role: member.role,
           status: "invited",
           invitedBy: userId || "unknown",
@@ -255,29 +214,11 @@ export function Step4AddMembers({
       console.log("📤 Sending members to onboarding endpoint:", onboardingUrl);
       console.log("📤 Onboarding data:", onboardingData);
 
-      const invitePromises = [
-        postApiRequest(onboardingUrl, onboardingData, {
-          Authorization: `Bearer ${token}`,
-        }),
-      ];
+      const response = await postApiRequest(onboardingUrl, onboardingData, {
+        Authorization: `Bearer ${token}`,
+      });
 
-      const results = await Promise.allSettled(invitePromises);
-
-      // Check for any failures
-      const failures = results.filter((result) => result.status === "rejected");
-      if (failures.length > 0) {
-        console.log("❌ Some invites failed:", failures);
-        failures.forEach((failure, index) => {
-          console.log(`❌ Invite ${index + 1} failed:`, failure.reason);
-        });
-      }
-
-      const successes = results.filter(
-        (result) => result.status === "fulfilled"
-      );
-      console.log(
-        `✅ ${successes.length} invites succeeded, ${failures.length} failed`
-      );
+      console.log("✅ Add members response:", response);
 
       // On success, add all members locally to form state
       const updatedMembers = [...(form.members || []), ...pendingMembers];
@@ -292,10 +233,10 @@ export function Step4AddMembers({
       // Clear pending list
       setPendingMembers([]);
 
-      toast.success(`Successfully invited ${pendingMembers.length} members!`);
+      toast.success(`Successfully added ${pendingMembers.length} members!`);
     } catch (error: any) {
-      setInviteError(error.message || "Failed to send invites");
-      toast.error("Failed to send some invites. Please try again.");
+      setInviteError(error.message || "Failed to add members");
+      toast.error("Failed to add members. Please try again.");
     } finally {
       setLoadingInvite(false);
     }
