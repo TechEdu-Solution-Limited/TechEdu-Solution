@@ -35,6 +35,7 @@ import { getTokenFromCookies } from "@/lib/cookies";
 import { toast } from "react-toastify";
 
 import { safeConsole } from "@/lib/console";
+import { PRODUCT_TYPE_OPTIONS } from "@/lib/constants/productTypes";
 interface Instructor {
   _id: string;
   fullName: string;
@@ -83,17 +84,6 @@ export default function CreateAcademicBookingPage() {
     fullName: "",
   });
 
-  // Product types from the product creation form
-  const PRODUCT_TYPE_OPTIONS = [
-    "Training & Certification",
-    "Academic Support Services",
-    "Career Development & Mentorship",
-    "Institutional & Team Services",
-    "AI-Powered or Automation Services",
-    "Career Connect",
-    "Marketing, Consultation & Free Services",
-  ];
-
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
 
@@ -117,7 +107,10 @@ export default function CreateAcademicBookingPage() {
           response.data.data?.users || response.data.users || [];
         setInstructors(instructorData);
       } else {
-        safeConsole.error("Failed to fetch instructors:", response?.data?.message);
+        safeConsole.error(
+          "Failed to fetch instructors:",
+          response?.data?.message
+        );
       }
     } catch (err: any) {
       safeConsole.error("Error fetching instructors:", err);

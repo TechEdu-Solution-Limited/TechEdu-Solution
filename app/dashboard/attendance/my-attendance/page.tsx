@@ -37,6 +37,7 @@ import Link from "next/link";
 
 import { safeConsole } from "@/lib/console";
 import { useRole } from "@/contexts/RoleContext";
+import { PRODUCT_TYPE_OPTIONS } from "@/lib/constants/productTypes";
 interface LedBy {
   _id: string;
   fullName: string;
@@ -137,16 +138,6 @@ export default function InstructorAttendancePage() {
   const [limit, setLimit] = useState(10);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [instructors, setInstructors] = useState<string[]>([]);
-
-  const PRODUCT_TYPE_OPTIONS = [
-    "Training & Certification",
-    "Academic Support Services",
-    "Career Development & Mentorship",
-    "Institutional & Team Services",
-    "AI-Powered or Automation Services",
-    "Career Connect",
-    "Marketing, Consultation & Free Services",
-  ];
 
   const STATUS_OPTIONS = [
     "upcoming",
