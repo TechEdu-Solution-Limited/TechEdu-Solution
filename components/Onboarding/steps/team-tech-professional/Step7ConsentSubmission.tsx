@@ -2,6 +2,7 @@ import React from "react";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertCircle, CheckCircle, Shield } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface Step7ConsentSubmissionProps {
   form: any;
@@ -36,15 +37,11 @@ export function Step7ConsentSubmission({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div>
             <p className="font-medium text-green-800">Team Lead:</p>
-            <p className="text-green-700">
-              {form.teamLeadFullName || "Not provided"}
-            </p>
+            <p className="text-green-700">{form.fullName || "Not provided"}</p>
           </div>
           <div>
             <p className="font-medium text-green-800">Company:</p>
-            <p className="text-green-700">
-              {form.companyName || "Not provided"}
-            </p>
+            <p className="text-green-700">{form.companyId || "Not provided"}</p>
           </div>
           <div>
             <p className="font-medium text-green-800">Team Name:</p>
@@ -58,12 +55,14 @@ export function Step7ConsentSubmission({
           </div>
           <div>
             <p className="font-medium text-green-800">Primary Goal:</p>
-            <p className="text-green-700">{form.goalType || "Not provided"}</p>
+            <p className="text-green-700">
+              {form.learningGoals?.goalType || "Not provided"}
+            </p>
           </div>
           <div>
             <p className="font-medium text-green-800">Timeline:</p>
             <p className="text-green-700">
-              {form.trainingTimeline || "Not provided"}
+              {form.learningGoals?.trainingTimeline || "Not provided"}
             </p>
           </div>
         </div>
@@ -143,6 +142,84 @@ export function Step7ConsentSubmission({
                 {errors.teamAcknowledged}
               </p>
             )}
+          </div>
+        </div>
+
+        <div className="flex items-start space-x-3">
+          <Checkbox
+            id="isActive"
+            name="isActive"
+            checked={form.isActive}
+            onCheckedChange={(checked) => {
+              const event = {
+                target: {
+                  name: "isActive",
+                  type: "checkbox",
+                  checked: checked as boolean,
+                },
+              } as any;
+              handleChange(event);
+            }}
+            className="mt-1"
+          />
+          <div className="flex-1">
+            <Label
+              htmlFor="isActive"
+              className="text-sm font-medium text-gray-700"
+            >
+              Active Status *
+            </Label>
+            <p className="text-xs text-gray-600 mt-1">
+              I confirm that this team is currently active and ready to
+              participate in training programs and opportunities.
+            </p>
+            {errors.isActive && (
+              <p className="text-red-500 text-xs mt-1">{errors.isActive}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label
+              htmlFor="referralSource"
+              className="text-sm font-medium text-gray-700"
+            >
+              How did you hear about us?
+            </Label>
+            <select
+              id="referralSource"
+              name="referralSource"
+              value={form.referralSource}
+              onChange={handleChange}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-[10px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select referral source</option>
+              <option value="Google Search">Google Search</option>
+              <option value="Social Media">Social Media</option>
+              <option value="Referral">Referral</option>
+              <option value="Advertisement">Advertisement</option>
+              <option value="Conference/Event">Conference/Event</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <Label
+              htmlFor="referralCode"
+              className="text-sm font-medium text-gray-700"
+            >
+              Referral Code (if any)
+            </Label>
+            <Input
+              id="referralCode"
+              name="referralCode"
+              type="text"
+              value={form.referralCode}
+              onChange={handleChange}
+              className="mt-1 rounded-[10px]"
+              placeholder="Enter referral code"
+            />
           </div>
         </div>
       </div>

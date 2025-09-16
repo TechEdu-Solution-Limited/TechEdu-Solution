@@ -41,6 +41,18 @@ export function Step6SupportingDocuments({
         "application/vnd.ms-excel",
         "text/csv",
       ],
+      projectSamplesUrl: [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/zip",
+        "application/x-rar-compressed",
+      ],
+      ndaOrAgreementUrl: [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ],
     };
 
     if (
@@ -60,10 +72,10 @@ export function Step6SupportingDocuments({
     try {
       const downloadURL = await uploadAttachment(file, "supporting-documents");
 
-      // Update form with the uploaded URL
+      // Update form with the uploaded URL using nested field name
       const event = {
         target: {
-          name: fieldName,
+          name: `attachments.${fieldName}`,
           value: downloadURL,
         },
       } as any;
@@ -81,7 +93,7 @@ export function Step6SupportingDocuments({
   const removeDocument = (fieldName: string) => {
     const event = {
       target: {
-        name: fieldName,
+        name: `attachments.${fieldName}`,
         value: "",
       },
     } as any;
@@ -155,7 +167,7 @@ export function Step6SupportingDocuments({
             </div>
 
             {/* Show uploaded file */}
-            {form.companyIntroUrl && (
+            {form.attachments?.companyIntroUrl && (
               <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-green-600" />
@@ -232,7 +244,7 @@ export function Step6SupportingDocuments({
             </div>
 
             {/* Show uploaded file */}
-            {form.skillMatrixUrl && (
+            {form.attachments?.skillMatrixUrl && (
               <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg">
                 <div className="flex items-center gap-2">
                   <FileSpreadsheet className="w-4 h-4 text-green-600" />
@@ -252,6 +264,160 @@ export function Step6SupportingDocuments({
 
             <div className="text-xs text-gray-500">
               <p>Recommended formats: XLSX, XLS, CSV</p>
+              <p>Max size: 10MB</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="border border-gray-200 rounded-[10px] p-4">
+          <div className="flex items-center space-x-3 mb-3">
+            <FileText className="w-6 h-6 text-purple-600" />
+            <div>
+              <h5 className="font-medium text-gray-900">Project Samples</h5>
+              <p className="text-sm text-gray-600">
+                Portfolio or project examples
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <input
+                type="file"
+                id="projectSamplesFile"
+                accept=".pdf,.doc,.docx,.zip,.rar"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleFileUpload(
+                      file,
+                      "projectSamplesUrl",
+                      setUploadingCompanyIntro
+                    );
+                  }
+                }}
+                className="hidden"
+                disabled={uploadingCompanyIntro}
+              />
+              <label
+                htmlFor="projectSamplesFile"
+                className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
+                  uploadingCompanyIntro ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+              >
+                {uploadingCompanyIntro ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-sm text-gray-600">Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm text-gray-600">
+                      Upload Project Samples
+                    </span>
+                  </>
+                )}
+              </label>
+            </div>
+
+            {form.attachments?.projectSamplesUrl && (
+              <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-green-600" />
+                  <span className="text-sm text-green-800">
+                    Document uploaded successfully
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeDocument("projectSamplesUrl")}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            <div className="text-xs text-gray-500">
+              <p>Recommended formats: PDF, DOC, DOCX, ZIP, RAR</p>
+              <p>Max size: 10MB</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="border border-gray-200 rounded-[10px] p-4">
+          <div className="flex items-center space-x-3 mb-3">
+            <FileText className="w-6 h-6 text-red-600" />
+            <div>
+              <h5 className="font-medium text-gray-900">NDA or Agreement</h5>
+              <p className="text-sm text-gray-600">
+                Legal documents or agreements
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <input
+                type="file"
+                id="ndaOrAgreementFile"
+                accept=".pdf,.doc,.docx"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleFileUpload(
+                      file,
+                      "ndaOrAgreementUrl",
+                      setUploadingSkillMatrix
+                    );
+                  }
+                }}
+                className="hidden"
+                disabled={uploadingSkillMatrix}
+              />
+              <label
+                htmlFor="ndaOrAgreementFile"
+                className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
+                  uploadingSkillMatrix ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+              >
+                {uploadingSkillMatrix ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-sm text-gray-600">Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm text-gray-600">
+                      Upload NDA or Agreement
+                    </span>
+                  </>
+                )}
+              </label>
+            </div>
+
+            {form.attachments?.ndaOrAgreementUrl && (
+              <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-green-600" />
+                  <span className="text-sm text-green-800">
+                    Document uploaded successfully
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeDocument("ndaOrAgreementUrl")}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            <div className="text-xs text-gray-500">
+              <p>Recommended formats: PDF, DOC, DOCX</p>
               <p>Max size: 10MB</p>
             </div>
           </div>

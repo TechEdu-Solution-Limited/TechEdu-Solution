@@ -71,20 +71,22 @@ const trainingTimelines = [
   "Flexible",
 ];
 
+const trainingAvailabilityOptions = ["full-time", "weekends", "custom"];
+
 export function Step5TeamLearningGoals({
   form,
   errors,
   handleChange,
 }: Step5TeamLearningGoalsProps) {
   const handlePriorityAreasChange = (area: string, checked: boolean) => {
-    const currentAreas = form.priorityAreas || [];
+    const currentAreas = form.learningGoals?.priorityAreas || [];
     const newAreas = checked
       ? [...currentAreas, area]
       : currentAreas.filter((item: string) => item !== area);
 
     const event = {
       target: {
-        name: "priorityAreas",
+        name: "learningGoals.priorityAreas",
         value: newAreas,
       },
     } as any;
@@ -103,15 +105,18 @@ export function Step5TeamLearningGoals({
       </div>
 
       <div>
-        <Label htmlFor="goalType" className="text-sm font-medium text-gray-700">
+        <Label
+          htmlFor="learningGoals.goalType"
+          className="text-sm font-medium text-gray-700"
+        >
           Primary Goal Type *
         </Label>
         <Select
-          value={form.goalType}
+          value={form.learningGoals?.goalType || ""}
           onValueChange={(value) => {
             const event = {
               target: {
-                name: "goalType",
+                name: "learningGoals.goalType",
                 value: value,
               },
             } as any;
@@ -147,7 +152,9 @@ export function Step5TeamLearningGoals({
             <div key={area} className="flex items-center space-x-2">
               <Checkbox
                 id={`priority-${area}`}
-                checked={form.priorityAreas?.includes(area) || false}
+                checked={
+                  form.learningGoals?.priorityAreas?.includes(area) || false
+                }
                 onCheckedChange={(checked) =>
                   handlePriorityAreasChange(area, checked as boolean)
                 }
@@ -169,17 +176,17 @@ export function Step5TeamLearningGoals({
 
       <div>
         <Label
-          htmlFor="trainingTimeline"
+          htmlFor="learningGoals.trainingTimeline"
           className="text-sm font-medium text-gray-700"
         >
           Training Timeline *
         </Label>
         <Select
-          value={form.trainingTimeline}
+          value={form.learningGoals?.trainingTimeline || ""}
           onValueChange={(value) => {
             const event = {
               target: {
-                name: "trainingTimeline",
+                name: "learningGoals.trainingTimeline",
                 value: value,
               },
             } as any;
@@ -204,6 +211,95 @@ export function Step5TeamLearningGoals({
         {errors.trainingTimeline && (
           <p className="text-red-500 text-xs mt-1">{errors.trainingTimeline}</p>
         )}
+      </div>
+
+      <div>
+        <Label
+          htmlFor="trainingAvailability"
+          className="text-sm font-medium text-gray-700"
+        >
+          Training Availability *
+        </Label>
+        <Select
+          value={form.trainingAvailability}
+          onValueChange={(value) => {
+            const event = {
+              target: {
+                name: "trainingAvailability",
+                value: value,
+              },
+            } as any;
+            handleChange(event);
+          }}
+        >
+          <SelectTrigger
+            className={`mt-1 rounded-[10px] ${
+              errors.trainingAvailability ? "border-red-500" : ""
+            }`}
+          >
+            <SelectValue placeholder="Select training availability" />
+          </SelectTrigger>
+          <SelectContent className="rounded-[10px] bg-white">
+            {trainingAvailabilityOptions.map((option) => (
+              <SelectItem key={option} value={option}>
+                {option}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {errors.trainingAvailability && (
+          <p className="text-red-500 text-xs mt-1">
+            {errors.trainingAvailability}
+          </p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label
+            htmlFor="contactEmail"
+            className="text-sm font-medium text-gray-700"
+          >
+            Contact Email *
+          </Label>
+          <Input
+            id="contactEmail"
+            name="contactEmail"
+            type="email"
+            value={form.contactEmail}
+            onChange={handleChange}
+            className={`mt-1 ${
+              errors.contactEmail ? "border-red-500" : "rounded-[10px]"
+            }`}
+            placeholder="Enter contact email"
+          />
+          {errors.contactEmail && (
+            <p className="text-red-500 text-xs mt-1">{errors.contactEmail}</p>
+          )}
+        </div>
+
+        <div>
+          <Label
+            htmlFor="contactPhone"
+            className="text-sm font-medium text-gray-700"
+          >
+            Contact Phone *
+          </Label>
+          <Input
+            id="contactPhone"
+            name="contactPhone"
+            type="tel"
+            value={form.contactPhone}
+            onChange={handleChange}
+            className={`mt-1 ${
+              errors.contactPhone ? "border-red-500" : "rounded-[10px]"
+            }`}
+            placeholder="+2348012345678"
+          />
+          {errors.contactPhone && (
+            <p className="text-red-500 text-xs mt-1">{errors.contactPhone}</p>
+          )}
+        </div>
       </div>
 
       <div className="bg-green-50 border border-green-200 rounded-[10px] p-4">

@@ -18,6 +18,7 @@ interface Step4AddMembersProps {
     >
   ) => void;
   teamId?: string;
+  userId?: string;
 }
 
 export function Step4AddMembers({
@@ -25,6 +26,7 @@ export function Step4AddMembers({
   errors,
   handleChange,
   teamId,
+  userId,
 }: Step4AddMembersProps) {
   // Debug: Log the teamId to ensure it's being passed correctly
   console.log("🔍 Step4AddMembers - teamId prop:", teamId);
@@ -221,21 +223,43 @@ export function Step4AddMembers({
         throw new Error(`Team ${currentTeamId} not found or not accessible`);
       }
 
-      // Send all pending members
-      const invitePromises = pendingMembers.map((member) => {
-        const inviteUrl = `/api/teams/${currentTeamId}/invite`;
-        const inviteData = {
-          email: member.email,
+      // Send all pending members using the onboarding endpoint
+      // const invitePromises = pendingMembers.map((member) => {
+      //   const inviteUrl = `/api/teams/${currentTeamId}/invite`;
+      //   const inviteData = {
+      //     email: member.email,
+      //     role: member.role,
+      //   };
+
+      //   console.log("📤 Sending invite to:", inviteUrl);
+      //   console.log("📤 Invite data:", inviteData);
+
+      //   return postApiRequest(inviteUrl, inviteData, {
+      //     Authorization: `Bearer ${token}`,
+      //   });
+      // });
+
+      // Use the onboarding endpoint instead
+      const onboardingUrl = `/api/onboarding/team-tech-professional/${
+        userId || "unknown"
+      }/add-members`;
+      const onboardingData = {
+        members: pendingMembers.map((member) => ({
+          techProId: member.techProId,
           role: member.role,
-        };
+          status: "invited",
+          invitedBy: userId || "unknown",
+        })),
+      };
 
-        console.log("📤 Sending invite to:", inviteUrl);
-        console.log("📤 Invite data:", inviteData);
+      console.log("📤 Sending members to onboarding endpoint:", onboardingUrl);
+      console.log("📤 Onboarding data:", onboardingData);
 
-        return postApiRequest(inviteUrl, inviteData, {
+      const invitePromises = [
+        postApiRequest(onboardingUrl, onboardingData, {
           Authorization: `Bearer ${token}`,
-        });
-      });
+        }),
+      ];
 
       const results = await Promise.allSettled(invitePromises);
 

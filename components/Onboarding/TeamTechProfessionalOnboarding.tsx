@@ -24,58 +24,88 @@ import {
 } from "./steps/team-tech-professional";
 
 const initialForm = {
-  // Step 1: Team Lead Information
-  isTeam: true,
+  // Step 1: Team Lead Info
   fullName: "",
-  teamLeadEmail: "",
-  teamLeadPhoneNumber: "",
-  jobTitle: "",
-  linkedInProfile: "",
-  alreadyVerifiedTechPro: false,
+  gender: "",
+  dateOfBirth: "",
+  nationality: "",
+  currentLocation: "",
+  linkedIn: "",
+  github: "",
+  portfolioUrl: "",
+  highestQualification: "",
+  fieldOfStudy: "",
+  graduationYear: "",
+  certifications: [] as string[],
+
   // Step 2: Company Details
+  companyId: "",
   companyName: "",
-  companyType: "tech_professional",
+  companyType: "",
   rcNumber: "",
   industry: "",
+  website: "",
+  companyLinkedIn: "",
+  logoUrl: "",
+  contactPerson: {
+    name: "",
+    email: "",
+    phone: "",
+    jobTitle: "",
+  },
   location: {
     country: "",
     state: "",
     city: "",
   },
-  website: "",
-  logoUrl: "",
-  contactEmail: "",
-  contactPhone: "",
+
   // Step 3: Team Profile
   teamName: "",
   teamSize: 0,
-  teamLocation: {
-    country: "",
-    state: "",
-    city: "",
-  },
-  techStack: [] as string[],
-  trainingAvailability: "",
-  teamContactEmail: "",
-  teamContactPhone: "",
+  primarySpecialization: "",
+  programmingLanguages: [] as string[],
+  frameworksAndTools: [] as string[],
+  softSkills: [] as string[],
+  preferredTechStack: [] as string[],
+  experienceLevel: "",
+  currentJobTitle: "",
+  yearsOfExperience: 0,
+  industryFocus: "",
+  employmentStatus: "",
+  remoteWorkExperience: false,
+  resumeUrl: "",
+
   // Step 4: Add Members
   members: [] as Array<{
-    userId: string;
-    fullName: string;
-    email: string;
+    techProId: string;
     role: string;
+    status: string;
+    invitedBy: string;
   }>,
-  teamId: "", // Add this line
+  teamId: "",
+
   // Step 5: Team Learning Goals
-  goalType: "",
-  priorityAreas: [] as string[],
-  trainingTimeline: "",
+  learningGoals: {
+    goalType: "",
+    priorityAreas: [] as string[],
+    trainingTimeline: "",
+  },
+  trainingAvailability: "",
+
   // Step 6: Supporting Documents
-  companyIntroUrl: "",
-  skillMatrixUrl: "",
+  attachments: {
+    companyIntroUrl: "",
+    skillMatrixUrl: "",
+    projectSamplesUrl: "",
+    ndaOrAgreementUrl: "",
+  },
+
   // Step 7: Consent & Submission
+  referralSource: "",
+  referralCode: "",
   consentToTerms: false,
   teamAcknowledged: false,
+  isActive: true,
 };
 
 // API utility functions
@@ -253,9 +283,9 @@ export default function TeamTechProfessionalOnboarding() {
           const fallbackSteps = [
             {
               stepNumber: 1,
-              title: "Team Type & Lead Information",
+              title: "Team Lead Information",
               description:
-                "Establish who's managing the team and collect lead details.",
+                "Collect personal and professional details of the team lead.",
               completed: false,
               skipped: false,
               stepIdentifier: "team-lead-info",
@@ -263,8 +293,7 @@ export default function TeamTechProfessionalOnboarding() {
             {
               stepNumber: 2,
               title: "Company Details",
-              description:
-                "Connect to an existing company or create a new one.",
+              description: "Select or connect to an existing company profile.",
               completed: false,
               skipped: false,
               stepIdentifier: "company-details",
@@ -272,7 +301,8 @@ export default function TeamTechProfessionalOnboarding() {
             {
               stepNumber: 3,
               title: "Team Profile",
-              description: "Core attributes of the team.",
+              description:
+                "Define team skills, experience, and specialization areas.",
               completed: false,
               skipped: false,
               stepIdentifier: "team-profile",
@@ -280,7 +310,7 @@ export default function TeamTechProfessionalOnboarding() {
             {
               stepNumber: 4,
               title: "Add Team Members",
-              description: "Add existing Tech Professionals as team members.",
+              description: "Invite existing professionals to join your team.",
               completed: false,
               skipped: false,
               stepIdentifier: "add-members",
@@ -288,16 +318,16 @@ export default function TeamTechProfessionalOnboarding() {
             {
               stepNumber: 5,
               title: "Team Learning Goals",
-              description: "Understand the team objective on the platform.",
+              description: "Set learning objectives and training preferences.",
               completed: false,
               skipped: false,
               stepIdentifier: "team-learning-goals",
             },
             {
               stepNumber: 6,
-              title: "Upload Supporting Documents",
+              title: "Supporting Documents",
               description:
-                "Optional but useful for verifying and guiding training.",
+                "Upload optional documents to enhance your team profile.",
               completed: false,
               skipped: false,
               stepIdentifier: "supporting-documents",
@@ -305,7 +335,7 @@ export default function TeamTechProfessionalOnboarding() {
             {
               stepNumber: 7,
               title: "Consent & Submission",
-              description: "Finalize setup and trigger review.",
+              description: "Review and finalize your team onboarding.",
               completed: false,
               skipped: false,
               stepIdentifier: "consent-submission",
@@ -356,9 +386,22 @@ export default function TeamTechProfessionalOnboarding() {
         {}
       );
 
+      console.log("🔄 Progress stepData:", progress.stepData);
+      console.log("🔄 All step data to merge:", allStepData);
+
       if (Object.keys(allStepData).length > 0) {
         setForm((prev: any) => {
+          // Only merge if the previous form doesn't have user-entered data
+          // This prevents overriding user input with empty backend data
+          const hasUserData = prev.fullName && prev.fullName.trim() !== "";
+          if (hasUserData) {
+            console.log("🔄 Skipping form merge - user has entered data");
+            return prev;
+          }
+
           const newForm = { ...prev, ...allStepData };
+          console.log("🔄 Merging step data - Previous form:", prev);
+          console.log("🔄 Merging step data - New form:", newForm);
           return newForm;
         });
       }
@@ -436,32 +479,81 @@ export default function TeamTechProfessionalOnboarding() {
     >
   ) => {
     const { name, value, type, checked, files } = e.target as any;
+    console.log(`🔄 Form change - ${name}:`, value, "Type:", type);
 
     if (type === "checkbox") {
       if (
         name === "certifications" ||
         name === "programmingLanguages" ||
-        name === "frameworksLibraries" ||
-        name === "toolsPlatforms" ||
+        name === "frameworksAndTools" ||
         name === "softSkills" ||
-        name === "goals" ||
-        name === "availability"
+        name === "preferredTechStack" ||
+        name === "learningGoals.priorityAreas"
       ) {
-        setForm((prev) => ({
-          ...prev,
-          [name]: checked
-            ? [...(prev[name as keyof typeof prev] as string[]), value]
-            : (prev[name as keyof typeof prev] as string[]).filter(
-                (item: string) => item !== value
-              ),
-        }));
+        if (name === "learningGoals.priorityAreas") {
+          setForm((prev) => ({
+            ...prev,
+            learningGoals: {
+              ...prev.learningGoals,
+              priorityAreas: checked
+                ? [...prev.learningGoals.priorityAreas, value]
+                : prev.learningGoals.priorityAreas.filter(
+                    (item: string) => item !== value
+                  ),
+            },
+          }));
+        } else {
+          setForm((prev) => ({
+            ...prev,
+            [name]: checked
+              ? [...(prev[name as keyof typeof prev] as string[]), value]
+              : (prev[name as keyof typeof prev] as string[]).filter(
+                  (item: string) => item !== value
+                ),
+          }));
+        }
       } else {
         setForm((prev) => ({ ...prev, [name]: checked }));
       }
     } else if (type === "file") {
       setForm((prev) => ({ ...prev, [name]: files[0] }));
+    } else if (name.startsWith("learningGoals.")) {
+      // Handle nested learningGoals object
+      const field = name.split(".")[1];
+      setForm((prev) => ({
+        ...prev,
+        learningGoals: {
+          ...prev.learningGoals,
+          [field]: value,
+        },
+      }));
+    } else if (name.startsWith("attachments.")) {
+      // Handle nested attachments object
+      const field = name.split(".")[1];
+      setForm((prev) => ({
+        ...prev,
+        attachments: {
+          ...prev.attachments,
+          [field]: value,
+        },
+      }));
+    } else if (name.startsWith("location.")) {
+      // Handle nested location object
+      const field = name.split(".")[1];
+      setForm((prev) => ({
+        ...prev,
+        location: {
+          ...prev.location,
+          [field]: value,
+        },
+      }));
     } else {
-      setForm((prev) => ({ ...prev, [name]: value }));
+      setForm((prev) => {
+        const newForm = { ...prev, [name]: value };
+        console.log(`🔄 Updating form field ${name} to:`, value);
+        console.log("🔄 New form state:", newForm);
+        return newForm;
+      });
     }
     setErrors((prev) => ({ ...prev, [name]: "" }));
   };
@@ -469,45 +561,93 @@ export default function TeamTechProfessionalOnboarding() {
   const validateStep = () => {
     const newErrors: { [key: string]: string } = {};
 
-    if (stepTitle === "Team Type & Lead Information") {
-      if (!form.fullName)
-        newErrors.fullName = "Team lead full name is required.";
-      if (!form.teamLeadEmail)
-        newErrors.teamLeadEmail = "Team lead email is required.";
-      if (!form.teamLeadPhoneNumber)
-        newErrors.teamLeadPhoneNumber = "Team lead phone number is required.";
-      if (!form.jobTitle) newErrors.jobTitle = "Job title is required.";
+    console.log("🔍 Validating step:", stepTitle);
+    console.log("🔍 Form data during validation:", form);
+
+    if (stepTitle === "Team Lead Information") {
+      if (!form.fullName) {
+        newErrors.fullName = "Full name is required.";
+        console.log("❌ Validation failed: fullName is missing");
+      }
+      if (!form.gender) {
+        newErrors.gender = "Gender is required.";
+        console.log("❌ Validation failed: gender is missing");
+      }
+      if (!form.dateOfBirth) {
+        newErrors.dateOfBirth = "Date of birth is required.";
+        console.log("❌ Validation failed: dateOfBirth is missing");
+      }
+      if (!form.nationality) {
+        newErrors.nationality = "Nationality is required.";
+        console.log("❌ Validation failed: nationality is missing");
+      }
+      if (!form.currentLocation) {
+        newErrors.currentLocation = "Current location is required.";
+        console.log("❌ Validation failed: currentLocation is missing");
+      }
+      if (!form.highestQualification) {
+        newErrors.highestQualification = "Highest qualification is required.";
+        console.log("❌ Validation failed: highestQualification is missing");
+      }
+      if (!form.fieldOfStudy) {
+        newErrors.fieldOfStudy = "Field of study is required.";
+        console.log("❌ Validation failed: fieldOfStudy is missing");
+      }
+      if (!form.graduationYear) {
+        newErrors.graduationYear = "Graduation year is required.";
+        console.log("❌ Validation failed: graduationYear is missing");
+      }
     }
 
     if (stepTitle === "Company Details") {
-      if (!form.companyName)
-        newErrors.companyName = "Company name is required.";
-      if (!form.rcNumber) newErrors.rcNumber = "RC number is required.";
-      if (!form.industry) newErrors.industry = "Industry is required.";
+      if (!form.companyId)
+        newErrors.companyId = "Company selection is required.";
       if (!form.location.country) newErrors.location = "Country is required.";
       if (!form.location.state) newErrors.location = "State is required.";
       if (!form.location.city) newErrors.location = "City is required.";
-      if (!form.contactEmail)
-        newErrors.contactEmail = "Contact email is required.";
-      if (!form.contactPhone)
-        newErrors.contactPhone = "Contact phone is required.";
+
+      // Additional validation for new company creation
+      if (form.companyId === "new") {
+        if (!form.companyName)
+          newErrors.companyName = "Company name is required.";
+        if (!form.companyType)
+          newErrors.companyType = "Company type is required.";
+        if (!form.rcNumber) newErrors.rcNumber = "RC number is required.";
+        if (!form.industry) newErrors.industry = "Industry is required.";
+        if (!form.contactPerson?.email)
+          newErrors.contactPersonEmail = "Contact email is required.";
+        if (!form.contactPerson?.phone)
+          newErrors.contactPersonPhone = "Contact phone is required.";
+      }
     }
 
     if (stepTitle === "Team Profile") {
       if (!form.teamName) newErrors.teamName = "Team name is required.";
       if (!form.teamSize || form.teamSize <= 0)
         newErrors.teamSize = "Team size must be greater than 0.";
-      if (!form.location.country) newErrors.location = "Country is required.";
-      if (!form.location.state) newErrors.location = "State is required.";
-      if (!form.location.city) newErrors.location = "City is required.";
-      if (!form.techStack.length)
-        newErrors.techStack = "Select at least one tech stack.";
-      if (!form.trainingAvailability)
-        newErrors.trainingAvailability = "Training availability is required.";
-      if (!form.contactEmail)
-        newErrors.contactEmail = "Team contact email is required.";
-      if (!form.contactPhone)
-        newErrors.contactPhone = "Team contact phone is required.";
+      if (!form.primarySpecialization)
+        newErrors.primarySpecialization = "Primary specialization is required.";
+      if (!form.programmingLanguages.length)
+        newErrors.programmingLanguages =
+          "Select at least one programming language.";
+      if (!form.frameworksAndTools.length)
+        newErrors.frameworksAndTools = "Select at least one framework or tool.";
+      if (!form.softSkills.length)
+        newErrors.softSkills = "Select at least one soft skill.";
+      if (!form.preferredTechStack.length)
+        newErrors.preferredTechStack =
+          "Select at least one preferred tech stack.";
+      if (!form.experienceLevel)
+        newErrors.experienceLevel = "Experience level is required.";
+      if (!form.currentJobTitle)
+        newErrors.currentJobTitle = "Current job title is required.";
+      if (!form.yearsOfExperience || form.yearsOfExperience <= 0)
+        newErrors.yearsOfExperience =
+          "Years of experience must be greater than 0.";
+      if (!form.industryFocus)
+        newErrors.industryFocus = "Industry focus is required.";
+      if (!form.employmentStatus)
+        newErrors.employmentStatus = "Employment status is required.";
     }
 
     if (stepTitle === "Add Team Members") {
@@ -516,11 +656,18 @@ export default function TeamTechProfessionalOnboarding() {
     }
 
     if (stepTitle === "Team Learning Goals") {
-      if (!form.goalType) newErrors.goalType = "Goal type is required.";
-      if (!form.priorityAreas.length)
+      if (!form.learningGoals.goalType)
+        newErrors.goalType = "Goal type is required.";
+      if (!form.learningGoals.priorityAreas.length)
         newErrors.priorityAreas = "Select at least one priority area.";
-      if (!form.trainingTimeline)
+      if (!form.learningGoals.trainingTimeline)
         newErrors.trainingTimeline = "Training timeline is required.";
+      if (!form.trainingAvailability)
+        newErrors.trainingAvailability = "Training availability is required.";
+      if (!form.contactPerson?.email)
+        newErrors.contactPersonEmail = "Contact email is required.";
+      if (!form.contactPerson?.phone)
+        newErrors.contactPersonPhone = "Contact phone is required.";
     }
 
     if (stepTitle === "Upload Supporting Documents") {
@@ -535,7 +682,10 @@ export default function TeamTechProfessionalOnboarding() {
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const isValid = Object.keys(newErrors).length === 0;
+    console.log("🔍 Validation result:", isValid ? "✅ Valid" : "❌ Invalid");
+    console.log("🔍 Validation errors:", newErrors);
+    return isValid;
   };
 
   // Update navigation and validation to use currentStep
@@ -573,49 +723,70 @@ export default function TeamTechProfessionalOnboarding() {
 
       let stepData;
       switch (step) {
-        case 0: // Team Lead Information
+        case 0: // Team Lead Info
           stepData = {
-            isTeam: form.isTeam,
             fullName: form.fullName,
-            teamLeadEmail: form.teamLeadEmail,
-            teamLeadPhoneNumber: form.teamLeadPhoneNumber,
-            jobTitle: form.jobTitle,
-            linkedInProfile: form.linkedInProfile || undefined,
-            alreadyVerifiedTechPro: form.alreadyVerifiedTechPro,
+            gender: form.gender,
+            dateOfBirth: form.dateOfBirth,
+            nationality: form.nationality,
+            currentLocation: form.currentLocation,
+            linkedIn: form.linkedIn || undefined,
+            github: form.github || undefined,
+            portfolioUrl: form.portfolioUrl || undefined,
+            highestQualification: form.highestQualification,
+            fieldOfStudy: form.fieldOfStudy,
+            graduationYear: form.graduationYear,
+            certifications: form.certifications,
           };
+          console.log("🔍 Step 0 - Form data:", form);
+          console.log("🔍 Step 0 - Step data being sent:", stepData);
           break;
         case 1: // Company Details
-          stepData = {
-            companyName: form.companyName,
-            companyType: form.companyType,
-            rcNumber: form.rcNumber,
-            industry: form.industry,
-            location: form.location,
-            website: form.website || undefined,
-            logoUrl: form.logoUrl || undefined,
-            contactEmail: form.contactEmail,
-            contactPhone: form.contactPhone,
-          };
+          if (form.companyId === "new") {
+            // Creating new company - include all company details
+            stepData = {
+              companyName: form.companyName,
+              companyType: form.companyType,
+              rcNumber: form.rcNumber,
+              industry: form.industry,
+              website: form.website || undefined,
+              linkedIn: form.companyLinkedIn || undefined,
+              logoUrl: form.logoUrl || undefined,
+              contactPerson: {
+                name: form.contactPerson?.name || undefined,
+                email: form.contactPerson?.email,
+                phone: form.contactPerson?.phone,
+                jobTitle: form.contactPerson?.jobTitle || undefined,
+              },
+              location: form.location,
+            };
+          } else {
+            // Using existing company - only send companyId and location
+            stepData = {
+              companyId: form.companyId,
+              location: form.location,
+            };
+          }
           break;
         case 2: // Team Profile
           // First create the team using the /api/teams endpoint to get teamId
           const teamCreationData = {
             teamName: form.teamName,
-            teamSize: form.teamSize,
-            primarySpecialization: form.industry || "Technology",
-            experienceLevel: "Senior", // Default or could be from form
-            preferredTechStack: form.techStack,
+            teamSize: Number(form.teamSize),
+            primarySpecialization: form.primarySpecialization,
+            experienceLevel: form.experienceLevel,
+            preferredTechStack: form.preferredTechStack,
             lookingForJobs: true, // Default or could be from form
             interestedInTraining: true, // Default or could be from form
             teamLead: {
               id: userId,
               fullName: form.fullName,
-              email: form.teamLeadEmail,
+              email: form.contactPerson?.email,
             },
             location: form.location,
             trainingAvailability: form.trainingAvailability,
-            contactEmail: form.contactEmail,
-            contactPhone: form.contactPhone,
+            contactEmail: form.contactPerson?.email,
+            contactPhone: form.contactPerson?.phone,
           };
 
           console.log(
@@ -624,43 +795,49 @@ export default function TeamTechProfessionalOnboarding() {
           );
 
           // Create team and get teamId
-          const teamResponse = await postApiRequest(
-            "/api/teams",
-            teamCreationData,
-            token ? { Authorization: `Bearer ${token}` } : {}
-          );
+          // const teamResponse = await postApiRequest(
+          //   "/api/teams",
+          //   teamCreationData,
+          //   token ? { Authorization: `Bearer ${token}` } : {}
+          // );
 
-          console.log(
-            "📥 Team creation response:",
-            JSON.stringify(teamResponse, null, 2)
-          );
+          // console.log(
+          //   "📥 Team creation response:",
+          //   JSON.stringify(teamResponse, null, 2)
+          // );
 
-          let createdTeamId = "";
-          if (teamResponse?.data?.data?.team?.id) {
-            createdTeamId = teamResponse.data.data.team.id;
-            // Update form with teamId for use in next steps
-            setForm((prevForm) => ({
-              ...prevForm,
-              teamId: createdTeamId,
-            }));
-            console.log("✅ Team created successfully with ID:", createdTeamId);
-            console.log("✅ TeamId stored in form:", createdTeamId);
-          } else {
-            console.log("❌ Team creation failed - no team ID in response");
-            console.log("❌ Response structure:", teamResponse);
-            throw new Error("Failed to create team or get team ID");
-          }
+          // let createdTeamId = "";
+          // if (teamResponse?.data?.data?.team?.id) {
+          //   createdTeamId = teamResponse.data.data.team.id;
+          //   // Update form with teamId for use in next steps
+          //   setForm((prevForm) => ({
+          //     ...prevForm,
+          //     teamId: createdTeamId,
+          //   }));
+          //   console.log("✅ Team created successfully with ID:", createdTeamId);
+          //   console.log("✅ TeamId stored in form:", createdTeamId);
+          // } else {
+          //   console.log("❌ Team creation failed - no team ID in response");
+          //   console.log("❌ Response structure:", teamResponse);
+          //   throw new Error("Failed to create team or get team ID");
+          // }
 
           // Prepare step data for onboarding endpoint
           stepData = {
             teamName: form.teamName,
             teamSize: form.teamSize,
-            location: form.location,
-            techStack: form.techStack,
-            trainingAvailability: form.trainingAvailability,
-            contactEmail: form.contactEmail,
-            contactPhone: form.contactPhone,
-            teamId: createdTeamId, // Include teamId in step data
+            primarySpecialization: form.primarySpecialization,
+            programmingLanguages: form.programmingLanguages,
+            frameworksAndTools: form.frameworksAndTools,
+            softSkills: form.softSkills,
+            preferredTechStack: form.preferredTechStack,
+            experienceLevel: form.experienceLevel,
+            currentJobTitle: form.currentJobTitle,
+            yearsOfExperience: form.yearsOfExperience,
+            industryFocus: form.industryFocus,
+            employmentStatus: form.employmentStatus,
+            remoteWorkExperience: form.remoteWorkExperience,
+            resumeUrl: form.resumeUrl || undefined,
           };
 
           console.log(
@@ -675,21 +852,24 @@ export default function TeamTechProfessionalOnboarding() {
           break;
         case 4: // Team Learning Goals
           stepData = {
-            goalType: form.goalType,
-            priorityAreas: form.priorityAreas,
-            trainingTimeline: form.trainingTimeline,
+            learningGoals: form.learningGoals,
+            trainingAvailability: form.trainingAvailability,
+            contactEmail: form.contactPerson?.email,
+            contactPhone: form.contactPerson?.phone,
           };
           break;
         case 5: // Supporting Documents
           stepData = {
-            companyIntroUrl: form.companyIntroUrl || undefined,
-            skillMatrixUrl: form.skillMatrixUrl || undefined,
+            attachments: form.attachments,
           };
           break;
         case 6: // Consent & Submission
           stepData = {
+            referralSource: form.referralSource || undefined,
+            referralCode: form.referralCode || undefined,
             consentToTerms: form.consentToTerms,
             teamAcknowledged: form.teamAcknowledged,
+            isActive: form.isActive,
           };
           break;
         default:
@@ -714,6 +894,10 @@ export default function TeamTechProfessionalOnboarding() {
 
       console.log(
         `🔄 Sending onboarding data to /api/onboarding/team-tech-professional/${userId}/${stepIdentifier}`
+      );
+      console.log(
+        "📤 Step data being sent:",
+        JSON.stringify(stepData, null, 2)
       );
 
       const result = await postApiRequest(
@@ -993,6 +1177,7 @@ export default function TeamTechProfessionalOnboarding() {
                 errors={errors}
                 handleChange={handleChange}
                 teamId={form.teamId}
+                userId={userId}
               />
             )}
             {/* Step 5: Team Learning Goals */}

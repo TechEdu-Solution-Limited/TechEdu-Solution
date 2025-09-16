@@ -20,7 +20,7 @@ interface Step3TeamProfileProps {
   ) => void;
 }
 
-const techStackOptions = [
+const programmingLanguages = [
   "JavaScript",
   "Python",
   "Java",
@@ -31,6 +31,19 @@ const techStackOptions = [
   "Rust",
   "PHP",
   "Ruby",
+  "Swift",
+  "Kotlin",
+  "Scala",
+  "R",
+  "MATLAB",
+  "SQL",
+  "HTML/CSS",
+  "Shell Scripting",
+  "Other",
+];
+
+const frameworksAndTools = [
+  // Development Frameworks
   "React",
   "Vue.js",
   "Angular",
@@ -43,21 +56,89 @@ const techStackOptions = [
   "Ruby on Rails",
   "Next.js",
   "Nuxt.js",
+  // DevOps & Infrastructure
   "Docker",
   "Kubernetes",
+  "Jenkins",
+  "Git",
   "AWS",
   "Azure",
   "Google Cloud",
-  "Git",
-  "Jenkins",
+  // Business & Project Management
   "Jira",
+  "Trello",
+  "Asana",
+  "Monday.com",
+  "Notion",
+  "Slack",
+  "Microsoft Teams",
+  "Zoom",
+  // Design & Analytics
   "Figma",
-  "PostgreSQL",
-  "MongoDB",
-  "Redis",
+  "Adobe Creative Suite",
+  "Tableau",
+  "Power BI",
+  "Google Analytics",
+  "Mixpanel",
+  // CRM & Sales
+  "Salesforce",
+  "HubSpot",
+  "Pipedrive",
+  "Zoho CRM",
   "Other",
 ];
 
+const softSkills = [
+  "Communication",
+  "Leadership",
+  "Problem Solving",
+  "Time Management",
+  "Emotional Intelligence",
+  "Creativity",
+  "Adaptability",
+  "Teamwork",
+  "Critical Thinking",
+  "Negotiation",
+  "Strategic Planning",
+  "Client Relations",
+  "Project Management",
+  "Public Speaking",
+  "Mentoring",
+  "Conflict Resolution",
+  "Decision Making",
+  "Presentation Skills",
+  "Cross-functional Collaboration",
+  "Other",
+];
+
+const preferredTechStack = [
+  // Technical Stacks
+  "MERN Stack",
+  "MEAN Stack",
+  "LAMP Stack",
+  "JAMstack",
+  "Serverless",
+  "Microservices",
+  "Cloud Native",
+  "DevOps",
+  "Data Science",
+  "AI/ML",
+  // Business & Corporate Solutions
+  "Enterprise Software",
+  "CRM Systems",
+  "ERP Solutions",
+  "Business Intelligence",
+  "Digital Transformation",
+  "Process Automation",
+  "Cloud Migration",
+  "Security & Compliance",
+  "Mobile Solutions",
+  "E-commerce Platforms",
+  "Other",
+];
+
+const experienceLevels = ["Junior", "Mid", "Senior", "Lead"];
+const employmentStatuses = ["employed", "freelance", "unemployed", "student"];
 const trainingAvailabilityOptions = ["full-time", "weekends", "custom"];
 
 export function Step3TeamProfile({
@@ -84,16 +165,20 @@ export function Step3TeamProfile({
     handleChange(event);
   };
 
-  const handleTechStackChange = (tech: string, checked: boolean) => {
-    const currentTechStack = form.techStack || [];
-    const newTechStack = checked
-      ? [...currentTechStack, tech]
-      : currentTechStack.filter((item: string) => item !== tech);
+  const handleArrayChange = (
+    field: string,
+    value: string,
+    checked: boolean
+  ) => {
+    const currentArray = form[field] || [];
+    const newArray = checked
+      ? [...currentArray, value]
+      : currentArray.filter((item: string) => item !== value);
 
     const event = {
       target: {
-        name: "techStack",
-        value: newTechStack,
+        name: field,
+        value: newArray,
       },
     } as any;
     handleChange(event);
@@ -151,144 +236,329 @@ export function Step3TeamProfile({
 
         <div>
           <Label
-            htmlFor="contactEmail"
+            htmlFor="primarySpecialization"
             className="text-sm font-medium text-gray-700"
           >
-            Team Contact Email *
+            Primary Specialization *
           </Label>
           <Input
-            id="contactEmail"
-            name="contactEmail"
-            type="email"
-            value={form.contactEmail}
+            id="primarySpecialization"
+            name="primarySpecialization"
+            type="text"
+            value={form.primarySpecialization}
             onChange={handleChange}
             className={`mt-1 ${
-              errors.contactEmail ? "border-red-500" : "rounded-[10px]"
+              errors.primarySpecialization ? "border-red-500" : "rounded-[10px]"
             }`}
-            placeholder="Enter team contact email"
+            placeholder="e.g., Full Stack Development, Data Science, Business Analysis, Digital Marketing, Project Management"
           />
-          {errors.contactEmail && (
-            <p className="text-red-500 text-xs mt-1">{errors.contactEmail}</p>
+          {errors.primarySpecialization && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors.primarySpecialization}
+            </p>
           )}
         </div>
 
         <div>
           <Label
-            htmlFor="contactPhone"
+            htmlFor="experienceLevel"
             className="text-sm font-medium text-gray-700"
           >
-            Team Contact Phone *
+            Experience Level *
+          </Label>
+          <select
+            id="experienceLevel"
+            name="experienceLevel"
+            value={form.experienceLevel}
+            onChange={handleChange}
+            className={`mt-1 w-full px-3 py-2 border border-gray-300 rounded-[10px] focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              errors.experienceLevel ? "border-red-500" : ""
+            }`}
+          >
+            <option value="">Select experience level</option>
+            {experienceLevels.map((level) => (
+              <option key={level} value={level}>
+                {level}
+              </option>
+            ))}
+          </select>
+          {errors.experienceLevel && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors.experienceLevel}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <Label
+            htmlFor="currentJobTitle"
+            className="text-sm font-medium text-gray-700"
+          >
+            Current Job Title *
           </Label>
           <Input
-            id="contactPhone"
-            name="contactPhone"
-            type="tel"
-            value={form.contactPhone}
+            id="currentJobTitle"
+            name="currentJobTitle"
+            type="text"
+            value={form.currentJobTitle}
             onChange={handleChange}
             className={`mt-1 ${
-              errors.contactPhone ? "border-red-500" : "rounded-[10px]"
+              errors.currentJobTitle ? "border-red-500" : "rounded-[10px]"
             }`}
-            placeholder="+2348012345678"
+            placeholder="e.g., Senior Developer, Team Lead"
           />
-          {errors.contactPhone && (
-            <p className="text-red-500 text-xs mt-1">{errors.contactPhone}</p>
+          {errors.currentJobTitle && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors.currentJobTitle}
+            </p>
           )}
+        </div>
+
+        <div>
+          <Label
+            htmlFor="yearsOfExperience"
+            className="text-sm font-medium text-gray-700"
+          >
+            Years of Experience *
+          </Label>
+          <Input
+            id="yearsOfExperience"
+            name="yearsOfExperience"
+            type="number"
+            min="0"
+            value={form.yearsOfExperience}
+            onChange={handleChange}
+            className={`mt-1 ${
+              errors.yearsOfExperience ? "border-red-500" : "rounded-[10px]"
+            }`}
+            placeholder="Enter years of experience"
+          />
+          {errors.yearsOfExperience && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors.yearsOfExperience}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <Label
+            htmlFor="industryFocus"
+            className="text-sm font-medium text-gray-700"
+          >
+            Industry Focus *
+          </Label>
+          <Input
+            id="industryFocus"
+            name="industryFocus"
+            type="text"
+            value={form.industryFocus}
+            onChange={handleChange}
+            className={`mt-1 ${
+              errors.industryFocus ? "border-red-500" : "rounded-[10px]"
+            }`}
+            placeholder="e.g., Fintech, Healthcare, E-commerce, Manufacturing, Consulting, Education, Government, Non-profit"
+          />
+          {errors.industryFocus && (
+            <p className="text-red-500 text-xs mt-1">{errors.industryFocus}</p>
+          )}
+        </div>
+
+        <div>
+          <Label
+            htmlFor="employmentStatus"
+            className="text-sm font-medium text-gray-700"
+          >
+            Employment Status *
+          </Label>
+          <select
+            id="employmentStatus"
+            name="employmentStatus"
+            value={form.employmentStatus}
+            onChange={handleChange}
+            className={`mt-1 w-full px-3 py-2 border border-gray-300 rounded-[10px] focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              errors.employmentStatus ? "border-red-500" : ""
+            }`}
+          >
+            <option value="">Select employment status</option>
+            {employmentStatuses.map((status) => (
+              <option key={status} value={status}>
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </option>
+            ))}
+          </select>
+          {errors.employmentStatus && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors.employmentStatus}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <Label
+            htmlFor="resumeUrl"
+            className="text-sm font-medium text-gray-700"
+          >
+            Resume URL
+          </Label>
+          <Input
+            id="resumeUrl"
+            name="resumeUrl"
+            type="url"
+            value={form.resumeUrl}
+            onChange={handleChange}
+            className="mt-1 rounded-[10px]"
+            placeholder="https://yourresume.com"
+          />
         </div>
       </div>
 
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="remoteWorkExperience"
+          name="remoteWorkExperience"
+          checked={form.remoteWorkExperience}
+          onCheckedChange={(checked) => {
+            const event = {
+              target: {
+                name: "remoteWorkExperience",
+                type: "checkbox",
+                checked: checked as boolean,
+              },
+            } as any;
+            handleChange(event);
+          }}
+          className="rounded-[5px]"
+        />
+        <Label htmlFor="remoteWorkExperience" className="text-sm text-gray-700">
+          I have remote work experience
+        </Label>
+      </div>
+
       <div>
-        <h4 className="text-sm font-medium text-gray-700 mb-3">
-          Team Location *
-        </h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <Label
-              htmlFor="location.country"
-              className="text-sm font-medium text-gray-700"
-            >
-              Country
-            </Label>
-            <Input
-              id="location.country"
-              name="location.country"
-              value={form.location?.country || ""}
-              onChange={(e) => handleLocationChange("country", e.target.value)}
-              placeholder="Enter country name"
-              className={`mt-1 ${
-                errors.location ? "border-red-500" : "rounded-[10px]"
-              }`}
-              autoComplete="off"
-            />
-          </div>
-
-          <div>
-            <Label
-              htmlFor="location.state"
-              className="text-sm font-medium text-gray-700"
-            >
-              State
-            </Label>
-            <Input
-              id="location.state"
-              name="location.state"
-              value={form.location?.state || ""}
-              onChange={(e) => handleLocationChange("state", e.target.value)}
-              placeholder="Enter state name"
-              className={`mt-1 ${
-                errors.location ? "border-red-500" : "rounded-[10px]"
-              }`}
-              autoComplete="off"
-            />
-          </div>
-
-          <div>
-            <Label
-              htmlFor="location.city"
-              className="text-sm font-medium text-gray-700"
-            >
-              City
-            </Label>
-            <Input
-              id="location.city"
-              name="location.city"
-              value={form.location?.city || ""}
-              onChange={(e) => handleLocationChange("city", e.target.value)}
-              placeholder="Enter city name"
-              className={`mt-1 ${
-                errors.location ? "border-red-500" : "rounded-[10px]"
-              }`}
-              autoComplete="off"
-            />
-          </div>
+        <Label className="text-sm font-medium text-gray-700 mb-3 block">
+          Programming Languages * (Select all that apply)
+        </Label>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {programmingLanguages.map((lang) => (
+            <div key={lang} className="flex items-center space-x-2">
+              <Checkbox
+                id={`lang-${lang}`}
+                checked={form.programmingLanguages?.includes(lang) || false}
+                onCheckedChange={(checked) =>
+                  handleArrayChange(
+                    "programmingLanguages",
+                    lang,
+                    checked as boolean
+                  )
+                }
+                className="rounded-[5px]"
+              />
+              <Label htmlFor={`lang-${lang}`} className="text-sm text-gray-700">
+                {lang}
+              </Label>
+            </div>
+          ))}
         </div>
-        {errors.location && (
-          <p className="text-red-500 text-xs mt-1">{errors.location}</p>
+        {errors.programmingLanguages && (
+          <p className="text-red-500 text-xs mt-1">
+            {errors.programmingLanguages}
+          </p>
         )}
       </div>
 
       <div>
         <Label className="text-sm font-medium text-gray-700 mb-3 block">
-          Tech Stack * (Select all that apply)
+          Frameworks & Tools * (Select all that apply)
         </Label>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {techStackOptions.map((tech) => (
-            <div key={tech} className="flex items-center space-x-2">
+          {frameworksAndTools.map((tool) => (
+            <div key={tool} className="flex items-center space-x-2">
               <Checkbox
-                id={`tech-${tech}`}
-                checked={form.techStack?.includes(tech) || false}
+                id={`tool-${tool}`}
+                checked={form.frameworksAndTools?.includes(tool) || false}
                 onCheckedChange={(checked) =>
-                  handleTechStackChange(tech, checked as boolean)
+                  handleArrayChange(
+                    "frameworksAndTools",
+                    tool,
+                    checked as boolean
+                  )
                 }
                 className="rounded-[5px]"
               />
-              <Label htmlFor={`tech-${tech}`} className="text-sm text-gray-700">
-                {tech}
+              <Label htmlFor={`tool-${tool}`} className="text-sm text-gray-700">
+                {tool}
               </Label>
             </div>
           ))}
         </div>
-        {errors.techStack && (
-          <p className="text-red-500 text-xs mt-1">{errors.techStack}</p>
+        {errors.frameworksAndTools && (
+          <p className="text-red-500 text-xs mt-1">
+            {errors.frameworksAndTools}
+          </p>
+        )}
+      </div>
+
+      <div>
+        <Label className="text-sm font-medium text-gray-700 mb-3 block">
+          Soft Skills * (Select all that apply)
+        </Label>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {softSkills.map((skill) => (
+            <div key={skill} className="flex items-center space-x-2">
+              <Checkbox
+                id={`skill-${skill}`}
+                checked={form.softSkills?.includes(skill) || false}
+                onCheckedChange={(checked) =>
+                  handleArrayChange("softSkills", skill, checked as boolean)
+                }
+                className="rounded-[5px]"
+              />
+              <Label
+                htmlFor={`skill-${skill}`}
+                className="text-sm text-gray-700"
+              >
+                {skill}
+              </Label>
+            </div>
+          ))}
+        </div>
+        {errors.softSkills && (
+          <p className="text-red-500 text-xs mt-1">{errors.softSkills}</p>
+        )}
+      </div>
+
+      <div>
+        <Label className="text-sm font-medium text-gray-700 mb-3 block">
+          Preferred Tech Stack * (Select all that apply)
+        </Label>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {preferredTechStack.map((stack) => (
+            <div key={stack} className="flex items-center space-x-2">
+              <Checkbox
+                id={`stack-${stack}`}
+                checked={form.preferredTechStack?.includes(stack) || false}
+                onCheckedChange={(checked) =>
+                  handleArrayChange(
+                    "preferredTechStack",
+                    stack,
+                    checked as boolean
+                  )
+                }
+                className="rounded-[5px]"
+              />
+              <Label
+                htmlFor={`stack-${stack}`}
+                className="text-sm text-gray-700"
+              >
+                {stack}
+              </Label>
+            </div>
+          ))}
+        </div>
+        {errors.preferredTechStack && (
+          <p className="text-red-500 text-xs mt-1">
+            {errors.preferredTechStack}
+          </p>
         )}
       </div>
 
