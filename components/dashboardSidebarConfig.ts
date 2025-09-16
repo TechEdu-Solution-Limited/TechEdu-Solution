@@ -238,11 +238,6 @@ export const dashboardSidebarConfig = {
             icon: Award,
             href: "/dashboard/certifications",
           },
-          {
-            label: "My Team",
-            icon: Users,
-            href: "/dashboard/my-teams",
-          },
           // {
           //   label: "My Classroom",
           //   icon: BookOpen,
@@ -253,6 +248,26 @@ export const dashboardSidebarConfig = {
           //   icon: Calendar,
           //   href: "/dashboard/sessions/my-sessions",
           // },
+        ],
+      },
+      {
+        title: "Team Management",
+        items: [
+          {
+            label: "Team",
+            icon: Settings,
+            href: "/dashboard/team-tech-professional/team-management",
+          },
+          {
+            label: "Team Members",
+            icon: Users,
+            href: "/dashboard/team-members",
+          },
+          {
+            label: "My Team",
+            icon: Users,
+            href: "/dashboard/my-teams",
+          },
         ],
       },
       {
