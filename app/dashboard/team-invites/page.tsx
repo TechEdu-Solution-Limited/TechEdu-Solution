@@ -125,15 +125,48 @@ export default function TeamInvitesPage() {
         throw new Error("User full name is required but not available");
       }
 
+      // For individualTechProfessional accepting team invitation,
+      // we need to provide learningGoals structure for TeamTechProfessional schema
+      // Individual profiles don't have learningGoals, so we provide defaults
+      const validatedLearningGoals = {
+        goalType: "custom", // Default goal type for team members
+        priorityAreas: [], // Empty array
+        trainingTimeline: "Flexible", // Default timeline
+      };
+
+      // Extract other profile data with defaults for TeamTechProfessional schema
+      const trainingAvailability = "custom"; // Default for team members
+      const contactEmail = email; // Use the user's email
+      const contactPhone = userProfile?.phone || ""; // Individual profile might have phone
+
+      // Debug logging
+      safeConsole.log("User profile data:", userProfile);
+      safeConsole.log("Validated learningGoals:", validatedLearningGoals);
+      safeConsole.log("Training availability:", trainingAvailability);
+      safeConsole.log("Contact email:", contactEmail);
+
       const requestBody = {
         invitationToken,
         fullName,
         email,
         teamName: teamInfo?.teamName || "Unknown Team",
+        // Provide required TeamTechProfessional fields for individual accepting team invitation
+        learningGoals: validatedLearningGoals,
+        trainingAvailability: trainingAvailability,
+        contactEmail: contactEmail,
+        contactPhone: contactPhone,
       };
 
       // Debug logging
       safeConsole.log("Sending request body:", requestBody);
+      safeConsole.log(
+        "Learning goals in request body:",
+        requestBody.learningGoals
+      );
+      safeConsole.log(
+        "Learning goals goalType:",
+        requestBody.learningGoals?.goalType
+      );
 
       const response = await postApiRequest(
         "/api/teams/invite/accept",
@@ -269,7 +302,7 @@ export default function TeamInvitesPage() {
               </p>
             </div>
 
-            <div className="flex gap-4 justify-center">
+            <div className="flex flex-col md:flex-row gap-4 justify-center">
               <Button
                 onClick={handleAcceptInvitation}
                 disabled={processingAction === "accept"}

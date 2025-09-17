@@ -65,8 +65,11 @@ interface TeamData {
   teamId: string;
   teamName: string;
   teamSize: number;
-  contactEmail: string;
-  contactPhone: string;
+  contactPerson: {
+    name: string;
+    email: string;
+    phone: string;
+  };
   location: {
     country: string;
     state: string;
@@ -123,6 +126,8 @@ export default function TeamManagementPage() {
         getApiRequest(`/api/teams/${teamId}`, token || undefined),
         getApiRequest(`/api/teams/${teamId}/members`, token || undefined),
       ]);
+      console.log("Team response:", teamResponse);
+      console.log("Members response:", membersResponse);
 
       if (teamResponse.status >= 400) {
         throw new Error("Failed to fetch team data");
@@ -356,7 +361,7 @@ export default function TeamManagementPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <h4 className="font-semibold mb-2">Team Details</h4>
                 <div className="space-y-2 text-sm">
@@ -374,19 +379,19 @@ export default function TeamManagementPage() {
                   </p>
                 </div>
               </div>
-              <div>
+              {/* <div>
                 <h4 className="font-semibold mb-2">Contact</h4>
                 <div className="space-y-2 text-sm">
                   <p>
                     <span className="font-medium">Email:</span>{" "}
-                    {teamData.contactEmail}
+                    {teamData.contactPerson?.email}
                   </p>
                   <p>
                     <span className="font-medium">Phone:</span>{" "}
-                    {teamData.contactPhone}
+                    {teamData.contactPerson?.phone}
                   </p>
                 </div>
-              </div>
+              </div> */}
               <div>
                 <h4 className="font-semibold mb-2">Tech Stack</h4>
                 <div className="flex flex-wrap gap-1">

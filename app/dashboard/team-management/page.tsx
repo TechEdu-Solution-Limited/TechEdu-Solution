@@ -83,8 +83,11 @@ interface TeamInfo {
     city: string;
   };
   primarySpecialization: string;
-  contactEmail: string;
-  contactPhone: string;
+  contactPerson: {
+    name: string;
+    email: string;
+    phone: string;
+  };
   experienceLevel: string;
   yearsOfExperience: number;
   isActive: boolean;
@@ -612,8 +615,8 @@ function TeamSettingsForm({
 }) {
   const [formData, setFormData] = useState({
     teamName: teamInfo?.teamName || "",
-    contactEmail: teamInfo?.contactEmail || "",
-    contactPhone: teamInfo?.contactPhone || "",
+    contactEmail: teamInfo?.contactPerson?.email || "",
+    contactPhone: teamInfo?.contactPerson?.phone || "",
     primarySpecialization: teamInfo?.primarySpecialization || "",
   });
 

@@ -395,11 +395,11 @@ export const dashboardSidebarConfig = {
               //   icon: Target,
               //   href: "/dashboard/performance",
               // },
-              {
-                label: "My Profile",
-                icon: User,
-                href: "/dashboard/team-tech-professional/profile",
-              },
+              // {
+              //   label: "My Profile",
+              //   icon: User,
+              //   href: "/dashboard/team-tech-professional/profile",
+              // },
               {
                 label: "Team Management",
                 icon: Settings,

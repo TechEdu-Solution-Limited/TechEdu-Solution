@@ -393,7 +393,14 @@ export default function TeamTechProfessionalOnboarding() {
         setForm((prev: any) => {
           // Only merge if the previous form doesn't have user-entered data
           // This prevents overriding user input with empty backend data
-          const hasUserData = prev.fullName && prev.fullName.trim() !== "";
+          const hasUserData =
+            (prev.fullName && prev.fullName.trim() !== "") ||
+            (prev.teamName && prev.teamName.trim() !== "") ||
+            (prev.learningGoals?.goalType &&
+              prev.learningGoals.goalType.trim() !== "") ||
+            (prev.contactPerson?.email &&
+              prev.contactPerson.email.trim() !== "");
+
           if (hasUserData) {
             console.log("🔄 Skipping form merge - user has entered data");
             return prev;
@@ -840,10 +847,8 @@ export default function TeamTechProfessionalOnboarding() {
             resumeUrl: form.resumeUrl || undefined,
           };
 
-          console.log(
-            "📋 Sending step data to onboarding endpoint:",
-            JSON.stringify(stepData, null, 2)
-          );
+          console.log("🔍 Step 2 - Form data:", form);
+          console.log("🔍 Step 2 - Step data being sent:", stepData);
           break;
         case 3: // Add Members
           stepData = {
@@ -852,11 +857,17 @@ export default function TeamTechProfessionalOnboarding() {
           break;
         case 4: // Team Learning Goals
           stepData = {
-            learningGoals: form.learningGoals,
+            learningGoals: {
+              goalType: form.learningGoals?.goalType,
+              priorityAreas: form.learningGoals?.priorityAreas || [],
+              trainingTimeline: form.learningGoals?.trainingTimeline,
+            },
             trainingAvailability: form.trainingAvailability,
             contactEmail: form.contactPerson?.email,
             contactPhone: form.contactPerson?.phone,
           };
+          console.log("🔍 Step 4 - Form data:", form);
+          console.log("🔍 Step 4 - Step data being sent:", stepData);
           break;
         case 5: // Supporting Documents
           stepData = {
