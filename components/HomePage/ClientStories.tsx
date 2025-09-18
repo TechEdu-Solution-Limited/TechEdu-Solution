@@ -5,7 +5,7 @@ const clientStories: Story[] = [
   {
     name: "Emillie Jonas",
     country: "England",
-    image: "/assets/graduant.webp",
+    image: "/assets/emillie-jonas.jpg",
     review:
       "EduTech Solutions is an ideal location for anybody who wants to learn something new or share what they know with others. EduTech Solutions is a worldwide platform for online learning that helps to connect with one another via knowledge. It comes highly recommended from my side.",
   },
@@ -19,7 +19,7 @@ const clientStories: Story[] = [
   {
     name: "Fatima Khalid",
     country: "UAE",
-    image: "/assets/student-1.webp",
+    image: "/assets/fatima.jpg",
     review:
       "What makes EduTech Solutions stand out is the real-world relevance of the training. It's not just theory — it's mentorship, tools, and support. I've grown both professionally and personally.",
   },
