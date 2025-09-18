@@ -55,7 +55,7 @@ const features = [
     title: "Smart Section Templates",
     description:
       "Build professional CVs for international roles or local opportunities",
-    image: "/assets/certificate-verifiable.webp",
+    image: "/assets/cv-building.webp",
   },
   {
     title: "Region-Aware Formatting",
@@ -67,18 +67,18 @@ const features = [
     title: "Role-Based Prompts",
     description:
       "Get tailored help for sectors like Tech, NGO, Health, Admin & more",
-    image: "/assets/certificate-templates.webp",
+    image: "/assets/building-portfolio.webp",
   },
   {
     title: "Export in Multiple Formats",
     description:
       "PDF, shareable links, or direct employer viewing (via CareerConnect)",
-    image: "/assets/certificate-tamperproof.webp",
+    image: "/assets/pdf.png",
   },
   {
     title: "Optional Coaching Review",
     description: "Submit your CV draft for expert feedback and improvements",
-    image: "/assets/certificate-global.webp",
+    image: "/assets/cv-review.webp",
   },
 ];
 
