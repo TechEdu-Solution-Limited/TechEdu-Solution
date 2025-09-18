@@ -61,7 +61,7 @@ const features = [
     title: "Region-Aware Formatting",
     description:
       "Choose CV formats for the UK, EU, US, or Commonwealth systems",
-    image: "/assets/certificate-recognized.webp",
+    image: "/assets/secure-resume.webp",
   },
   {
     title: "Role-Based Prompts",

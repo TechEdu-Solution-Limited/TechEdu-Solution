@@ -74,15 +74,38 @@ export const Header = () => {
     setOpenDropdown(openDropdown === label ? null : label);
   const isActive = (href: string) => pathname === href;
 
+  // Check if pathname starts with dashboard first
   if (pathname.startsWith("/dashboard")) {
     return null;
   }
 
+  // More robust path matching
   const shouldHideHeader = disableHeaderWithFooter.some((path) => {
-    const pattern = path.replace(/\[.*\]/g, "[^/]+");
-    const regex = new RegExp(`^${pattern}$`);
-    return regex.test(pathname);
+    // Handle exact matches
+    if (pathname === path) {
+      return true;
+    }
+
+    // Handle paths that should match sub-routes (like /dashboard/*)
+    if (path.endsWith("*") || path.includes("[")) {
+      const basePath = path.replace(/\*$/, "").replace(/\[.*?\]/g, "[^/]+");
+      const regex = new RegExp(`^${basePath}`);
+      return regex.test(pathname);
+    }
+
+    // Handle paths that should match exactly and their sub-routes
+    if (pathname.startsWith(path + "/")) {
+      return true;
+    }
+
+    return false;
   });
+
+  // Debug logging for production issues
+  if (process.env.NODE_ENV === "development") {
+    console.log("Header - pathname:", pathname);
+    console.log("Header - shouldHideHeader:", shouldHideHeader);
+  }
 
   if (shouldHideHeader) return null;
 
