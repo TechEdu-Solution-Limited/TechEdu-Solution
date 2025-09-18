@@ -9,14 +9,14 @@ const slides = [
   {
     name: "Emillie Jonas",
     country: "England",
-    image: "/assets/graduant.webp",
+    image: "/assets/emillie-jonas.jpg",
     review:
       "EduTech Solutions is an ideal location for anybody who wants to learn something new or share what they know with others. EduTech Solutions is a worldwide platform for online learning that helps to connect with one another via knowledge. It comes highly recommended from my side.",
   },
   {
     name: "Chinedu Uzo",
     country: "UK",
-    image: "/assets/graduant.webp",
+    image: "/assets/fatima.jpg",
     review:
       "Thanks to EduTech Solutions, I was able to land a remote internship in Germany while still studying in London. Their platform is incredibly supportive and makes learning fun and practical.",
   },
