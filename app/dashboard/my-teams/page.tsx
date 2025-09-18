@@ -269,7 +269,7 @@ export default function MyTeamsPage() {
               You're not currently a member of any teams.
             </p>
             <Button asChild className="bg-blue-600 hover:bg-blue-700">
-              <Link href="/dashboard/team-tech-professional/onboarding">
+              <Link href="/dashboard/my-teams/create">
                 Create Your First Team
               </Link>
             </Button>

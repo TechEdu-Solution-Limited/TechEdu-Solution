@@ -16,7 +16,7 @@ export default function ExplainerVideo() {
 
       <div className="flex justify-center mb-4">
         <div className="aspect-video w-full md:max-w-[60vw] md:h-[350px] rounded-[12px] overflow-hidden flex items-center justify-center">
-          <iframe
+          {/* <iframe
             className="w-full h-full"
             src="https://www.youtube.com/embed/BPcDx2767nU?si=8gN4fk4yvX7KAB66"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -25,7 +25,19 @@ export default function ExplainerVideo() {
             // allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             referrerPolicy="strict-origin-when-cross-origin"
-          ></iframe>
+          ></iframe> */}
+          <video
+            className="w-full h-full object-cover"
+            controls
+            preload="metadata"
+            poster="/assets/techedusolution.jpg"
+          >
+            <source
+              src="/videos/Empowering-Possibilities-with-TechEdu-Solutions-720p-Video-ad.mp4"
+              type="video/mp4"
+            />
+            Your browser does not support the video tag.
+          </video>
         </div>
       </div>
 
@@ -33,12 +45,12 @@ export default function ExplainerVideo() {
         <p className="text-white text-base">
           Your Growth Starts Here – 60 Seconds with TechEdu Solution.
         </p>
-        <Link
+        {/* <Link
           href="/how-it-works"
           className="inline-block self-start bg-[#0D1140] hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-800 transition"
         >
           See How It Works →
-        </Link>
+        </Link> */}
       </div>
     </section>
   );

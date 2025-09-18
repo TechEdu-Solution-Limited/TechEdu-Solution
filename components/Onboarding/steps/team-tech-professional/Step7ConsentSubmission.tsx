@@ -55,14 +55,12 @@ export function Step7ConsentSubmission({
           </div>
           <div>
             <p className="font-medium text-green-800">Primary Goal:</p>
-            <p className="text-green-700">
-              {form.learningGoals?.goalType || "Not provided"}
-            </p>
+            <p className="text-green-700">{form.goalType || "Not provided"}</p>
           </div>
           <div>
             <p className="font-medium text-green-800">Timeline:</p>
             <p className="text-green-700">
-              {form.learningGoals?.trainingTimeline || "Not provided"}
+              {form.trainingTimeline || "Not provided"}
             </p>
           </div>
         </div>

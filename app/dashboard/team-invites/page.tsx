@@ -125,15 +125,6 @@ export default function TeamInvitesPage() {
         throw new Error("User full name is required but not available");
       }
 
-      // For individualTechProfessional accepting team invitation,
-      // we need to provide learningGoals structure for TeamTechProfessional schema
-      // Individual profiles don't have learningGoals, so we provide defaults
-      const validatedLearningGoals = {
-        goalType: "custom", // Default goal type for team members
-        priorityAreas: [], // Empty array
-        trainingTimeline: "Flexible", // Default timeline
-      };
-
       // Extract other profile data with defaults for TeamTechProfessional schema
       const trainingAvailability = "custom"; // Default for team members
       const contactEmail = email; // Use the user's email
@@ -141,7 +132,6 @@ export default function TeamInvitesPage() {
 
       // Debug logging
       safeConsole.log("User profile data:", userProfile);
-      safeConsole.log("Validated learningGoals:", validatedLearningGoals);
       safeConsole.log("Training availability:", trainingAvailability);
       safeConsole.log("Contact email:", contactEmail);
 
@@ -150,8 +140,10 @@ export default function TeamInvitesPage() {
         fullName,
         email,
         teamName: teamInfo?.teamName || "Unknown Team",
-        // Provide required TeamTechProfessional fields for individual accepting team invitation
-        learningGoals: validatedLearningGoals,
+        // Flattened learning goals fields (no nested object)
+        goalType: "custom", // Default goal type for team members
+        priorityAreas: [], // Empty array
+        trainingTimeline: "Flexible", // Default timeline
         trainingAvailability: trainingAvailability,
         contactEmail: contactEmail,
         contactPhone: contactPhone,
@@ -159,14 +151,7 @@ export default function TeamInvitesPage() {
 
       // Debug logging
       safeConsole.log("Sending request body:", requestBody);
-      safeConsole.log(
-        "Learning goals in request body:",
-        requestBody.learningGoals
-      );
-      safeConsole.log(
-        "Learning goals goalType:",
-        requestBody.learningGoals?.goalType
-      );
+      safeConsole.log("Learning goals goalType:", requestBody.goalType);
 
       const response = await postApiRequest(
         "/api/teams/invite/accept",

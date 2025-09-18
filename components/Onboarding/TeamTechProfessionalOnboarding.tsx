@@ -84,21 +84,17 @@ const initialForm = {
   }>,
   teamId: "",
 
-  // Step 5: Team Learning Goals
-  learningGoals: {
-    goalType: "",
-    priorityAreas: [] as string[],
-    trainingTimeline: "",
-  },
+  // Step 5: Team Learning Goals (flattened)
+  goalType: "",
+  priorityAreas: [] as string[],
+  trainingTimeline: "",
   trainingAvailability: "",
 
   // Step 6: Supporting Documents
-  attachments: {
-    companyIntroUrl: "",
-    skillMatrixUrl: "",
-    projectSamplesUrl: "",
-    ndaOrAgreementUrl: "",
-  },
+  companyIntroUrl: "",
+  skillMatrixUrl: "",
+  projectSamplesUrl: "",
+  ndaOrAgreementUrl: "",
 
   // Step 7: Consent & Submission
   referralSource: "",
@@ -396,8 +392,7 @@ export default function TeamTechProfessionalOnboarding() {
           const hasUserData =
             (prev.fullName && prev.fullName.trim() !== "") ||
             (prev.teamName && prev.teamName.trim() !== "") ||
-            (prev.learningGoals?.goalType &&
-              prev.learningGoals.goalType.trim() !== "") ||
+            (prev.goalType && prev.goalType.trim() !== "") ||
             (prev.contactPerson?.email &&
               prev.contactPerson.email.trim() !== "");
 
@@ -495,19 +490,14 @@ export default function TeamTechProfessionalOnboarding() {
         name === "frameworksAndTools" ||
         name === "softSkills" ||
         name === "preferredTechStack" ||
-        name === "learningGoals.priorityAreas"
+        name === "priorityAreas"
       ) {
-        if (name === "learningGoals.priorityAreas") {
+        if (name === "priorityAreas") {
           setForm((prev) => ({
             ...prev,
-            learningGoals: {
-              ...prev.learningGoals,
-              priorityAreas: checked
-                ? [...prev.learningGoals.priorityAreas, value]
-                : prev.learningGoals.priorityAreas.filter(
-                    (item: string) => item !== value
-                  ),
-            },
+            priorityAreas: checked
+              ? [...prev.priorityAreas, value]
+              : prev.priorityAreas.filter((item: string) => item !== value),
           }));
         } else {
           setForm((prev) => ({
@@ -525,24 +515,11 @@ export default function TeamTechProfessionalOnboarding() {
     } else if (type === "file") {
       setForm((prev) => ({ ...prev, [name]: files[0] }));
     } else if (name.startsWith("learningGoals.")) {
-      // Handle nested learningGoals object
+      // Handle nested learningGoals object - now flattened
       const field = name.split(".")[1];
       setForm((prev) => ({
         ...prev,
-        learningGoals: {
-          ...prev.learningGoals,
-          [field]: value,
-        },
-      }));
-    } else if (name.startsWith("attachments.")) {
-      // Handle nested attachments object
-      const field = name.split(".")[1];
-      setForm((prev) => ({
-        ...prev,
-        attachments: {
-          ...prev.attachments,
-          [field]: value,
-        },
+        [field]: value,
       }));
     } else if (name.startsWith("location.")) {
       // Handle nested location object
@@ -663,11 +640,10 @@ export default function TeamTechProfessionalOnboarding() {
     }
 
     if (stepTitle === "Team Learning Goals") {
-      if (!form.learningGoals.goalType)
-        newErrors.goalType = "Goal type is required.";
-      if (!form.learningGoals.priorityAreas.length)
+      if (!form.goalType) newErrors.goalType = "Goal type is required.";
+      if (!form.priorityAreas.length)
         newErrors.priorityAreas = "Select at least one priority area.";
-      if (!form.learningGoals.trainingTimeline)
+      if (!form.trainingTimeline)
         newErrors.trainingTimeline = "Training timeline is required.";
       if (!form.trainingAvailability)
         newErrors.trainingAvailability = "Training availability is required.";
@@ -857,11 +833,9 @@ export default function TeamTechProfessionalOnboarding() {
           break;
         case 4: // Team Learning Goals
           stepData = {
-            learningGoals: {
-              goalType: form.learningGoals?.goalType,
-              priorityAreas: form.learningGoals?.priorityAreas || [],
-              trainingTimeline: form.learningGoals?.trainingTimeline,
-            },
+            goalType: form.goalType,
+            priorityAreas: form.priorityAreas || [],
+            trainingTimeline: form.trainingTimeline,
             trainingAvailability: form.trainingAvailability,
             contactEmail: form.contactPerson?.email,
             contactPhone: form.contactPerson?.phone,
@@ -871,7 +845,10 @@ export default function TeamTechProfessionalOnboarding() {
           break;
         case 5: // Supporting Documents
           stepData = {
-            attachments: form.attachments,
+            companyIntroUrl: form.companyIntroUrl,
+            skillMatrixUrl: form.skillMatrixUrl,
+            projectSamplesUrl: form.projectSamplesUrl,
+            ndaOrAgreementUrl: form.ndaOrAgreementUrl,
           };
           break;
         case 6: // Consent & Submission

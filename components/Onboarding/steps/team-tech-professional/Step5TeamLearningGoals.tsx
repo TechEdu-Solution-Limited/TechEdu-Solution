@@ -79,14 +79,14 @@ export function Step5TeamLearningGoals({
   handleChange,
 }: Step5TeamLearningGoalsProps) {
   const handlePriorityAreasChange = (area: string, checked: boolean) => {
-    const currentAreas = form.learningGoals?.priorityAreas || [];
+    const currentAreas = form.priorityAreas || [];
     const newAreas = checked
       ? [...currentAreas, area]
       : currentAreas.filter((item: string) => item !== area);
 
     const event = {
       target: {
-        name: "learningGoals.priorityAreas",
+        name: "priorityAreas",
         value: newAreas,
       },
     } as any;
@@ -105,18 +105,15 @@ export function Step5TeamLearningGoals({
       </div>
 
       <div>
-        <Label
-          htmlFor="learningGoals.goalType"
-          className="text-sm font-medium text-gray-700"
-        >
+        <Label htmlFor="goalType" className="text-sm font-medium text-gray-700">
           Primary Goal Type *
         </Label>
         <Select
-          value={form.learningGoals?.goalType || ""}
+          value={form.goalType || ""}
           onValueChange={(value) => {
             const event = {
               target: {
-                name: "learningGoals.goalType",
+                name: "goalType",
                 value: value,
               },
             } as any;
@@ -152,9 +149,7 @@ export function Step5TeamLearningGoals({
             <div key={area} className="flex items-center space-x-2">
               <Checkbox
                 id={`priority-${area}`}
-                checked={
-                  form.learningGoals?.priorityAreas?.includes(area) || false
-                }
+                checked={form.priorityAreas?.includes(area) || false}
                 onCheckedChange={(checked) =>
                   handlePriorityAreasChange(area, checked as boolean)
                 }
@@ -176,17 +171,17 @@ export function Step5TeamLearningGoals({
 
       <div>
         <Label
-          htmlFor="learningGoals.trainingTimeline"
+          htmlFor="trainingTimeline"
           className="text-sm font-medium text-gray-700"
         >
           Training Timeline *
         </Label>
         <Select
-          value={form.learningGoals?.trainingTimeline || ""}
+          value={form.trainingTimeline || ""}
           onValueChange={(value) => {
             const event = {
               target: {
-                name: "learningGoals.trainingTimeline",
+                name: "trainingTimeline",
                 value: value,
               },
             } as any;

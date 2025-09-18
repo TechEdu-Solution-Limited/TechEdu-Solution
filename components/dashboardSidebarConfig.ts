@@ -233,11 +233,11 @@ export const dashboardSidebarConfig = {
             icon: FileText,
             href: "/dashboard/attendance/my-attendance",
           },
-          {
-            label: "Certifications",
-            icon: Award,
-            href: "/dashboard/certifications",
-          },
+          // {
+          //   label: "Certifications",
+          //   icon: Award,
+          //   href: "/dashboard/certifications",
+          // },
           // {
           //   label: "My Classroom",
           //   icon: BookOpen,
@@ -258,11 +258,11 @@ export const dashboardSidebarConfig = {
             icon: Settings,
             href: "/dashboard/team-tech-professional/team-management",
           },
-          {
-            label: "Team Members",
-            icon: Users,
-            href: "/dashboard/team-members",
-          },
+          // {
+          //   label: "Team Members",
+          //   icon: Users,
+          //   href: "/dashboard/team-members",
+          // },
           {
             label: "My Team",
             icon: Users,
