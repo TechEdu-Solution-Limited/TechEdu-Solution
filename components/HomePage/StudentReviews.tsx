@@ -70,7 +70,7 @@ export default function StudentReview() {
 
   const startAutoplay = () => {
     stopAutoplay();
-    intervalRef.current = setInterval(nextSlide, 4000);
+    intervalRef.current = setInterval(nextSlide, 3000);
   };
 
   useEffect(() => {
