@@ -32,7 +32,7 @@ const HRVoices: Story[] = [
     image: "/assets/david.webp",
     review:
       "What we liked most was the coaching report attached to some applicants' profiles. It gave us more than just a CV.",
-    role: "Talent Lead, EduTech Startup",
+    role: "Talent Lead, TechEdu Solution Startup",
   },
 ];
 

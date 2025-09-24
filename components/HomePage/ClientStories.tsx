@@ -7,21 +7,21 @@ const clientStories: Story[] = [
     country: "England",
     image: "/assets/emillie-jonas.jpg",
     review:
-      "EduTech Solutions is an ideal location for anybody who wants to learn something new or share what they know with others. EduTech Solutions is a worldwide platform for online learning that helps to connect with one another via knowledge. It comes highly recommended from my side.",
+      "TechEdu Solutions is an ideal location for anybody who wants to learn something new or share what they know with others. TechEdu Solutions is a worldwide platform for online learning that helps to connect with one another via knowledge. It comes highly recommended from my side.",
   },
   {
     name: "Chinedu Uzo",
     country: "UK",
     image: "/assets/graduant.webp",
     review:
-      "Thanks to EduTech Solutions, I was able to land a remote internship in Germany while still studying in London. Their platform is incredibly supportive and makes learning fun and practical.",
+      "Thanks to TechEdu Solutions, I was able to land a remote internship in Germany while still studying in London. Their platform is incredibly supportive and makes learning fun and practical.",
   },
   {
     name: "Fatima Khalid",
     country: "UAE",
     image: "/assets/fatima.jpg",
     review:
-      "What makes EduTech Solutions stand out is the real-world relevance of the training. It's not just theory — it's mentorship, tools, and support. I've grown both professionally and personally.",
+      "What makes TechEdu Solutions stand out is the real-world relevance of the training. It's not just theory — it's mentorship, tools, and support. I've grown both professionally and personally.",
   },
 ];
 

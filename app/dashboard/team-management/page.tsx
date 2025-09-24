@@ -125,10 +125,25 @@ export default function TeamManagementPage() {
           return;
         }
 
+        // Get user data to extract team ID
+        const userResponse = await getApiRequest(
+          "/api/users/me",
+          token || undefined
+        );
+        if (userResponse.status >= 400) {
+          throw new Error("Failed to fetch user data");
+        }
+        const teamId = userResponse.data?.data?.data?.profile?._id;
+        if (!teamId) {
+          throw new Error("No team ID found in user profile");
+        }
+
+        // Fetch team info and members using the team ID
         const [teamInfoRes, membersRes] = await Promise.all([
-          getApiRequest("/api/teams/me", token),
-          getApiRequest("/api/teams/me/members", token),
+          getApiRequest(`/api/teams/${teamId}`, token),
+          getApiRequest(`/api/teams/${teamId}/members`, token),
         ]);
+
         if (teamInfoRes.data) {
           setTeamInfo(teamInfoRes.data);
         }
@@ -243,11 +258,14 @@ export default function TeamManagementPage() {
         toast.success("Invitation sent successfully!");
         setInviteModalOpen(false);
         setInviteData({ email: "", role: "" });
-        // Refresh members list
-        // Re-run the effect by calling fetchTeamDataAndCheckAdmin
-        // (or just refetch members)
-        // For simplicity, just reload the page:
-        window.location.reload();
+        // Refresh members list by refetching data
+        const membersRes = await getApiRequest(
+          `/api/teams/${teamInfo.teamId}/members`,
+          token
+        );
+        if (membersRes.data) {
+          setTeamMembers(membersRes.data || []);
+        }
       } else {
         toast.error(response.message || "Failed to send invitation");
       }
@@ -279,7 +297,14 @@ export default function TeamManagementPage() {
 
       if (response.data) {
         toast.success("Invitation revoked successfully!");
-        window.location.reload();
+        // Refresh members list by refetching data
+        const membersRes = await getApiRequest(
+          `/api/teams/${teamInfo.teamId}/members`,
+          token
+        );
+        if (membersRes.data) {
+          setTeamMembers(membersRes.data || []);
+        }
       } else {
         toast.error(response.message || "Failed to revoke invitation");
       }
@@ -311,7 +336,14 @@ export default function TeamManagementPage() {
       if (response.data) {
         toast.success("Team information updated successfully!");
         setSettingsModalOpen(false);
-        window.location.reload();
+        // Refresh team info by refetching data
+        const teamInfoRes = await getApiRequest(
+          `/api/teams/${teamInfo.teamId}`,
+          token
+        );
+        if (teamInfoRes.data) {
+          setTeamInfo(teamInfoRes.data);
+        }
       } else {
         toast.error(response.message || "Failed to update team information");
       }

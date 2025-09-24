@@ -14,10 +14,12 @@ interface Step4Props {
 }
 
 const industryFocus = [
+  "Administration",
   "Fintech",
   "Healthtech",
   "E-commerce",
   "Edtech",
+  "Education",
   "SaaS",
   "Gaming",
   "AI/ML",

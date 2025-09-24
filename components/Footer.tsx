@@ -62,7 +62,7 @@ const Footer = () => {
         <div className="col-span-1 lg:col-span-2">
           <Image
             src="/assets/techedusolution.jpg"
-            alt="EduTech logo"
+            alt="TechEdu logo"
             width={120}
             height={120}
             className="rounded-[5px]"

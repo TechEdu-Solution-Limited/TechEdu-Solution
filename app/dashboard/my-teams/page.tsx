@@ -268,11 +268,11 @@ export default function MyTeamsPage() {
             <p className="text-gray-500 mb-4">
               You're not currently a member of any teams.
             </p>
-            <Button asChild className="bg-blue-600 hover:bg-blue-700">
+            {/* <Button asChild className="bg-blue-600 hover:bg-blue-700">
               <Link href="/dashboard/my-teams/create">
                 Create Your First Team
               </Link>
-            </Button>
+            </Button> */}
           </CardContent>
         </Card>
       ) : (

@@ -1276,6 +1276,9 @@ export default function CatalogPage({
                       <span className="bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full">
                         {product.productType}
                       </span>
+                      <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">
+                        {product.sessionType}
+                      </span>
                     </div>
                     <div className="flex items-end justify-between mt-auto">
                       <div className="flex flex-col items-baseline gap-1">

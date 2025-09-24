@@ -258,16 +258,16 @@ export const dashboardSidebarConfig = {
             icon: Settings,
             href: "/dashboard/team-tech-professional/team-management",
           },
-          // {
-          //   label: "Team Members",
-          //   icon: Users,
-          //   href: "/dashboard/team-members",
-          // },
           {
             label: "My Team",
             icon: Users,
             href: "/dashboard/my-teams",
           },
+          // {
+          //   label: "Team Members",
+          //   icon: Users,
+          //   href: "/dashboard/team-members",
+          // },
         ],
       },
       {
@@ -400,16 +400,11 @@ export const dashboardSidebarConfig = {
               //   icon: User,
               //   href: "/dashboard/team-tech-professional/profile",
               // },
-              {
-                label: "Team Management",
-                icon: Settings,
-                href: "/dashboard/team-tech-professional/team-management",
-              },
-              {
-                label: "Team Members",
-                icon: Users,
-                href: "/dashboard/team-members",
-              },
+              // {
+              //   label: "Team Members",
+              //   icon: Users,
+              //   href: "/dashboard/team-members",
+              // },
               // {
               //   label: "My Courses",
               //   icon: BookOpen,
@@ -519,6 +514,26 @@ export const dashboardSidebarConfig = {
               //   href: "/dashboard/support",
               // },
             ],
+      },
+      {
+        title: "Team Management",
+        items: [
+          {
+            label: "Team",
+            icon: Settings,
+            href: "/dashboard/team-tech-professional/team-management",
+          },
+          {
+            label: "My Team",
+            icon: Users,
+            href: "/dashboard/my-teams",
+          },
+          // {
+          //   label: "Team Members",
+          //   icon: Users,
+          //   href: "/dashboard/team-members",
+          // },
+        ],
       },
     ],
   },

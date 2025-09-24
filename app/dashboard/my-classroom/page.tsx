@@ -255,7 +255,7 @@ export default function StudentClassroomsPage() {
     const remaining = classroom.sessionsRemaining || 0;
     const total = completed + remaining;
 
-    if (total === 0) return "No sessions scheduled";
+    if (total === 0) return "No classes scheduled";
 
     return `${completed}/${total} completed`;
   };

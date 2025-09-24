@@ -8,7 +8,7 @@ import SmartTools from "@/components/HomePage/SmartToolsSection";
 import SocialProof from "@/components/HomePage/SocialProof";
 import StickyCTA from "@/components/HomePage/StickyCTA";
 import WhatWeOfferSection from "@/components/HomePage/WhatWeOffer";
-import WhyEduTechSection from "@/components/HomePage/WhyEduTecnSection";
+import WhyTechEduSection from "@/components/HomePage/WhyEduTecnSection";
 import type { NextPage } from "next";
 import Link from "next/link";
 
@@ -122,7 +122,7 @@ const Home: NextPage = () => {
         </div>
       </header>
 
-      <WhyEduTechSection />
+      <WhyTechEduSection />
 
       <HowItWorks
         title="Your Career Journey"
