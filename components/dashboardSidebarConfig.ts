@@ -294,6 +294,11 @@ export const dashboardSidebarConfig = {
             icon: ClipboardList,
             href: "/dashboard/applications",
           },
+          {
+            label: "My Resumes",
+            icon: FileText,
+            href: "/dashboard/cvs",
+          },
           // {
           //   label: "Recommendations",
           //   icon: Search,
