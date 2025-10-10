@@ -593,23 +593,33 @@ class OptimizedCVService {
   // EXPERIENCE: returns ExperienceAssessment
   async generateExperience(
     cvId: string,
-    context: { targetRole?: string; industry?: string },
+    context: {
+      targetRole?: string;
+      industry?: string;
+      rationale?: string; // ⬅️ optional, not a fixed ""
+      minYears?: number; // ⬅️ optional override
+      seedExperience?: {
+        // ⬅️ optional extra signal
+        title?: string;
+        company?: string;
+        responsibilities?: string[];
+        wins?: string[];
+      };
+    },
     extra?: Record<string, unknown>
   ) {
     if (!cvId) throw new Error("CV must be created first");
 
-    // ✅ single call, POST, with cvId in the body (and still in the query if your API expects it)
     const res = await this.apiRequest<any>(
       `/api/cv/ai/experience?cvId=${encodeURIComponent(cvId)}`,
       "POST",
       {
-        cvId, // many backends require it in the body
-        context, // { targetRole, industry }
+        cvId,
+        context, // { targetRole, industry, rationale, minYears, seedExperience? }
         ...(extra || {}),
       }
     );
 
-    // ✅ normalize to the shape your UI expects
     return normalizeExperience(res);
   }
 
