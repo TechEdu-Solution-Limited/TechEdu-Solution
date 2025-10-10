@@ -596,6 +596,7 @@ class OptimizedCVService {
     context: {
       targetRole?: string;
       industry?: string;
+      expId?: string;
       // rationale?: string; // ⬅️ optional, not a fixed ""
       // minYears?: number; // ⬅️ optional override
       // seedExperience?: {
@@ -615,7 +616,7 @@ class OptimizedCVService {
       "POST",
       {
         cvId,
-        context, // { targetRole, industry, rationale, minYears, seedExperience? }
+        context, // { targetRole, industry, expId }
         ...(extra || {}),
       }
     );

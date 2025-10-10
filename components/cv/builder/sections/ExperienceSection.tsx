@@ -139,6 +139,7 @@ export default function ExperienceSection({
       const data = await cvService.generateExperience(String(cvId), {
         targetRole,
         industry,
+        expId,
       });
 
       const html = buildExperienceHtml(data?.rationale, data?.topSkills);
