@@ -7,6 +7,7 @@ import {
   AiSummary,
   SkillsAssessment,
   ExperienceAssessment,
+  ExperienceAIResult,
 } from "@/services/cv/cvServiceOptimized";
 
 export function useCVSimplified() {
@@ -236,14 +237,14 @@ export function useCVSimplified() {
     async (context: {
       targetRole: string;
       industry: string;
-    }): Promise<ExperienceAssessment | null> => {
+    }): Promise<ExperienceAIResult | null> => {
       if (!cvId) {
         console.warn("⚠️ No cvId available for AI experience generation");
         return null;
       }
       try {
         const res = await cvService.generateExperience(cvId, context);
-        return res; // { seniority, minYears, topSkills, rationale }
+        return res; // { description, achievements }
       } catch (error) {
         console.error("Failed to generate experience:", error);
         return null;
