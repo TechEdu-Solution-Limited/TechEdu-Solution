@@ -1,3 +1,5 @@
+// app/dashboard/cv-builder/[template]/page.tsx
+
 "use client";
 
 import { useState, useMemo, use, useEffect } from "react";
@@ -131,6 +133,38 @@ export default function TemplateBuilderPage({
     templateBuilder.setCustomSectionHeadings({});
   };
 
+  // Helper: accept AI processing via global endpoint (no payload)
+  const acceptAIProcessingConsent = async () => {
+    try {
+      const token = getTokenFromCookies();
+      if (!token) throw new Error("Authentication token not found");
+
+      const resp = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/ai/consent/accept`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok || !json?.ok) {
+        throw new Error("Failed to accept AI processing consent");
+      }
+
+      // Merge into local consent state
+      setAiConsent((prev) => ({
+        ...(prev || { aiTraining: false }),
+        aiProcessing: true,
+      }));
+      console.log("✅ AI processing consent accepted");
+    } catch (err) {
+      console.error("❌ Unable to accept AI processing consent:", err);
+    }
+  };
+
   // Handle AI consent
   const handleAIConsent = async (consent: {
     aiProcessing: boolean;
@@ -160,26 +194,33 @@ export default function TemplateBuilderPage({
     console.log("AI consent received:", consent);
   };
 
-  // Handle consent acceptance and CV creation
-  const handleConsentAccept = async (consent: {
-    aiProcessing: boolean;
-    aiTraining: boolean;
-  }) => {
-    console.log("Consent accepted:", consent);
-    handleAIConsent(consent);
+  // Accepts only aiTraining (optional), closes modal, and persists just aiTraining
+  const handleConsentAccept = async (consent?: { aiTraining: boolean }) => {
+    // If user closed without accepting
+    if (!consent) {
+      setShowAIConsentModal(false);
+      return;
+    }
 
-    // Update CV with new consent if CV already exists
-    if (cvId) {
-      try {
-        console.log("Updating CV with new consent:", consent);
-        await cvOperations.handleUpdateCV(
+    try {
+      // Update local state (keep previous aiProcessing if known, default true)
+      setAiConsent((prev) => ({
+        aiProcessing: prev?.aiProcessing ?? true,
+        aiTraining: !!consent.aiTraining,
+      }));
+
+      setShowAIConsentModal(false);
+
+      // ✅ Persist ONLY aiTraining to the backend
+      if (currentCvId) {
+        await cvOperations.updateCV(
           templateBuilder.personalInfo,
-          templateBuilder.resumeData
+          templateBuilder.resumeData,
+          { aiTraining: !!consent.aiTraining } // <-- only this field
         );
-        console.log("CV updated with new consent");
-      } catch (error) {
-        console.error("Failed to update CV with consent:", error);
       }
+    } catch (error) {
+      console.error("Failed to persist AI training consent:", error);
     }
   };
 
@@ -1193,10 +1234,13 @@ export default function TemplateBuilderPage({
         }
       />
 
+      {/* AI Consent Modal */}
       <AIConsentModal
-        isOpen={showAIConsentModal && !aiConsent?.aiProcessing}
+        isOpen={showAIConsentModal}
         onClose={() => setShowAIConsentModal(false)}
-        onAccept={handleConsentAccept}
+        onAccept={(c) => {
+          void handleConsentAccept(c);
+        }} // ⬅️ wrap async, discard promise
       />
 
       {/* Save Notification */}

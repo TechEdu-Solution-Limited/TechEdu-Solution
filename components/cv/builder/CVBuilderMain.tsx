@@ -15,6 +15,7 @@ import {
   FileText,
   X,
 } from "lucide-react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import BuilderLayout from "./BuilderLayout";
 import ModeSelector from "./ModeSelector";
 import { StatusBar } from "./StatusBar";
@@ -30,21 +31,22 @@ import JobMatchScore from "./JobMatchScore";
 import { useCVBuilder } from "@/hooks/cv/useCVBuilder";
 import { CVBuilderProps } from "@/types/cv/cv-builder";
 import { ResumeSection } from "@/types/cv/index";
+import {
+  useOnboardingTour,
+  CVBuilderTourSteps,
+} from "@/hooks/useOnboardingTour";
 import { useCVAnalytics } from "@/hooks/cv/useCVAnalytics";
 import { useCVVersions } from "@/hooks/cv/useCVVersions";
 import { useCVSharing } from "@/hooks/cv/useCVSharing";
+import { useJobBoardIntegration } from "@/hooks/useJobBoardIntegration";
+import OnboardingTour from "@/components/OnboardingTour";
 import AnalyticsDashboard from "./AnalyticsDashboard";
 import VersionManager from "./VersionManager";
 import SharingPanel from "./SharingPanel";
 import JobBoardIntegration from "./JobBoardIntegration";
 import { SectionArrangement } from "./SectionArrangement";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import { useJobBoardIntegration } from "@/hooks/useJobBoardIntegration";
-import {
-  CVBuilderTourSteps,
-  useOnboardingTour,
-} from "@/hooks/useOnboardingTour";
-import OnboardingTour from "@/components/OnboardingTour";
+import { cvService } from "@/services/cv/cvServiceOptimized";
+import { ShowAIConsent } from "@/types/cv/consent";
 
 export default function CVBuilderMain({
   initialState,
@@ -58,16 +60,46 @@ export default function CVBuilderMain({
 
   // AI Consent Modal state
   const [showAIConsentModal, setShowAIConsentModal] = useState(false);
+  const [afterConsent, setAfterConsent] = useState<(() => void) | null>(null);
 
-  const handleConsentAccept = (consent: {
-    aiProcessing: boolean;
-    aiTraining: boolean;
-  }) => {
-    // TODO: Save consent to secure draft API instead of localStorage
-    // This will be implemented with the useSecureDraft hook
-    console.log("AI consent would be saved to secure draft:", consent);
-    setShowAIConsentModal(false);
-    console.log("Consent accepted:", consent);
+  // open consent (optionally with continuation)
+  const openConsent: ShowAIConsent = (onAccepted?: () => void) => {
+    if (onAccepted) setAfterConsent(() => onAccepted);
+    setShowAIConsentModal(true);
+  };
+
+  // CVBuilderMain.tsx
+  const handleConsentAccept = async (consent?: { aiTraining: boolean }) => {
+    try {
+      const accepted = !!consent?.aiTraining;
+
+      // Only update aiTraining (aiProcessing is default true)
+      if (cvApi && cvApi.cvId) {
+        await cvApi.updateCV(state.personalInfo, state.resumeData, {
+          aiTraining: accepted,
+        });
+      } else if (cvApi) {
+        const newId = await cvApi.createCV(
+          state.personalInfo,
+          state.resumeData,
+          { aiTraining: accepted },
+          state.selectedTemplate
+        );
+        console.log("Created CV for consent, cvId:", newId);
+      }
+    } catch (error) {
+      console.error("Failed to persist AI training consent:", error);
+    } finally {
+      setShowAIConsentModal(false);
+      // Continue pending action only if accepted
+      if (consent?.aiTraining && afterConsent) {
+        const cont = afterConsent;
+        setAfterConsent(null);
+        cont();
+      } else {
+        setAfterConsent(null);
+      }
+    }
   };
 
   const {
@@ -729,7 +761,8 @@ export default function CVBuilderMain({
               }
             }}
             onAddSection={() => updateState({ showAddSectionModal: true })}
-            onShowAIConsent={() => setShowAIConsentModal(true)}
+            onShowAIConsent={openConsent}
+            cvId={cvApi.cvId}
             personalInfo={state.personalInfo}
             professionalSummary={state.professionalSummary}
             experiences={state.experiences}
@@ -1020,7 +1053,9 @@ export default function CVBuilderMain({
       <AIConsentModal
         isOpen={showAIConsentModal}
         onClose={() => setShowAIConsentModal(false)}
-        onAccept={handleConsentAccept}
+        onAccept={(c) => {
+          void handleConsentAccept(c);
+        }} // ⬅️ wrap async, discard promise
       />
     </ErrorBoundary>
   );

@@ -99,7 +99,6 @@ interface BuilderLayoutProps {
   onUpdateInterest?: (id: string, field: string, value: any) => void;
   onImageUpload?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveImage?: () => void;
-  onShowAIConsent?: () => void;
   aiConsent?: { aiProcessing: boolean; aiTraining: boolean } | null;
   onCheckExistingConsent?: (
     cvId: string
@@ -108,6 +107,7 @@ interface BuilderLayoutProps {
     sectionId: string,
     updates: Partial<ResumeSection>
   ) => void;
+  onShowAIConsent?: () => void;
 }
 
 export default function BuilderLayout(props: BuilderLayoutProps) {
@@ -261,6 +261,11 @@ export default function BuilderLayout(props: BuilderLayoutProps) {
     [handleCloseSectionModal, onSaveDraft, onCreateCV, onUpdateCV, mode]
   );
 
+  // forward to parent (let parent show the modal)
+  const openConsent = useCallback(() => {
+    onShowAIConsent?.();
+  }, [onShowAIConsent]);
+
   return (
     <div className="h-full bg-gradient-to-br from-gray-50 to-blue-50/30">
       <ResumeNav
@@ -404,7 +409,6 @@ export default function BuilderLayout(props: BuilderLayoutProps) {
                         break;
                     }
                   }}
-                  onShowAIConsent={onShowAIConsent}
                   aiConsent={aiConsent}
                   cvId={cvId}
                   onCheckExistingConsent={onCheckExistingConsent}
@@ -455,6 +459,9 @@ export default function BuilderLayout(props: BuilderLayoutProps) {
                   onImageUpload={onImageUpload}
                   onRemoveImage={onRemoveImage}
                   onUpdateSection={onUpdateSection}
+                  onShowAIConsent={() => {
+                    if (!aiConsent?.aiTraining) openConsent();
+                  }}
                 />
               )}
             </SectionModal>

@@ -593,7 +593,13 @@ class OptimizedCVService {
   // EXPERIENCE: returns ExperienceAssessment
   async generateExperience(
     cvId: string,
-    context: { targetRole: string; industry: string }
+    context: {
+      targetRole: string;
+      industry: string;
+      // startDate: string;
+      // endDate: string;
+      // position: string;
+    }
   ): Promise<ExperienceAssessment> {
     const res = await this.apiRequest<any>(
       `/api/cv/ai/experience?cvId=${encodeURIComponent(cvId)}`,
@@ -682,12 +688,18 @@ class OptimizedCVService {
       return section;
     });
 
-    return {
+    const payload: CreateCVRequest = {
       title: `${transformedPersonalInfo.fullName} - CV`,
       sections: transformedSections,
-      consent: consent || { aiProcessing: false, aiTraining: false },
-      template: template,
+      template,
     };
+
+    // ✅ Only attach consent if you explicitly pass it in
+    if (typeof consent !== "undefined") {
+      payload.consent = consent;
+    }
+
+    return payload;
   }
 }
 
