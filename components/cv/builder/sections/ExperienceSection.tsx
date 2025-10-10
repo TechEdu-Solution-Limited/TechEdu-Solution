@@ -186,33 +186,31 @@ export default function ExperienceSection({
 
     try {
       const exp = experiences.find((e) => e.id === expId);
-      // const years = yearsBetween(exp?.startDate, exp?.endDate, exp?.current);
+      const targetRole = (
+        jobTitle ||
+        personalInfo?.targetedJobTitle ||
+        ""
+      ).trim();
+      const industry = (personalInfo?.industry || "").trim();
 
-      const targetRole = (jobTitle || personalInfo?.targetedJobTitle).trim();
-      const industry = (personalInfo?.industry).trim();
+      const data = await cvService.generateExperience(
+        String(cvId),
+        { targetRole, industry },
+        { jobTitle, company, preferCurrent: !!exp?.current } // ⬅️ helps pick the right item
+      );
 
-      // // Optional: pass a bit of seed context for sharper results
-      // const seedExperience = {
-      //   title: jobTitle || undefined,
-      //   company: company || undefined,
-      //   // responsibilities: [], // you can populate from your UI if you collect them
-      //   // wins: [],             // same here
-      // };
+      const hasDesc = !!data?.description && data.description.trim().length > 0;
+      const hasAch =
+        Array.isArray(data?.achievements) && data.achievements.length > 0;
 
-      const data = await cvService.generateExperience(String(cvId), {
-        targetRole,
-        industry,
-        expId,
-      });
-
-      const html = buildExperienceHtml(data?.description, data?.achievements);
-      if (!html) {
+      if (!hasDesc && !hasAch) {
         alert("AI did not return any content for this experience.");
         return;
       }
 
-      onUpdate(expId, "description", data?.description);
-      onUpdate(expId, "achievements", data?.achievements);
+      // ✅ Save both fields
+      if (hasDesc) onUpdate(expId, "description", data!.description!);
+      if (hasAch) onUpdate(expId, "achievements", data!.achievements!);
     } catch (error) {
       console.error("Error generating AI suggestions:", error);
       alert(

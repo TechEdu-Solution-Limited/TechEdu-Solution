@@ -165,6 +165,83 @@ export type SkillsAssessment = {
 /*===========================================================================*/
 /*===========================================================================*/
 
+// Add near other types
+export type ExperienceAIResult = {
+  description?: string;
+  achievements?: string[];
+  // keep legacy fields in case you still surface them somewhere
+  seniority?: "junior" | "mid" | "senior" | "lead";
+  minYears?: number;
+  topSkills?: string[];
+  rationale?: string;
+};
+
+// helper: pick the best item based on jobTitle/company/current
+function pickBestItem(
+  items: any[] = [],
+  sel?: { jobTitle?: string; company?: string; preferCurrent?: boolean }
+) {
+  const jt = (sel?.jobTitle || "").toLowerCase().trim();
+  const co = (sel?.company || "").toLowerCase().trim();
+
+  let best = items[0] || null;
+  let bestScore = -1;
+
+  for (const it of items) {
+    let score = 0;
+    const ij = (it?.jobTitle || "").toLowerCase();
+    const ic = (it?.company || "").toLowerCase();
+
+    if (jt && ij === jt) score += 3;
+    else if (jt && ij.includes(jt)) score += 2;
+
+    if (co && ic === co) score += 2;
+    else if (co && ic.includes(co)) score += 1;
+
+    if (sel?.preferCurrent && it?.current) score += 1;
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = it;
+    }
+  }
+  return best || null;
+}
+
+function normalizeExperienceV2(
+  raw: any,
+  sel?: { jobTitle?: string; company?: string; preferCurrent?: boolean }
+): ExperienceAIResult {
+  const payload = raw?.data?.data ?? raw?.data ?? raw;
+
+  // New shape: { ok, items: [...] }
+  if (Array.isArray(payload?.items) && payload.items.length) {
+    const chosen = pickBestItem(payload.items, sel) || payload.items[0];
+    return {
+      description: String(chosen?.description ?? "").trim(),
+      achievements: Array.isArray(chosen?.achievements)
+        ? chosen.achievements.map((s: any) => String(s).trim()).filter(Boolean)
+        : [],
+    };
+  }
+
+  // Legacy shape: { seniority, minYears, topSkills, rationale }
+  if (payload?.rationale || payload?.topSkills) {
+    return {
+      description: String(payload?.rationale ?? "").trim(),
+      achievements: Array.isArray(payload?.topSkills)
+        ? payload.topSkills.map((s: any) => String(s).trim()).filter(Boolean)
+        : [],
+      seniority: payload?.seniority,
+      minYears: payload?.minYears,
+      topSkills: payload?.topSkills,
+      rationale: payload?.rationale,
+    };
+  }
+
+  return {};
+}
+
 // Add this near the "Types" section
 export type AiSummary = { content: string; bullets: string[] };
 
@@ -594,25 +671,12 @@ class OptimizedCVService {
     return normalizeSummary(response);
   }
 
-  // EXPERIENCE: returns ExperienceAssessment
+  // EXPERIENCE: returns normalized { description, achievements } (and legacy fields if present)
   async generateExperience(
     cvId: string,
-    context: {
-      targetRole?: string;
-      industry?: string;
-      expId?: string;
-      // rationale?: string; // ⬅️ optional, not a fixed ""
-      // minYears?: number; // ⬅️ optional override
-      // seedExperience?: {
-      //   // ⬅️ optional extra signal
-      //   title?: string;
-      //   company?: string;
-      //   responsibilities?: string[];
-      //   wins?: string[];
-      // };
-    },
-    extra?: Record<string, unknown>
-  ) {
+    context: { targetRole?: string; industry?: string },
+    extra?: { jobTitle?: string; company?: string; preferCurrent?: boolean }
+  ): Promise<ExperienceAIResult> {
     if (!cvId) throw new Error("CV must be created first");
 
     const res = await this.apiRequest<any>(
@@ -620,12 +684,22 @@ class OptimizedCVService {
       "POST",
       {
         cvId,
-        context, // { targetRole, industry, expId }
+        context,
         ...(extra || {}),
       }
     );
 
-    return normalizeExperience(res);
+    // Surface server-side failure reasons
+    if (res?.data?.ok === false) {
+      const reason =
+        res?.error?.details?.[0] ||
+        res?.data?.reason ||
+        res?.message ||
+        "AI experience generation failed";
+      throw new Error(reason);
+    }
+
+    return normalizeExperienceV2(res, extra);
   }
 
   /**
