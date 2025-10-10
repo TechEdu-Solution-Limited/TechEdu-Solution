@@ -316,7 +316,7 @@ export default function ExperienceSection({
                   disabled={
                     isGeneratingAI === exp.id || !exp.position.trim() || !cvId
                   }
-                  className="flex items-center gap-2 text-white bg-gradient from-blue-600 to-purple-600 hover:bg-blue-50 disabled:opacity-50 rounded-[10px]"
+                  className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 disabled:opacity-50 rounded-[10px]"
                   title={
                     !exp.position.trim()
                       ? "Please enter a job position first"
