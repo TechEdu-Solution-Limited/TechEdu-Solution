@@ -303,7 +303,7 @@ export default function ProfessionalSummarySection({
                 !cvId ||
                 !personalInfo?.targetedJobTitle?.trim()
               }
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 disabled:opacity-50 rounded-[10px]"
               title={
                 !personalInfo?.targetedJobTitle?.trim()
                   ? "Please fill in your targeted job title first"
@@ -316,12 +316,12 @@ export default function ProfessionalSummarySection({
             >
               {isGeneratingAI ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-8 w-8 animate-spin" />
                   Generating...
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-4 w-4" />
+                  <Sparkles className="h-8 w-8" />
                   AI Suggestions
                 </>
               )}
