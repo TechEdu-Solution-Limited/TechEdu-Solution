@@ -271,7 +271,7 @@ export default function RescheduleRequestsPage() {
                     <h4 className="font-medium text-gray-900 mb-2">
                       Current Schedule
                     </h4>
-                    <div className="bg-gray-50 p-3 rounded-lg">
+                    <div className="bg-gray-50 p-3 rounded-[10px]">
                       <p className="text-sm">
                         <strong>Start:</strong>{" "}
                         {new Date(
@@ -288,7 +288,7 @@ export default function RescheduleRequestsPage() {
                     <h4 className="font-medium text-gray-900 mb-2">
                       Requested Schedule
                     </h4>
-                    <div className="bg-blue-50 p-3 rounded-lg">
+                    <div className="bg-blue-50 p-3 rounded-[10px]">
                       <p className="text-sm">
                         <strong>Start:</strong>{" "}
                         {new Date(
@@ -307,7 +307,7 @@ export default function RescheduleRequestsPage() {
                   <h4 className="font-medium text-gray-900 mb-2">
                     Reason for Reschedule
                   </h4>
-                  <div className="bg-gray-50 p-3 rounded-lg">
+                  <div className="bg-gray-50 p-3 rounded-[10px]">
                     <p className="text-sm">{selectedRequest.reason}</p>
                   </div>
                 </div>

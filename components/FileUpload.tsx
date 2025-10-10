@@ -140,7 +140,7 @@ export default function FileUpload({
     <div className={`space-y-4 ${className}`}>
       {/* Upload Area */}
       <div
-        className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+        className={`border-2 border-dashed rounded-[10px] p-6 text-center transition-colors ${
           dragOver
             ? "border-blue-500 bg-blue-50"
             : "border-gray-300 hover:border-gray-400"
@@ -182,7 +182,7 @@ export default function FileUpload({
             {existingFiles.map((file, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-[10px]"
               >
                 <div className="flex items-center space-x-3">
                   {getFileIcon(file.name)}

@@ -62,7 +62,7 @@ function StatusBadge({ status }: { status: string }) {
 function Skeleton({ className = "" }) {
   return (
     <div
-      className={`animate-pulse bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg ${className}`}
+      className={`animate-pulse bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-[10px] ${className}`}
     />
   );
 }
@@ -606,7 +606,7 @@ export default function StudentDashboard() {
                   <div className="mt-4 pt-4 border-t border-gray-100">
                     <Link
                       href="/dashboard/bookings"
-                      className="w-full text-center text-purple-600 hover:text-purple-700 text-sm font-medium hover:bg-purple-50 py-2 rounded-lg transition-colors"
+                      className="w-full text-center text-purple-600 hover:text-purple-700 text-sm font-medium hover:bg-purple-50 py-2 rounded-[10px] transition-colors"
                     >
                       View All Bookings →
                     </Link>
@@ -684,7 +684,7 @@ export default function StudentDashboard() {
                   <div className="mt-4 pt-4 border-t border-gray-100">
                     <Link
                       href="/dashboard/notifications"
-                      className="w-full text-center text-orange-600 hover:text-orange-700 text-sm font-medium hover:bg-orange-50 py-2 rounded-lg transition-colors"
+                      className="w-full text-center text-orange-600 hover:text-orange-700 text-sm font-medium hover:bg-orange-50 py-2 rounded-[10px] transition-colors"
                     >
                       View All Notifications →
                     </Link>

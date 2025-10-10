@@ -202,7 +202,7 @@ export default function JobsPage() {
   //         <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
   //         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
   //           {[...Array(6)].map((_, i) => (
-  //             <div key={i} className="bg-gray-200 rounded-lg h-64"></div>
+  //             <div key={i} className="bg-gray-200 rounded-[10px] h-64"></div>
   //           ))}
   //         </div>
   //       </div>
@@ -505,7 +505,7 @@ export default function JobsPage() {
                     {selectedJob ? (
                       <JobViewCard job={selectedJob} />
                     ) : (
-                      <div className="bg-gray-50 rounded-lg p-8 text-center">
+                      <div className="bg-gray-50 rounded-[10px] p-8 text-center">
                         <Briefcase className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 mb-2">
                           Select a Job

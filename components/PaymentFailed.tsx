@@ -137,7 +137,7 @@ export default function PaymentFailedPage() {
             <CardTitle>What You Can Do</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-start gap-4 p-4 bg-blue-50 rounded-lg">
+            <div className="flex items-start gap-4 p-4 bg-blue-50 rounded-[10px]">
               <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-blue-600 font-semibold">1</span>
               </div>
@@ -150,7 +150,7 @@ export default function PaymentFailedPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-start gap-4 p-4 bg-green-50 rounded-lg">
+            <div className="flex items-start gap-4 p-4 bg-green-50 rounded-[10px]">
               <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-green-600 font-semibold">2</span>
               </div>
@@ -164,7 +164,7 @@ export default function PaymentFailedPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-start gap-4 p-4 bg-purple-50 rounded-lg">
+            <div className="flex items-start gap-4 p-4 bg-purple-50 rounded-[10px]">
               <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-purple-600 font-semibold">3</span>
               </div>

@@ -77,7 +77,7 @@ export default function FirebaseUploadExample() {
           <h2 className="text-lg font-semibold text-gray-800">
             Uploaded Files
           </h2>
-          <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="bg-gray-50 p-4 rounded-[10px]">
             <pre className="text-sm text-gray-700 overflow-auto">
               {JSON.stringify(uploadedFiles, null, 2)}
             </pre>

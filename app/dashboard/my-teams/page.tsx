@@ -538,7 +538,7 @@ export default function MyTeamsPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex items-center gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-center gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-[10px]">
             <AlertCircle className="w-5 h-5 text-yellow-600" />
             <p className="text-sm text-yellow-800">
               You will lose access to all team resources and will need to be

@@ -388,7 +388,7 @@ export default function AttendanceDetailPage() {
                 <label className="text-sm font-medium text-gray-500">
                   Remarks
                 </label>
-                <p className="text-sm bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <p className="text-sm bg-blue-50 p-3 rounded-[10px] border border-blue-200">
                   {attendance.remarks}
                 </p>
               </div>
@@ -454,7 +454,7 @@ export default function AttendanceDetailPage() {
               {(attendance?.participants || []).map((participant, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-[10px]"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
@@ -499,7 +499,7 @@ export default function AttendanceDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-[10px] border border-blue-200">
                   <div>
                     <p className="font-medium text-blue-900">
                       Meeting Link Available

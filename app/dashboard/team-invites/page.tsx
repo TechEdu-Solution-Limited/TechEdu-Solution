@@ -271,7 +271,7 @@ export default function TeamInvitesPage() {
                 You've been invited to join a team
               </h3>
               {teamInfo && (
-                <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+                <div className="mb-4 p-4 bg-blue-50 rounded-[10px]">
                   <p className="text-sm text-gray-700 mb-1">
                     <span className="font-medium">Team:</span>{" "}
                     {teamInfo.teamName}

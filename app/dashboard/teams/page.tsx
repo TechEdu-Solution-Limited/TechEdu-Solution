@@ -343,7 +343,7 @@ export default function TeamsPage() {
                   {myTeams.map((team) => (
                     <div
                       key={team.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
+                      className="flex items-center justify-between p-4 border rounded-[10px]"
                     >
                       <div className="flex items-center gap-4">
                         <div>
@@ -407,7 +407,7 @@ export default function TeamsPage() {
                   {invitations.map((invitation) => (
                     <div
                       key={invitation.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
+                      className="flex items-center justify-between p-4 border rounded-[10px]"
                     >
                       <div>
                         <h4 className="font-semibold">

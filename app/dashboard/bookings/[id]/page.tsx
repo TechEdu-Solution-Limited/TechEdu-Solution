@@ -648,7 +648,7 @@ export default function BookingDetailsPage() {
                     {booking.participants.map((participant, index) => (
                       <div
                         key={participant._id}
-                        className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200"
+                        className="flex items-center gap-3 p-3 bg-slate-50 rounded-[10px] border border-slate-200"
                       >
                         <div className="p-2 bg-blue-100 rounded-full">
                           <User className="w-4 h-4 text-blue-600" />
@@ -693,7 +693,7 @@ export default function BookingDetailsPage() {
                       (attachment: string, index: number) => (
                         <div
                           key={index}
-                          className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200"
+                          className="flex items-center gap-3 p-3 bg-slate-50 rounded-[10px] border border-slate-200"
                         >
                           <div className="p-2 bg-blue-100 rounded-full">📎</div>
                           <div className="flex-1 min-w-0">

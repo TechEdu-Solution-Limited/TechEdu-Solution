@@ -280,7 +280,7 @@ export default function EditBookingPage() {
         {/* Booking Status Alert */}
         <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
           <CardContent className="p-6">
-            <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-[10px] border border-blue-200">
               <AlertCircle className="w-5 h-5 text-blue-600" />
               <div>
                 <h4 className="font-medium text-blue-900">
@@ -554,7 +554,7 @@ export default function EditBookingPage() {
                       (attachment: string, index: number) => (
                         <div
                           key={index}
-                          className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200"
+                          className="flex items-center gap-3 p-3 bg-slate-50 rounded-[10px] border border-slate-200"
                         >
                           <div className="p-2 bg-blue-100 rounded-full">📎</div>
                           <div className="flex-1 min-w-0">
@@ -612,7 +612,7 @@ export default function EditBookingPage() {
       {/* Confirmation Modal */}
       {showConfirmation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+          <div className="bg-white rounded-[10px] p-6 max-w-md mx-4">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">
               Confirm Changes
             </h3>

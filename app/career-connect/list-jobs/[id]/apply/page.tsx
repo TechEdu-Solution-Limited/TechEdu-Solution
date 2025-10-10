@@ -264,8 +264,8 @@ function JobApplicationContent() {
           </div>
         </div>
         <div className="animate-pulse space-y-4">
-          <div className="h-64 bg-gray-200 rounded-lg"></div>
-          <div className="h-32 bg-gray-200 rounded-lg"></div>
+          <div className="h-64 bg-gray-200 rounded-[10px]"></div>
+          <div className="h-32 bg-gray-200 rounded-[10px]"></div>
         </div>
       </div>
     );
@@ -432,7 +432,7 @@ function JobApplicationContent() {
                 in your career
               </p>
             </div>
-            <div className="hidden md:flex items-center gap-3 bg-blue-50 px-4 py-2 rounded-lg">
+            <div className="hidden md:flex items-center gap-3 bg-blue-50 px-4 py-2 rounded-[10px]">
               <Briefcase className="w-5 h-5 text-[#011F72]" />
               <span className="text-sm font-medium text-[#011F72]">
                 Job Application
@@ -530,7 +530,7 @@ function JobApplicationContent() {
                   </div>
 
                   {errors.cv && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-[10px]">
                       <p className="text-red-600 text-sm flex items-center gap-1">
                         <AlertCircle className="w-4 h-4" />
                         {errors.cv}
@@ -539,7 +539,7 @@ function JobApplicationContent() {
                   )}
 
                   {errors.fileUpload && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-[10px]">
                       <p className="text-red-600 text-sm flex items-center gap-1">
                         <AlertCircle className="w-4 h-4" />
                         {errors.fileUpload}
@@ -548,7 +548,7 @@ function JobApplicationContent() {
                   )}
 
                   {uploading && (
-                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-[10px]">
                       <p className="text-blue-600 text-sm flex items-center gap-1">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2" />
                         Uploading file...
@@ -567,7 +567,7 @@ function JobApplicationContent() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 p-6">
-                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-[10px] border border-blue-100">
                     <Checkbox
                       id="useCustomCoverLetter"
                       checked={useCustomCoverLetter}
@@ -674,7 +674,7 @@ function JobApplicationContent() {
                         className="resize-none border-2 focus:border-blue-500 focus:ring-blue-200"
                       />
                       {errors.coverLetter && (
-                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-[10px]">
                           <p className="text-red-600 text-sm flex items-center gap-1">
                             <AlertCircle className="w-4 h-4" />
                             {errors.coverLetter}
@@ -695,7 +695,7 @@ function JobApplicationContent() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 p-6">
-                  <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
+                  <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-[10px] border border-purple-100">
                     <Checkbox
                       id="hasReferral"
                       checked={hasReferral}
@@ -713,7 +713,7 @@ function JobApplicationContent() {
                   </div>
 
                   {hasReferral && (
-                    <div className="space-y-4 p-4 bg-purple-50 rounded-lg border border-purple-100">
+                    <div className="space-y-4 p-4 bg-purple-50 rounded-[10px] border border-purple-100">
                       <div>
                         <Label
                           htmlFor="referralCode"
@@ -729,7 +729,7 @@ function JobApplicationContent() {
                           className="mt-2 border-2 focus:border-purple-500 focus:ring-purple-200"
                         />
                         {errors.referralCode && (
-                          <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-[10px]">
                             <p className="text-red-600 text-sm flex items-center gap-1">
                               <AlertCircle className="w-4 h-4" />
                               {errors.referralCode}
@@ -787,7 +787,7 @@ function JobApplicationContent() {
               </div>
 
               {errors.submit && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="p-4 bg-red-50 border border-red-200 rounded-[10px]">
                   <p className="text-red-600 text-sm flex items-center gap-1">
                     <AlertCircle className="w-4 h-4" />
                     {errors.submit}

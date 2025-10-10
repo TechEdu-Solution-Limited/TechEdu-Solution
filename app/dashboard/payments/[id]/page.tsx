@@ -381,7 +381,7 @@ export default function PaymentDetailsPage() {
             <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <div className="p-2 bg-blue-100 rounded-lg">
+                  <div className="p-2 bg-blue-100 rounded-[10px]">
                     <CreditCard className="w-5 h-5 text-blue-600" />
                   </div>
                   Payment Overview
@@ -440,7 +440,7 @@ export default function PaymentDetailsPage() {
             <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <div className="p-2 bg-purple-100 rounded-lg">
+                  <div className="p-2 bg-purple-100 rounded-[10px]">
                     <Activity className="w-5 h-5 text-purple-600" />
                   </div>
                   Transaction Details
@@ -501,7 +501,7 @@ export default function PaymentDetailsPage() {
             <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <div className="p-2 bg-green-100 rounded-lg">
+                  <div className="p-2 bg-green-100 rounded-[10px]">
                     <Info className="w-5 h-5 text-green-600" />
                   </div>
                   Additional Information
@@ -574,7 +574,7 @@ export default function PaymentDetailsPage() {
               <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <div className="p-2 bg-blue-100 rounded-lg">
+                    <div className="p-2 bg-blue-100 rounded-[10px]">
                       <CreditCard className="w-5 h-5 text-blue-600" />
                     </div>
                     Payment Method Details
@@ -593,7 +593,7 @@ export default function PaymentDetailsPage() {
                               Card Brand
                             </label>
                             <div className="flex items-center gap-2">
-                              <div className="p-2 bg-gray-100 rounded-lg">
+                              <div className="p-2 bg-gray-100 rounded-[10px]">
                                 <CreditCard className="w-4 h-4 text-gray-600" />
                               </div>
                               <span className="font-medium capitalize">
@@ -642,7 +642,7 @@ export default function PaymentDetailsPage() {
               <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <div className="p-2 bg-purple-100 rounded-lg">
+                    <div className="p-2 bg-purple-100 rounded-[10px]">
                       <BookOpen className="w-5 h-5 text-purple-600" />
                     </div>
                     Booking Information
@@ -679,7 +679,7 @@ export default function PaymentDetailsPage() {
                               <label className="text-sm font-medium text-gray-500">
                                 User Notes
                               </label>
-                              <p className="text-sm bg-gray-50 p-3 rounded-lg">
+                              <p className="text-sm bg-gray-50 p-3 rounded-[10px]">
                                 {bookingData.userNotes}
                               </p>
                             </div>
@@ -723,7 +723,7 @@ export default function PaymentDetailsPage() {
               <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <div className="p-2 bg-orange-100 rounded-lg">
+                    <div className="p-2 bg-orange-100 rounded-[10px]">
                       <Activity className="w-5 h-5 text-orange-600" />
                     </div>
                     Webhook Event Details
@@ -783,7 +783,7 @@ export default function PaymentDetailsPage() {
                       <label className="text-sm font-medium text-gray-500">
                         Payment Outcome
                       </label>
-                      <div className="bg-gray-50 p-3 rounded-lg">
+                      <div className="bg-gray-50 p-3 rounded-[10px]">
                         <div className="grid gap-2 md:grid-cols-2">
                           <div>
                             <span className="text-xs text-gray-500">
@@ -833,7 +833,7 @@ export default function PaymentDetailsPage() {
             <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <div className="p-2 bg-orange-100 rounded-lg">
+                  <div className="p-2 bg-orange-100 rounded-[10px]">
                     <Calendar className="w-5 h-5 text-orange-600" />
                   </div>
                   Timestamps
@@ -868,7 +868,7 @@ export default function PaymentDetailsPage() {
               <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <div className="p-2 bg-blue-100 rounded-lg">
+                    <div className="p-2 bg-blue-100 rounded-[10px]">
                       <Zap className="w-5 h-5 text-blue-600" />
                     </div>
                     Stripe Details
@@ -904,7 +904,7 @@ export default function PaymentDetailsPage() {
             <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <div className="p-2 bg-green-100 rounded-lg">
+                  <div className="p-2 bg-green-100 rounded-[10px]">
                     <Shield className="w-5 h-5 text-green-600" />
                   </div>
                   Security

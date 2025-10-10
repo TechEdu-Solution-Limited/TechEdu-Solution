@@ -293,7 +293,7 @@ export function RescheduleRequestActionModal({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="bg-gray-50 p-4 rounded-[10px]">
             <h4 className="font-medium mb-2">Request Details</h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">

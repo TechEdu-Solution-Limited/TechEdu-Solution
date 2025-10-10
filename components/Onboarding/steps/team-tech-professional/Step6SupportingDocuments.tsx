@@ -146,7 +146,7 @@ export function Step6SupportingDocuments({
               />
               <label
                 htmlFor="companyIntroFile"
-                className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
+                className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-[10px] cursor-pointer hover:bg-gray-50 transition-colors ${
                   uploadingCompanyIntro ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
@@ -168,7 +168,7 @@ export function Step6SupportingDocuments({
 
             {/* Show uploaded file */}
             {form.attachments?.companyIntroUrl && (
-              <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-[10px]">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-green-600" />
                   <span className="text-sm text-green-800">
@@ -223,7 +223,7 @@ export function Step6SupportingDocuments({
               />
               <label
                 htmlFor="skillMatrixFile"
-                className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
+                className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-[10px] cursor-pointer hover:bg-gray-50 transition-colors ${
                   uploadingSkillMatrix ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
@@ -245,7 +245,7 @@ export function Step6SupportingDocuments({
 
             {/* Show uploaded file */}
             {form.attachments?.skillMatrixUrl && (
-              <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-[10px]">
                 <div className="flex items-center gap-2">
                   <FileSpreadsheet className="w-4 h-4 text-green-600" />
                   <span className="text-sm text-green-800">
@@ -301,7 +301,7 @@ export function Step6SupportingDocuments({
               />
               <label
                 htmlFor="projectSamplesFile"
-                className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
+                className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-[10px] cursor-pointer hover:bg-gray-50 transition-colors ${
                   uploadingCompanyIntro ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
@@ -322,7 +322,7 @@ export function Step6SupportingDocuments({
             </div>
 
             {form.attachments?.projectSamplesUrl && (
-              <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-[10px]">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-green-600" />
                   <span className="text-sm text-green-800">
@@ -378,7 +378,7 @@ export function Step6SupportingDocuments({
               />
               <label
                 htmlFor="ndaOrAgreementFile"
-                className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
+                className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-[10px] cursor-pointer hover:bg-gray-50 transition-colors ${
                   uploadingSkillMatrix ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
@@ -399,7 +399,7 @@ export function Step6SupportingDocuments({
             </div>
 
             {form.attachments?.ndaOrAgreementUrl && (
-              <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-[10px]">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-green-600" />
                   <span className="text-sm text-green-800">

@@ -1034,7 +1034,7 @@ export default function CartPage() {
 
               <CardContent className="space-y-4">
                 {/* Cart Total */}
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <div className="bg-blue-50 p-4 rounded-[10px] border border-blue-200">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900">
@@ -1066,7 +1066,7 @@ export default function CartPage() {
                         src={item.image}
                         alt={item.title}
                         fill
-                        className="rounded-lg object-cover"
+                        className="rounded-[10px] object-cover"
                       />
                       <div className="absolute top-2 right-2">
                         <Badge
@@ -1128,7 +1128,7 @@ export default function CartPage() {
                         !canPurchaseProductType(
                           item.productType || "Training & Certification"
                         ) && (
-                          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                          <div className="p-3 bg-red-50 border border-red-200 rounded-[10px] text-sm text-red-700">
                             <div className="flex items-center gap-2">
                               <AlertCircle className="w-4 h-4" />
                               <span>
@@ -1142,7 +1142,7 @@ export default function CartPage() {
 
                       {/* Bookable Service Indicator */}
                       {isAuthenticated && item.requiresBooking && (
-                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-[10px]">
                           <div className="flex items-center gap-2 text-blue-700">
                             <Calendar className="w-4 h-4" />
                             <span className="text-sm font-medium">
@@ -1170,7 +1170,7 @@ export default function CartPage() {
                       <div className="flex flex-col gap-3">
                         <Button
                           onClick={() => handleProductCheckout(item.id)}
-                          className="w-full lg:w-48 bg-[#0D1140] hover:bg-blue-700 text-white text-base py-3 px-6 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                          className="w-full lg:w-48 bg-[#0D1140] hover:bg-blue-700 text-white text-base py-3 px-6 rounded-[10px] font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                           disabled={
                             isInitializingPayment ||
                             !canPurchaseProductType(
@@ -1323,7 +1323,7 @@ export default function CartPage() {
                   </div>
 
                   {authError && (
-                    <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-lg border border-red-200">
+                    <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-[10px] border border-red-200">
                       {authError}
                     </div>
                   )}
@@ -1399,7 +1399,7 @@ export default function CartPage() {
 
             return (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="bg-white rounded-[10px] max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                   <div className="p-6">
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-2xl font-bold text-gray-900">
@@ -1497,7 +1497,7 @@ export default function CartPage() {
                               </span>
                             )}
                           </label>
-                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                          <div className="border-2 border-dashed border-gray-300 rounded-[10px] p-6 text-center">
                             <input
                               type="file"
                               id="attachment-upload"

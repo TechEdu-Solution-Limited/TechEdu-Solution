@@ -424,7 +424,7 @@ export default function StudentClassroomsPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <div className="p-2 bg-blue-100 rounded-lg">
+                          <div className="p-2 bg-blue-100 rounded-[10px]">
                             {classroom.productType === "AcademicService" ? (
                               <GraduationCap className="w-5 h-5 text-blue-600" />
                             ) : (

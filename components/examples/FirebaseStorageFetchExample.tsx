@@ -200,7 +200,7 @@ export default function FirebaseStorageFetchExample() {
             <CardTitle>3. Download URL</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-3 bg-gray-100 rounded-lg">
+            <div className="p-3 bg-gray-100 rounded-[10px]">
               <code className="text-sm break-all">{downloadURL}</code>
             </div>
             <div className="flex space-x-2">
@@ -291,7 +291,7 @@ export default function FirebaseStorageFetchExample() {
             <CardTitle>5. File Metadata</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="bg-gray-50 p-4 rounded-[10px]">
               <pre className="text-sm text-gray-700 overflow-auto">
                 {JSON.stringify(fileMetadata, null, 2)}
               </pre>

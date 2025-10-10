@@ -459,7 +459,7 @@ export default function SingleJobPage({
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       {job.salaryRange && (
-                        <div className="bg-gray-50 rounded-lg p-4 text-center">
+                        <div className="bg-gray-50 rounded-[10px] p-4 text-center">
                           <DollarSign className="w-6 h-6 text-green-600 mx-auto mb-2" />
                           <div className="text-sm text-gray-600">Salary</div>
                           <div className="font-bold text-gray-900">
@@ -468,7 +468,7 @@ export default function SingleJobPage({
                         </div>
                       )}
                       {job.experienceLevel && (
-                        <div className="bg-gray-50 rounded-lg p-4 text-center">
+                        <div className="bg-gray-50 rounded-[10px] p-4 text-center">
                           <Target className="w-6 h-6 text-blue-600 mx-auto mb-2" />
                           <div className="text-sm text-gray-600">Level</div>
                           <div className="font-bold text-gray-900 capitalize">
@@ -477,7 +477,7 @@ export default function SingleJobPage({
                         </div>
                       )}
                       {job.createdAt && (
-                        <div className="bg-gray-50 rounded-lg p-4 text-center">
+                        <div className="bg-gray-50 rounded-[10px] p-4 text-center">
                           <Calendar className="w-6 h-6 text-purple-600 mx-auto mb-2" />
                           <div className="text-sm text-gray-600">Posted</div>
                           <div className="font-bold text-gray-900">
@@ -621,20 +621,20 @@ export default function SingleJobPage({
                   </div>
                 </div>
                 <div className="space-y-3 text-sm">
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-[10px]">
                     <MapPin className="w-4 h-4 text-gray-500" />
                     <span className="text-gray-700">{job.location}</span>
                   </div>
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-[10px]">
                     <Users className="w-4 h-4 text-gray-500" />
                     <span className="text-gray-700">50-200 employees</span>
                   </div>
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-[10px]">
                     <Globe className="w-4 h-4 text-gray-500" />
                     <span className="text-gray-700">www.smartnova.com</span>
                   </div>
                 </div>
-                <div className="p-4 bg-blue-50 rounded-lg">
+                <div className="p-4 bg-blue-50 rounded-[10px]">
                   <p className="text-sm text-blue-800">
                     SmartNOVA Innovation is a leading technology company focused
                     on cutting-edge software solutions.
@@ -689,7 +689,7 @@ export default function SingleJobPage({
                       {job.requiredSkills.map((skill, index) => (
                         <div
                           key={index}
-                          className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg"
+                          className="flex items-center gap-3 p-4 bg-gray-50 rounded-[10px]"
                         >
                           <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
                           <span className="text-gray-700 font-medium">
@@ -724,7 +724,7 @@ export default function SingleJobPage({
                       {job.requiredSkills.map((skill, index) => (
                         <div
                           key={index}
-                          className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg"
+                          className="flex items-center gap-3 p-4 bg-blue-50 rounded-[10px]"
                         >
                           <CheckCircle2 className="w-5 h-5 text-blue-600 flex-shrink-0" />
                           <span className="text-gray-700 font-medium">
@@ -903,7 +903,7 @@ export default function SingleJobPage({
                         />
                       </div>
 
-                      <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-[10px]">
                         <Checkbox
                           id="agreeToTerms"
                           checked={applicationData.agreeToTerms}

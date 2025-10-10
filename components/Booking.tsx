@@ -686,7 +686,7 @@ export default function BookingPage() {
 
         {/* Smart Scheduling Interface */}
         {isClassroom && (
-          <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="space-y-3 p-4 bg-blue-50 rounded-[10px] border border-blue-200">
             <div className="flex items-center gap-2">
               <GraduationCap className="w-5 h-5 text-blue-600" />
               <h4 className="font-medium text-blue-900">Classroom Program</h4>
@@ -700,7 +700,7 @@ export default function BookingPage() {
         )}
 
         {isSession && !isClassroom && (
-          <div className="space-y-3 p-4 bg-green-50 rounded-lg border border-green-200">
+          <div className="space-y-3 p-4 bg-green-50 rounded-[10px] border border-green-200">
             <div className="flex items-center gap-2">
               <Video className="w-5 h-5 text-green-600" />
               <h4 className="font-medium text-green-900">Single Session</h4>
@@ -989,7 +989,7 @@ export default function BookingPage() {
 
                     {/* Overall Upload Progress */}
                     {formData.attachments.length > 0 && (
-                      <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="mt-2 p-2 bg-blue-50 rounded-[10px] border border-blue-200">
                         <div className="flex items-center justify-between text-xs text-blue-700 mb-1">
                           <span>Overall Upload Progress</span>
                           <span>
@@ -1041,7 +1041,7 @@ export default function BookingPage() {
 
                     {/* File List with Remove Buttons */}
                     {formData.attachments.length > 0 && (
-                      <div className="mt-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                      <div className="mt-3 p-3 bg-slate-50 rounded-[10px] border border-slate-200">
                         <p className="text-xs font-medium text-slate-700 mb-2">
                           Selected files ({formData.attachments.length}):
                         </p>
@@ -1198,7 +1198,7 @@ export default function BookingPage() {
             <CardContent className="space-y-4">
               {/* Calendly Integration - Time Slot Selection Button */}
               {instructorId && (
-                <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="space-y-3 p-4 bg-blue-50 rounded-[10px] border border-blue-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Calendar className="w-5 h-5 text-blue-600" />
@@ -1291,7 +1291,7 @@ export default function BookingPage() {
                         <DialogTrigger asChild>
                           <Button
                             type="button"
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-[10px] shadow-sm hover:shadow-md transition-all duration-200"
                           >
                             <Calendar className="w-4 h-4 mr-2" />
                             View Available Time Slots
@@ -1543,7 +1543,7 @@ export default function BookingPage() {
               {/* Message when instructorId is missing or availability not configured */}
               {(!instructorId ||
                 (availabilityChecked && availableSlots.length === 0)) && (
-                <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                <div className="p-4 bg-amber-50 rounded-[10px] border border-amber-200">
                   <div className="flex items-center gap-2 text-amber-700 mb-2">
                     <Calendar className="w-5 h-5" />
                     <span className="text-sm font-medium">
@@ -1585,7 +1585,7 @@ export default function BookingPage() {
 
               {/* Note for classroom bookings */}
               {instructorId && isClassroom && (
-                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                <div className="p-3 bg-green-50 rounded-[10px] border border-green-200">
                   <div className="flex items-center gap-2 text-green-700">
                     <GraduationCap className="w-4 h-4" />
                     <span className="text-sm font-medium">
@@ -1840,7 +1840,7 @@ export default function BookingPage() {
             {/* Modal Content */}
             <div className="px-6 py-4 space-y-6">
               {/* Service Information */}
-              <div className="bg-slate-50 rounded-lg p-4">
+              <div className="bg-slate-50 rounded-[10px] p-4">
                 <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
                   <Target className="w-4 h-4" />
                   Service Details
@@ -1895,7 +1895,7 @@ export default function BookingPage() {
               </div>
 
               {/* Personal Information */}
-              <div className="bg-slate-50 rounded-lg p-4">
+              <div className="bg-slate-50 rounded-[10px] p-4">
                 <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
                   <User className="w-4 h-4" />
                   Personal Information
@@ -1923,7 +1923,7 @@ export default function BookingPage() {
               </div>
 
               {/* Scheduling Information */}
-              <div className="bg-slate-50 rounded-lg p-4">
+              <div className="bg-slate-50 rounded-[10px] p-4">
                 <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   Scheduling Details
@@ -1958,7 +1958,7 @@ export default function BookingPage() {
 
               {/* Additional Information */}
               {(formData.userNotes || formData.attachments.length > 0) && (
-                <div className="bg-slate-50 rounded-lg p-4">
+                <div className="bg-slate-50 rounded-[10px] p-4">
                   <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
                     <FileText className="w-4 h-4" />
                     Additional Information
@@ -2023,7 +2023,7 @@ export default function BookingPage() {
 
               {/* Training Specific */}
               {isTrainingService && formData.bookingPurpose && (
-                <div className="bg-slate-50 rounded-lg p-4">
+                <div className="bg-slate-50 rounded-[10px] p-4">
                   <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
                     <Target className="w-4 h-4" />
                     Training Purpose

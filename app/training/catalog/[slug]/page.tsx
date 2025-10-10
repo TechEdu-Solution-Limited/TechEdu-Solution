@@ -274,7 +274,7 @@ export default function ProductPage() {
 
           <div className="flex gap-2 mt-4">
             <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-2"
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-[10px] px-6 py-2"
               onClick={handleEnroll}
               disabled={isInCart(product._id)}
             >
@@ -284,7 +284,7 @@ export default function ProductPage() {
                 ? "Book Now"
                 : "Enroll Now"}
             </Button>
-            <Button variant="outline" className="rounded-lg px-6 py-2">
+            <Button variant="outline" className="rounded-[10px] px-6 py-2">
               Add to Wishlist
             </Button>
           </div>

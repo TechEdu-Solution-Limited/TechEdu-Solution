@@ -175,7 +175,7 @@ export default function TrainingPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-48 w-full rounded-lg" />
+            <Skeleton key={i} className="h-48 w-full rounded-[10px]" />
           ))}
         </div>
       </div>
@@ -360,7 +360,7 @@ export default function TrainingPage() {
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
-                <div className="flex gap-1 p-1 bg-gray-100 rounded-lg">
+                <div className="flex gap-1 p-1 bg-gray-100 rounded-[10px]">
                   <Button
                     variant={viewMode === "grid" ? "default" : "ghost"}
                     size="sm"
@@ -481,7 +481,7 @@ export default function TrainingPage() {
                     </div>
 
                     {booking.meetingLink && booking.status === "confirmed" && (
-                      <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                      <div className="p-3 bg-green-50 rounded-[10px] border border-green-200">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <Video className="w-4 h-4 text-green-600" />

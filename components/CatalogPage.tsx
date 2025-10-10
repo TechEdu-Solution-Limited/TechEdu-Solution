@@ -470,7 +470,7 @@ export default function CatalogPage({
                 onClick={() => handleViewDetails(product._id)}
               >
                 
-                <div className="relative w-full h-24 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg mb-3 overflow-hidden">
+                <div className="relative w-full h-24 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-[10px] mb-3 overflow-hidden">
                   <Image
                     src={
                       product.thumbnailUrl ||

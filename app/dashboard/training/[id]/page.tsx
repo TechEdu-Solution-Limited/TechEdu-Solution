@@ -205,12 +205,12 @@ export default function TrainingDetailPage() {
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
-                <Skeleton className="h-64 w-full rounded-lg" />
-                <Skeleton className="h-48 w-full rounded-lg" />
+                <Skeleton className="h-64 w-full rounded-[10px]" />
+                <Skeleton className="h-48 w-full rounded-[10px]" />
               </div>
               <div className="space-y-6">
-                <Skeleton className="h-48 w-full rounded-lg" />
-                <Skeleton className="h-32 w-full rounded-lg" />
+                <Skeleton className="h-48 w-full rounded-[10px]" />
+                <Skeleton className="h-32 w-full rounded-[10px]" />
               </div>
             </div>
           </div>
@@ -374,7 +374,7 @@ export default function TrainingDetailPage() {
               <CardContent className="space-y-6">
                 {/* Session Timing */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="p-4 bg-blue-50 rounded-[10px] border border-blue-200">
                     <div className="flex items-center gap-2 mb-2">
                       <Calendar className="w-5 h-5 text-blue-600" />
                       <span className="font-semibold text-blue-900">
@@ -385,7 +385,7 @@ export default function TrainingDetailPage() {
                       {formatDate(booking.scheduleAt)}
                     </p>
                   </div>
-                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                  <div className="p-4 bg-green-50 rounded-[10px] border border-green-200">
                     <div className="flex items-center gap-2 mb-2">
                       <Clock className="w-5 h-5 text-green-600" />
                       <span className="font-semibold text-green-900">
@@ -402,7 +402,7 @@ export default function TrainingDetailPage() {
 
                 {/* Time Until Session */}
                 {booking.status === "confirmed" && (
-                  <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                  <div className="p-4 bg-amber-50 rounded-[10px] border border-amber-200">
                     <div className="flex items-center gap-2 mb-2">
                       <Clock3 className="w-5 h-5 text-amber-600" />
                       <span className="font-semibold text-amber-900">
@@ -417,7 +417,7 @@ export default function TrainingDetailPage() {
 
                 {/* Meeting Link */}
                 {booking.meetingLink && booking.status === "confirmed" && (
-                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                  <div className="p-4 bg-green-50 rounded-[10px] border border-green-200">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Video className="w-5 h-5 text-green-600" />
@@ -446,7 +446,7 @@ export default function TrainingDetailPage() {
 
                 {/* User Notes */}
                 {booking.userNotes && (
-                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="p-4 bg-gray-50 rounded-[10px] border border-gray-200">
                     <div className="flex items-center gap-2 mb-2">
                       <FileText className="w-5 h-5 text-gray-600" />
                       <span className="font-semibold text-gray-900">
@@ -459,7 +459,7 @@ export default function TrainingDetailPage() {
 
                 {/* Attachments */}
                 {booking.attachments && booking.attachments.length > 0 && (
-                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="p-4 bg-gray-50 rounded-[10px] border border-gray-200">
                     <div className="flex items-center gap-2 mb-3">
                       <Download className="w-5 h-5 text-gray-600" />
                       <span className="font-semibold text-gray-900">
@@ -687,7 +687,7 @@ export default function TrainingDetailPage() {
                   </div>
 
                   {booking.status === "completed" && (
-                    <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+                    <div className="text-center p-3 bg-green-50 rounded-[10px] border border-green-200">
                       <Award className="w-6 h-6 text-green-600 mx-auto mb-1" />
                       <p className="text-sm text-green-800 font-medium">
                         Training Completed!

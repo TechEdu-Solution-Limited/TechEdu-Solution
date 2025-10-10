@@ -583,31 +583,31 @@ export default function AcademicServicesBookingsPage() {
         <TabsList className="grid w-full grid-cols-5 bg-gray-100 p-1 rounded-[12px]">
           <TabsTrigger
             value="all"
-            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            className="rounded-[10px] data-[state=active]:bg-white data-[state=active]:shadow-sm"
           >
             All ({filteredBookings.length})
           </TabsTrigger>
           <TabsTrigger
             value="pending"
-            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            className="rounded-[10px] data-[state=active]:bg-white data-[state=active]:shadow-sm"
           >
             Pending ({pendingCount})
           </TabsTrigger>
           <TabsTrigger
             value="confirmed"
-            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            className="rounded-[10px] data-[state=active]:bg-white data-[state=active]:shadow-sm"
           >
             Confirmed ({confirmedCount})
           </TabsTrigger>
           <TabsTrigger
             value="completed"
-            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            className="rounded-[10px] data-[state=active]:bg-white data-[state=active]:shadow-sm"
           >
             Completed ({completedCount})
           </TabsTrigger>
           <TabsTrigger
             value="cancelled"
-            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            className="rounded-[10px] data-[state=active]:bg-white data-[state=active]:shadow-sm"
           >
             Cancelled ({cancelledCount})
           </TabsTrigger>
@@ -656,7 +656,7 @@ export default function AcademicServicesBookingsPage() {
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-3 mb-2">
-                                <div className="p-2 bg-blue-100 rounded-lg">
+                                <div className="p-2 bg-blue-100 rounded-[10px]">
                                   {booking.productType === "AcademicService" ? (
                                     <GraduationCap className="w-5 h-5 text-blue-600" />
                                   ) : (
@@ -839,7 +839,7 @@ export default function AcademicServicesBookingsPage() {
                 onClick={() => setProductType("AcademicService")}
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
+                  <div className="p-2 bg-blue-100 rounded-[10px]">
                     <GraduationCap className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
@@ -862,7 +862,7 @@ export default function AcademicServicesBookingsPage() {
                 onClick={() => setProductType("TrainingProgram")}
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-100 rounded-lg">
+                  <div className="p-2 bg-purple-100 rounded-[10px]">
                     <BookOpen className="w-5 h-5 text-purple-600" />
                   </div>
                   <div>

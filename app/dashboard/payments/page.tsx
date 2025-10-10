@@ -480,7 +480,7 @@ export default function PaymentsPage() {
       {Array.from({ length: 5 }).map((_, i) => (
         <div
           key={i}
-          className="flex items-center space-x-4 p-4 bg-white rounded-lg"
+          className="flex items-center space-x-4 p-4 bg-white rounded-[10px]"
         >
           <Skeleton className="h-12 w-12 rounded-full" />
           <div className="space-y-2 flex-1">
@@ -664,7 +664,7 @@ export default function PaymentsPage() {
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
+                <div className="p-2 bg-blue-100 rounded-[10px]">
                   <Filter className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>

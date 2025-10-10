@@ -198,7 +198,7 @@ const page = () => {
         </p>
         <Link
           href="#wizard"
-          className="mt-6 bg-white text-[#011F72] hover:bg-blue-700 hover:text-white px-6 py-3 rounded-lg font-semibold transition"
+          className="mt-6 bg-white text-[#011F72] hover:bg-blue-700 hover:text-white px-6 py-3 rounded-[10px] font-semibold transition"
         >
           Begin CV Builder Wizard
         </Link>
