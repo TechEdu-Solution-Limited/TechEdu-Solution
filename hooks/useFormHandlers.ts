@@ -25,6 +25,7 @@ export function useFormHandlers() {
       endDate: "",
       current: false,
       description: "",
+      achievements: [],
     };
     setExperiences([...experiences, newExp]);
   };

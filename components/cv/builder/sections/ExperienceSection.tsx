@@ -11,6 +11,7 @@ import {
   type ExperienceAssessment,
 } from "@/services/cv/cvServiceOptimized";
 
+// ---- 1) TYPE: allow string[] for achievements updates
 interface ExperienceSectionProps {
   experiences: Experience[];
   personalInfo: PersonalInfo;
@@ -19,7 +20,7 @@ interface ExperienceSectionProps {
   onUpdate: (
     id: string,
     field: string | keyof Experience,
-    value: string | boolean
+    value: string | boolean | string[] // ⬅️ widened to include string[]
   ) => void;
   onShowAIConsent?: () => void;
   aiConsent?: { aiProcessing: boolean; aiTraining: boolean } | null;
@@ -33,9 +34,68 @@ interface ExperienceSectionProps {
 function stripTags(s = "") {
   return s.replace(/<[^>]*>/g, "");
 }
-
 function normalizeHtml(s = "") {
   return s.replace(/\s+/g, " ").trim();
+}
+// Simple safe escape for non-HTML description
+function escapeHtml(s = "") {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function isHtml(s = "") {
+  return /<\/?[a-z][\s\S]*>/i.test(s);
+}
+function arraysShallowEqual(a: string[] = [], b: string[] = []) {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+/** Build Quill-friendly HTML from description + achievements */
+function toEditorHtml(desc?: string, achievements?: string[]) {
+  const blocks: string[] = [];
+  const d = (desc || "").trim();
+
+  if (d) {
+    // If desc already contains HTML, keep it; else wrap in <p>
+    blocks.push(isHtml(d) ? d : `<p>${escapeHtml(d)}</p>`);
+  }
+
+  const items = (achievements || [])
+    .map((t) => String(t || "").trim())
+    .filter(Boolean)
+    .map((t) => `<li>${escapeHtml(t)}</li>`)
+    .join("");
+
+  if (items) blocks.push(`<ul>${items}</ul>`);
+  return blocks.join("");
+}
+
+/** Parse Quill HTML back to { description(html), achievements[] } */
+function fromEditorHtml(html: string): {
+  description: string;
+  achievements: string[];
+} {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html || "", "text/html");
+
+    // Collect achievements from any lists
+    const liNodes = Array.from(doc.querySelectorAll("ul li, ol li"));
+    const achievements = liNodes
+      .map((li) => (li.textContent || "").trim())
+      .filter(Boolean);
+
+    // Remove lists to isolate description
+    doc.querySelectorAll("ul, ol").forEach((n) => n.remove());
+
+    // Remaining HTML is the description (can be multiple <p>, etc.)
+    const description = (doc.body.innerHTML || "").trim();
+
+    return { description, achievements };
+  } catch {
+    // Fallback: treat entire thing as description
+    return { description: html || "", achievements: [] };
+  }
 }
 
 /** Build Quill-friendly HTML: rationale as <p>, topSkills as <ul><li> */
@@ -294,17 +354,28 @@ export default function ExperienceSection({
 
               {/* 🔄 Quill Text Editor (controlled) */}
               <QuillTextEditor
-                value={exp.description || ""}
+                value={toEditorHtml(exp.description, exp.achievements)}
                 onChange={(value) => {
-                  // avoid noisy updates if identical
-                  if (
-                    normalizeHtml(value) ===
-                    normalizeHtml(exp.description || "")
-                  )
-                    return;
-                  onUpdate(exp.id, "description", value);
+                  const next = fromEditorHtml(value);
+
+                  // Avoid noisy updates
+                  const descChanged =
+                    normalizeHtml(next.description) !==
+                    normalizeHtml(exp.description || "");
+
+                  const achChanged = !arraysShallowEqual(
+                    (exp.achievements || []).map((s) => s.trim()),
+                    (next.achievements || []).map((s) => s.trim())
+                  );
+
+                  if (!descChanged && !achChanged) return;
+
+                  if (descChanged)
+                    onUpdate(exp.id, "description", next.description);
+                  if (achChanged)
+                    onUpdate(exp.id, "achievements", next.achievements);
                 }}
-                placeholder="Describe your key responsibilities and achievements..."
+                placeholder="Describe your key responsibilities and achievements…"
               />
             </div>
           </>
