@@ -99,13 +99,13 @@ function fromEditorHtml(html: string): {
 }
 
 /** Build Quill-friendly HTML: rationale as <p>, topSkills as <ul><li> */
-function buildExperienceHtml(rationale?: string, topSkills?: string[]) {
+function buildExperienceHtml(description?: string, achievements?: string[]) {
   const blocks: string[] = [];
-  const r = (rationale || "").trim();
-  if (r) blocks.push(`<p>${stripTags(r)}</p>`);
+  const r = (description || "").trim();
+  if (r) blocks.push(`<p>${stripTags(description)}</p>`);
 
-  const items = (topSkills || [])
-    .map((b) => String(b || "").trim())
+  const items = (achievements || [])
+    .map((b) => String(achievements || "").trim())
     .filter(Boolean)
     .map((b) => `<li>${stripTags(b)}</li>`)
     .join("");
@@ -202,7 +202,7 @@ export default function ExperienceSection({
         expId,
       });
 
-      const html = buildExperienceHtml(data?.rationale, data?.topSkills);
+      const html = buildExperienceHtml(data?.description, data?.achievements);
       if (!html) {
         alert("AI did not return any content for this experience.");
         return;

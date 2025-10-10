@@ -144,8 +144,8 @@ interface DraftResponse {
 export type ExperienceAssessment = {
   seniority: "junior" | "mid" | "senior" | "lead";
   minYears: number; // >= 0
-  topSkills: string[]; // unique, non-empty
-  rationale: string; // string (may be empty)
+  description: string; // string (may be empty)
+  achievements: string[]; // string (may be empty)
 };
 
 export type SkillItem = {
@@ -216,7 +216,8 @@ function normalizeExperience(raw: any): ExperienceAssessment {
     seniority?: unknown;
     minYears?: unknown;
     topSkills?: unknown;
-    rationale?: unknown;
+    description?: unknown;
+    achievements?: unknown;
   };
 
   // seniority
@@ -247,13 +248,16 @@ function normalizeExperience(raw: any): ExperienceAssessment {
   );
 
   // rationale
-  const rationale = String(d?.rationale ?? "").trim();
+  const description = String(d?.description ?? "").trim();
+  const achievements = Array.isArray(d?.achievements)
+    ? (d.achievements as unknown[])
+    : [];
 
   return {
     seniority: seniority as ExperienceAssessment["seniority"],
     minYears,
-    topSkills,
-    rationale,
+    description,
+    achievements: achievements as ExperienceAssessment["achievements"],
   };
 }
 
