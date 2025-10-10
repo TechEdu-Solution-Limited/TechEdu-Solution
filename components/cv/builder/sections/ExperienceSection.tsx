@@ -99,13 +99,16 @@ function fromEditorHtml(html: string): {
 }
 
 /** Build Quill-friendly HTML: rationale as <p>, topSkills as <ul><li> */
-function buildExperienceHtml(description?: string, achievements?: string[]) {
+function buildExperienceHtml(
+  description?: string | null,
+  achievements?: string[] | null
+) {
   const blocks: string[] = [];
   const r = (description || "").trim();
-  if (r) blocks.push(`<p>${stripTags(description)}</p>`);
+  if (r) blocks.push(`<p>${stripTags(r)}</p>`);
 
   const items = (achievements || [])
-    .map((b) => String(achievements || "").trim())
+    .map((b) => String(b || "").trim())
     .filter(Boolean)
     .map((b) => `<li>${stripTags(b)}</li>`)
     .join("");
@@ -188,13 +191,13 @@ export default function ExperienceSection({
       const targetRole = (jobTitle || personalInfo?.targetedJobTitle).trim();
       const industry = (personalInfo?.industry).trim();
 
-      // Optional: pass a bit of seed context for sharper results
-      const seedExperience = {
-        title: jobTitle || undefined,
-        company: company || undefined,
-        // responsibilities: [], // you can populate from your UI if you collect them
-        // wins: [],             // same here
-      };
+      // // Optional: pass a bit of seed context for sharper results
+      // const seedExperience = {
+      //   title: jobTitle || undefined,
+      //   company: company || undefined,
+      //   // responsibilities: [], // you can populate from your UI if you collect them
+      //   // wins: [],             // same here
+      // };
 
       const data = await cvService.generateExperience(String(cvId), {
         targetRole,
@@ -208,7 +211,8 @@ export default function ExperienceSection({
         return;
       }
 
-      onUpdate(expId, "description", html);
+      onUpdate(expId, "description", data?.description);
+      onUpdate(expId, "achievements", data?.achievements);
     } catch (error) {
       console.error("Error generating AI suggestions:", error);
       alert(
