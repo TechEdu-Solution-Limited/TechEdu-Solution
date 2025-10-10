@@ -148,7 +148,7 @@ export default function ForEmployers() {
           {/* Right Video */}
           <div className="flex flex-col items-center w-full max-w-xl mx-auto xl:pt-[6rem] pb-4">
             {/* Video Container */}
-            <div className="relative w-full rounded-xl overflow-hidden shadow-lg h-[16rem] md:h-[22rem]">
+            <div className="relative w-full rounded-[12px] overflow-hidden shadow-lg h-[16rem] md:h-[22rem]">
               <Image
                 src="/assets/employer.webp"
                 alt=""

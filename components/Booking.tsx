@@ -661,7 +661,7 @@ export default function BookingPage() {
           <Button
             variant="ghost"
             onClick={() => router.back()}
-            className="p-2 hover:bg-white/50 rounded-xl"
+            className="p-2 hover:bg-white/50 rounded-[12px]"
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
@@ -1223,7 +1223,7 @@ export default function BookingPage() {
                   </div>
 
                   {selectedTimeSlot ? (
-                    <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl shadow-sm">
+                    <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-[12px] shadow-sm">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
@@ -1404,7 +1404,7 @@ export default function BookingPage() {
                                                   handleTimeSlotSelect(slot);
                                                   setShowTimeSlotModal(false);
                                                 }}
-                                                className={`group relative p-4 text-left rounded-xl border-2 transition-all duration-200 ${
+                                                className={`group relative p-4 text-left rounded-[12px] border-2 transition-all duration-200 ${
                                                   isSelected
                                                     ? "border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-200"
                                                     : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50 hover:shadow-sm"
@@ -1440,7 +1440,7 @@ export default function BookingPage() {
 
                                                 {/* Hover effect overlay */}
                                                 <div
-                                                  className={`absolute inset-0 rounded-xl transition-opacity duration-200 ${
+                                                  className={`absolute inset-0 rounded-[12px] transition-opacity duration-200 ${
                                                     isSelected
                                                       ? "bg-blue-100 opacity-20"
                                                       : "bg-blue-50 opacity-0 group-hover:opacity-20"

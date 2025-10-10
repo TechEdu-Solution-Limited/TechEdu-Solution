@@ -151,7 +151,7 @@ export default function CVMatchingPage() {
             ))}
           </select>
         </div>
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-4">
+        <div className="bg-white rounded-[12px] shadow p-6 flex flex-col gap-4">
           {candidatesWithScore.length === 0 ? (
             <div className="text-gray-400 text-xs text-center">
               No candidates found
@@ -160,7 +160,7 @@ export default function CVMatchingPage() {
             candidatesWithScore.map((c) => (
               <div
                 key={c.id}
-                className="mb-4 last:mb-0 bg-blue-50 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-sm"
+                className="mb-4 last:mb-0 bg-blue-50 rounded-[12px] p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-sm"
               >
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-[#011F72] flex items-center gap-2 flex-wrap">

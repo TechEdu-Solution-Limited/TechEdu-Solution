@@ -110,7 +110,7 @@ const OnboardingPage = () => {
             {roles.map((role) => (
               <div
                 key={role.title}
-                className="flex flex-row items-center bg-gray-100 rounded-xl px-4 py-4 md:py-8 gap-4 transition transform hover:scale-[1.02] hover:shadow-md focus-within:ring-2 focus-within:ring-blue-500 focus-within:outline-none cursor-pointer"
+                className="flex flex-row items-center bg-gray-100 rounded-[12px] px-4 py-4 md:py-8 gap-4 transition transform hover:scale-[1.02] hover:shadow-md focus-within:ring-2 focus-within:ring-blue-500 focus-within:outline-none cursor-pointer"
                 onClick={() => handleRoleSelection(role.role)}
               >
                 <div className="w-32 sm:flex-shrink-0">

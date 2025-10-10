@@ -244,7 +244,7 @@ export default function PaymentSuccessPage() {
           {paymentDetails?.status === "succeeded" &&
             userData?.role &&
             !redirecting && (
-              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-[12px]">
                 <div className="text-center">
                   <p className="text-sm text-blue-700 mb-2">
                     🎉 Payment successful! You'll be redirected to your
@@ -264,7 +264,7 @@ export default function PaymentSuccessPage() {
 
           {/* Processing payment notification */}
           {paymentDetails?.status === "processing" && (
-            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-[12px]">
               <div className="text-center">
                 <p className="text-sm text-yellow-700 mb-2">
                   ⏳ Your payment is being processed. This may take a few
@@ -280,7 +280,7 @@ export default function PaymentSuccessPage() {
 
           {/* Return from payment notification */}
           {paymentDetails?.status === "return" && (
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-[12px]">
               <div className="text-center">
                 <p className="text-sm text-blue-700 mb-2">
                   🔄 You've returned from the payment process.
@@ -295,7 +295,7 @@ export default function PaymentSuccessPage() {
 
           {/* Redirecting state */}
           {redirecting && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-[12px]">
               <div className="text-center">
                 <p className="text-sm text-green-700">
                   Redirecting to your dashboard...

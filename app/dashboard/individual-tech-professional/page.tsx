@@ -375,7 +375,7 @@ export default function TalentDashboard() {
 
         {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-6 flex flex-col items-center shadow hover:shadow-lg transition">
+          <div className="bg-blue-50 border border-blue-100 rounded-[12px] p-6 flex flex-col items-center shadow hover:shadow-lg transition">
             <BookOpen size={32} className="text-blue-400 mb-2" />
             <div className="text-2xl font-bold text-[#011F72]">
               {stats.totalBookings}
@@ -383,7 +383,7 @@ export default function TalentDashboard() {
             <div className="text-sm text-gray-600">Bookings</div>
           </div>
 
-          <div className="bg-green-50 border border-green-100 rounded-xl p-6 flex flex-col items-center shadow hover:shadow-lg transition">
+          <div className="bg-green-50 border border-green-100 rounded-[12px] p-6 flex flex-col items-center shadow hover:shadow-lg transition">
             <Award size={32} className="text-green-400 mb-2" />
             <div className="text-2xl font-bold text-[#011F72]">
               {stats.totalCertifications}
@@ -391,7 +391,7 @@ export default function TalentDashboard() {
             <div className="text-sm text-gray-600">Certifications</div>
           </div>
 
-          <div className="bg-purple-50 border border-purple-100 rounded-xl p-6 flex flex-col items-center shadow hover:shadow-lg transition">
+          <div className="bg-purple-50 border border-purple-100 rounded-[12px] p-6 flex flex-col items-center shadow hover:shadow-lg transition">
             <Calendar size={32} className="text-purple-400 mb-2" />
             <div className="text-2xl font-bold text-[#011F72]">
               {stats.upcomingInterviews}
@@ -399,7 +399,7 @@ export default function TalentDashboard() {
             <div className="text-sm text-gray-600">Interviews</div>
           </div>
 
-          <div className="bg-orange-50 border border-orange-100 rounded-xl p-6 flex flex-col items-center shadow hover:shadow-lg transition">
+          <div className="bg-orange-50 border border-orange-100 rounded-[12px] p-6 flex flex-col items-center shadow hover:shadow-lg transition">
             <DollarSign size={32} className="text-orange-400 mb-2" />
             <div className="text-2xl font-bold text-[#011F72]">
               {stats.totalPayments}
@@ -407,7 +407,7 @@ export default function TalentDashboard() {
             <div className="text-sm text-gray-600">Payments</div>
           </div>
 
-          <div className="bg-red-50 border border-red-100 rounded-xl p-6 flex flex-col items-center shadow hover:shadow-lg transition">
+          <div className="bg-red-50 border border-red-100 rounded-[12px] p-6 flex flex-col items-center shadow hover:shadow-lg transition">
             <Bell size={32} className="text-red-400 mb-2" />
             <div className="text-2xl font-bold text-[#011F72]">
               {stats.recentNotifications}
@@ -415,7 +415,7 @@ export default function TalentDashboard() {
             <div className="text-sm text-gray-600">Notifications</div>
           </div>
 
-          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 flex flex-col items-center shadow hover:shadow-lg transition">
+          <div className="bg-indigo-50 border border-indigo-100 rounded-[12px] p-6 flex flex-col items-center shadow hover:shadow-lg transition">
             <TrendingUp size={32} className="text-indigo-400 mb-2" />
             <div className="text-2xl font-bold text-[#011F72]">
               {Math.round(stats.skillsProgress * 100)}%
@@ -441,7 +441,7 @@ export default function TalentDashboard() {
           </div>
         </div>
         {/* Skills Acquired Chart - COMMENTED OUT */}
-        {/* <div className="bg-white border border-blue-100 rounded-xl shadow p-6 mb-8">
+        {/* <div className="bg-white border border-blue-100 rounded-[12px] shadow p-6 mb-8">
           <h2 className="text-lg font-semibold text-[#011F72] mb-4">
             Skills Acquired Over Time
           </h2>
@@ -464,7 +464,7 @@ export default function TalentDashboard() {
         {/* Upcoming Interviews & Quick Links */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {/* Upcoming Interviews */}
-          <div className="md:col-span-2 bg-white border border-blue-100 rounded-xl shadow p-6">
+          <div className="md:col-span-2 bg-white border border-blue-100 rounded-[12px] shadow p-6">
             <h2 className="text-lg font-semibold text-[#011F72] mb-4">
               Upcoming Interviews
             </h2>
@@ -506,7 +506,7 @@ export default function TalentDashboard() {
             )}
           </div>
           {/* Quick Links */}
-          <div className="bg-white border border-blue-100 rounded-xl shadow p-6 flex flex-col gap-4">
+          <div className="bg-white border border-blue-100 rounded-[12px] shadow p-6 flex flex-col gap-4">
             <h2 className="text-lg font-semibold text-[#011F72] mb-4">
               Quick Links
             </h2>
@@ -522,7 +522,7 @@ export default function TalentDashboard() {
           </div>
         </div>
         {/* Recent Activity Feed */}
-        <div className="bg-white border border-blue-100 rounded-xl shadow p-6 mb-8">
+        <div className="bg-white border border-blue-100 rounded-[12px] shadow p-6 mb-8">
           <h2 className="text-lg font-semibold text-[#011F72] mb-4">
             Recent Activity
           </h2>

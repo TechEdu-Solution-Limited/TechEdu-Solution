@@ -365,7 +365,7 @@ function InterviewsPage() {
               )} */}
             </div>
           </div>
-          <div className="overflow-x-auto rounded-xl border shadow-sm bg-white">
+          <div className="overflow-x-auto rounded-[12px] border shadow-sm bg-white">
             <table className="min-w-full border text-sm relative">
               <thead className="sticky top-0 z-10 bg-blue-50">
                 <tr>

@@ -325,7 +325,7 @@ export default function SingleSessionPage() {
             </Button>
             <div className="h-6 w-px bg-gray-300" />
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg">
+              <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-[12px] shadow-lg">
                 <BookOpen className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -381,7 +381,7 @@ export default function SingleSessionPage() {
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-3 bg-gradient-to-r from-blue-100 to-purple-100 rounded-xl">
+                    <div className="p-3 bg-gradient-to-r from-blue-100 to-purple-100 rounded-[12px]">
                       {ProductTypeIcon && (
                         <ProductTypeIcon className="w-6 h-6 text-blue-600" />
                       )}
@@ -427,7 +427,7 @@ export default function SingleSessionPage() {
               <CardContent className="space-y-6">
                 {/* Session Details Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200">
+                  <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-[12px] border border-blue-200">
                     <div className="flex items-center gap-3 mb-2">
                       <Calendar className="w-5 h-5 text-blue-600" />
                       <span className="font-semibold text-blue-800">
@@ -442,7 +442,7 @@ export default function SingleSessionPage() {
                     </div>
                   </div>
 
-                  <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200">
+                  <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-[12px] border border-green-200">
                     <div className="flex items-center gap-3 mb-2">
                       {SessionTypeIcon && (
                         <SessionTypeIcon className="w-5 h-5 text-green-600" />
@@ -456,7 +456,7 @@ export default function SingleSessionPage() {
                     </div>
                   </div>
 
-                  <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200">
+                  <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-[12px] border border-purple-200">
                     <div className="flex items-center gap-3 mb-2">
                       <GraduationCap className="w-5 h-5 text-purple-600" />
                       <span className="font-semibold text-purple-800">
@@ -471,7 +471,7 @@ export default function SingleSessionPage() {
 
                 {/* Meeting Link */}
                 {session.meetingLink && (
-                  <div className="p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl border border-emerald-200">
+                  <div className="p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-[12px] border border-emerald-200">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <Video className="w-5 h-5 text-emerald-600" />
@@ -532,7 +532,7 @@ export default function SingleSessionPage() {
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-4">
-                    <div className="p-4 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl border border-slate-200">
+                    <div className="p-4 bg-gradient-to-br from-slate-50 to-blue-50 rounded-[12px] border border-slate-200">
                       <div className="flex items-center gap-3 mb-2">
                         <BookOpen className="w-5 h-5 text-blue-600" />
                         <span className="font-semibold text-slate-800">
@@ -545,7 +545,7 @@ export default function SingleSessionPage() {
                       </p>
                     </div>
 
-                    <div className="p-4 bg-gradient-to-br from-slate-50 to-green-50 rounded-xl border border-slate-200">
+                    <div className="p-4 bg-gradient-to-br from-slate-50 to-green-50 rounded-[12px] border border-slate-200">
                       <div className="flex items-center gap-3 mb-2">
                         <User className="w-5 h-5 text-green-600" />
                         <span className="font-semibold text-slate-800">
@@ -563,7 +563,7 @@ export default function SingleSessionPage() {
                   </div>
 
                   <div className="space-y-4">
-                    <div className="p-4 bg-gradient-to-br from-slate-50 to-purple-50 rounded-xl border border-slate-200">
+                    <div className="p-4 bg-gradient-to-br from-slate-50 to-purple-50 rounded-[12px] border border-slate-200">
                       <div className="flex items-center gap-3 mb-2">
                         <GraduationCap className="w-5 h-5 text-purple-600" />
                         <span className="font-semibold text-slate-800">
@@ -579,7 +579,7 @@ export default function SingleSessionPage() {
                       </p>
                     </div>
 
-                    <div className="p-4 bg-gradient-to-br from-slate-50 to-orange-50 rounded-xl border border-slate-200">
+                    <div className="p-4 bg-gradient-to-br from-slate-50 to-orange-50 rounded-[12px] border border-slate-200">
                       <div className="flex items-center gap-3 mb-2">
                         <Clock className="w-5 h-5 text-orange-600" />
                         <span className="font-semibold text-slate-800">
@@ -619,7 +619,7 @@ export default function SingleSessionPage() {
                 <CollapsibleContent>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="p-4 bg-slate-50 rounded-xl">
+                      <div className="p-4 bg-slate-50 rounded-[12px]">
                         <div className="text-sm font-medium text-slate-600 mb-1">
                           Booking ID
                         </div>
@@ -627,7 +627,7 @@ export default function SingleSessionPage() {
                           {session.bookingId}
                         </div>
                       </div>
-                      <div className="p-4 bg-slate-50 rounded-xl">
+                      <div className="p-4 bg-slate-50 rounded-[12px]">
                         <div className="text-sm font-medium text-slate-600 mb-1">
                           Product ID
                         </div>
@@ -638,7 +638,7 @@ export default function SingleSessionPage() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="p-4 bg-slate-50 rounded-xl">
+                      <div className="p-4 bg-slate-50 rounded-[12px]">
                         <div className="text-sm font-medium text-slate-600 mb-1">
                           Created
                         </div>
@@ -647,7 +647,7 @@ export default function SingleSessionPage() {
                         </div>
                       </div>
                       {session.updatedAt && (
-                        <div className="p-4 bg-slate-50 rounded-xl">
+                        <div className="p-4 bg-slate-50 rounded-[12px]">
                           <div className="text-sm font-medium text-slate-600 mb-1">
                             Last Updated
                           </div>
@@ -740,13 +740,13 @@ export default function SingleSessionPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 text-center">
-                  <div className="p-3 bg-blue-50 rounded-xl">
+                  <div className="p-3 bg-blue-50 rounded-[12px]">
                     <div className="text-lg font-bold text-blue-600">
                       {session.sessionType === "1-on-1" ? "1" : "Group"}
                     </div>
                     <div className="text-xs text-blue-600">Participants</div>
                   </div>
-                  <div className="p-3 bg-green-50 rounded-xl">
+                  <div className="p-3 bg-green-50 rounded-[12px]">
                     <div className="text-lg font-bold text-green-600">
                       {session.productType === "AcademicService"
                         ? "Academic"
@@ -767,25 +767,25 @@ export default function SingleSessionPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl">
+                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-[12px]">
                   <Wifi className="w-4 h-4 text-green-600" />
                   <span className="text-sm text-green-700">
                     Stable internet connection
                   </span>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
+                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-[12px]">
                   <Headphones className="w-4 h-4 text-blue-600" />
                   <span className="text-sm text-blue-700">
                     Audio device (headphones/mic)
                   </span>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-xl">
+                <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-[12px]">
                   <Camera className="w-4 h-4 text-purple-600" />
                   <span className="text-sm text-purple-700">
                     Webcam (recommended)
                   </span>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-xl">
+                <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-[12px]">
                   <Keyboard className="w-4 h-4 text-orange-600" />
                   <span className="text-sm text-orange-700">
                     Keyboard for notes
@@ -803,19 +803,19 @@ export default function SingleSessionPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-[12px]">
                   <Mail className="w-4 h-4 text-slate-600" />
                   <span className="text-sm text-slate-700">
                     support@techeduk.com
                   </span>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-[12px]">
                   <Phone className="w-4 h-4 text-slate-600" />
                   <span className="text-sm text-slate-700">
                     +1 (555) 123-4567
                   </span>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-[12px]">
                   <Globe className="w-4 h-4 text-slate-600" />
                   <span className="text-sm text-slate-700">24/7 Live Chat</span>
                 </div>

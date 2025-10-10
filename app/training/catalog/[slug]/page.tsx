@@ -38,7 +38,7 @@ export default function ProductPage() {
       <div className="max-w-3xl mx-auto py-12 px-4 md:px-0 mt-24">
         <div className="flex flex-col md:flex-row gap-8">
           <div className="flex-shrink-0 w-full md:w-1/2">
-            <div className="w-full aspect-square bg-gray-200 rounded-xl animate-pulse" />
+            <div className="w-full aspect-square bg-gray-200 rounded-[12px] animate-pulse" />
           </div>
           <div className="flex-1 flex flex-col gap-4">
             <div className="h-8 bg-gray-200 rounded animate-pulse w-3/4" />
@@ -179,7 +179,7 @@ export default function ProductPage() {
     <section className="max-w-3xl mx-auto py-12 px-4 md:px-0 mt-24">
       <div className="flex flex-col md:flex-row gap-8">
         <div className="flex-shrink-0 w-full md:w-1/2">
-          <div className="relative w-full aspect-square bg-gray-100 rounded-xl overflow-hidden">
+          <div className="relative w-full aspect-square bg-gray-100 rounded-[12px] overflow-hidden">
             <Image
               src={
                 product.thumbnailUrl ||
@@ -188,7 +188,7 @@ export default function ProductPage() {
               }
               alt={product.service}
               fill
-              className="object-cover rounded-xl"
+              className="object-cover rounded-[12px]"
             />
           </div>
         </div>

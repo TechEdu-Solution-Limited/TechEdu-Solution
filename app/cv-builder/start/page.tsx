@@ -284,7 +284,7 @@ const page = () => {
               }`}
             >
               <div className="lg:sticky lg:top-24">
-                <div className="bg-white border border-gray-200 rounded-xl p-3 md:p-4 shadow-md max-h-[60vh] lg:max-h-[80vh] overflow-y-auto hide-custom-scrollbar">
+                <div className="bg-white border border-gray-200 rounded-[12px] p-3 md:p-4 shadow-md max-h-[60vh] lg:max-h-[80vh] overflow-y-auto hide-custom-scrollbar">
                   <CVPreview data={formData} />
                 </div>
               </div>

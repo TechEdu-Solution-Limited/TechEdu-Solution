@@ -3,7 +3,7 @@ import Image from "next/image";
 export default function Resume6() {
   return (
     <div className="min-h-screen bg-white p-6 md:p-10">
-      <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-xl overflow-hidden border border-gray-300">
+      <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-[12px] overflow-hidden border border-gray-300">
         <div className="flex flex-col items-center py-10 bg-gray-100">
           <Image
             src="/profile.jpg" // Replace with actual profile image URL

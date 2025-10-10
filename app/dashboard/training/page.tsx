@@ -264,7 +264,7 @@ export default function TrainingPage() {
                   </p>
                   <p className="text-xs text-gray-500 mt-1">All sessions</p>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-xl group-hover:bg-blue-200 transition-colors">
+                <div className="p-3 bg-blue-100 rounded-[12px] group-hover:bg-blue-200 transition-colors">
                   <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
                 </div>
               </div>
@@ -283,7 +283,7 @@ export default function TrainingPage() {
                     Finished sessions
                   </p>
                 </div>
-                <div className="p-3 bg-green-100 rounded-xl group-hover:bg-green-200 transition-colors">
+                <div className="p-3 bg-green-100 rounded-[12px] group-hover:bg-green-200 transition-colors">
                   <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
                 </div>
               </div>
@@ -307,7 +307,7 @@ export default function TrainingPage() {
                     Scheduled sessions
                   </p>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-xl group-hover:bg-blue-200 transition-colors">
+                <div className="p-3 bg-blue-100 rounded-[12px] group-hover:bg-blue-200 transition-colors">
                   <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
                 </div>
               </div>
@@ -326,7 +326,7 @@ export default function TrainingPage() {
                     Cancelled sessions
                   </p>
                 </div>
-                <div className="p-3 bg-red-100 rounded-xl group-hover:bg-red-200 transition-colors">
+                <div className="p-3 bg-red-100 rounded-[12px] group-hover:bg-red-200 transition-colors">
                   <XCircle className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
                 </div>
               </div>
@@ -434,7 +434,7 @@ export default function TrainingPage() {
                   <CardHeader className="pb-4">
                     <div className="flex items-start justify-between">
                       <div className="flex flex-col items-start gap-3">
-                        <div className="p-3 bg-gradient-to-r from-blue-100 to-purple-100 rounded-xl group-hover:from-blue-200 group-hover:to-purple-200 transition-colors">
+                        <div className="p-3 bg-gradient-to-r from-blue-100 to-purple-100 rounded-[12px] group-hover:from-blue-200 group-hover:to-purple-200 transition-colors">
                           <BookOpen className="w-5 h-5 text-blue-600" />
                         </div>
                         <div className="min-w-0 flex-1">
@@ -545,7 +545,7 @@ export default function TrainingPage() {
                   <CardContent className="p-4 sm:p-6">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                       <div className="flex items-center gap-4 flex-1">
-                        <div className="p-3 bg-gradient-to-r from-blue-100 to-purple-100 rounded-xl">
+                        <div className="p-3 bg-gradient-to-r from-blue-100 to-purple-100 rounded-[12px]">
                           <BookOpen className="w-6 h-6 text-blue-600" />
                         </div>
                         <div className="min-w-0 flex-1">
@@ -640,7 +640,7 @@ export default function TrainingPage() {
                 className="h-auto p-6 sm:p-8 flex flex-col items-center gap-4 text-white rounded-2xl hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                 onClick={() => router.push("/training/catalog")}
               >
-                <div className="p-4 bg-white/20 rounded-xl">
+                <div className="p-4 bg-white/20 rounded-[12px]">
                   <Plus className="w-8 h-8 sm:w-10 sm:h-10" />
                 </div>
                 <div className="text-center">
@@ -656,7 +656,7 @@ export default function TrainingPage() {
                 className="h-auto p-6 sm:p-8 flex flex-col items-center gap-4 rounded-2xl hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-white/50 border-gray-200 hover:bg-white"
                 onClick={() => router.push("/training/catalog")}
               >
-                <div className="p-4 bg-blue-100 rounded-xl">
+                <div className="p-4 bg-blue-100 rounded-[12px]">
                   <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-blue-600" />
                 </div>
                 <div className="text-center">
@@ -674,7 +674,7 @@ export default function TrainingPage() {
                 className="h-auto p-6 sm:p-8 flex flex-col items-center gap-4 rounded-2xl hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-white/50 border-gray-200 hover:bg-white"
                 onClick={() => router.push("/dashboard/certifications")}
               >
-                <div className="p-4 bg-green-100 rounded-xl">
+                <div className="p-4 bg-green-100 rounded-[12px]">
                   <Award className="w-8 h-8 sm:w-10 sm:h-10 text-green-600" />
                 </div>
                 <div className="text-center">

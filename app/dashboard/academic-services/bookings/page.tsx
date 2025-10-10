@@ -444,7 +444,7 @@ export default function AcademicServicesBookingsPage() {
         </div>
         <Button
           onClick={() => setShowModal(true)}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-[12px] shadow-lg hover:shadow-xl transition-all duration-200"
         >
           <Plus className="w-5 h-5 mr-2" />
           Create New Booking
@@ -461,14 +461,14 @@ export default function AcademicServicesBookingsPage() {
                 placeholder="Search bookings..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                className="pl-10 rounded-[12px] border-gray-200 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
             <Select
               value={selectedCategory}
               onValueChange={setSelectedCategory}
             >
-              <SelectTrigger className="w-full lg:w-48 rounded-xl border-gray-200">
+              <SelectTrigger className="w-full lg:w-48 rounded-[12px] border-gray-200">
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
@@ -498,7 +498,7 @@ export default function AcademicServicesBookingsPage() {
                   {pendingCount}
                 </p>
               </div>
-              <div className="p-3 bg-blue-200 rounded-xl">
+              <div className="p-3 bg-blue-200 rounded-[12px]">
                 <Clock className="w-6 h-6 text-blue-700" />
               </div>
             </div>
@@ -516,7 +516,7 @@ export default function AcademicServicesBookingsPage() {
                   {confirmedCount}
                 </p>
               </div>
-              <div className="p-3 bg-green-200 rounded-xl">
+              <div className="p-3 bg-green-200 rounded-[12px]">
                 <CheckCircle className="w-6 h-6 text-green-700" />
               </div>
             </div>
@@ -534,7 +534,7 @@ export default function AcademicServicesBookingsPage() {
                   {completedCount}
                 </p>
               </div>
-              <div className="p-3 bg-purple-200 rounded-xl">
+              <div className="p-3 bg-purple-200 rounded-[12px]">
                 <Star className="w-6 h-6 text-purple-700" />
               </div>
             </div>
@@ -552,7 +552,7 @@ export default function AcademicServicesBookingsPage() {
                   {cancelledCount}
                 </p>
               </div>
-              <div className="p-3 bg-red-200 rounded-xl">
+              <div className="p-3 bg-red-200 rounded-[12px]">
                 <XCircle className="w-6 h-6 text-red-700" />
               </div>
             </div>
@@ -570,7 +570,7 @@ export default function AcademicServicesBookingsPage() {
                   £{totalSpent.toFixed(2)}
                 </p>
               </div>
-              <div className="p-3 bg-emerald-200 rounded-xl">
+              <div className="p-3 bg-emerald-200 rounded-[12px]">
                 <DollarSign className="w-6 h-6 text-emerald-700" />
               </div>
             </div>
@@ -580,7 +580,7 @@ export default function AcademicServicesBookingsPage() {
 
       {/* Bookings Tabs */}
       <Tabs defaultValue="all" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 bg-gray-100 p-1 rounded-xl">
+        <TabsList className="grid w-full grid-cols-5 bg-gray-100 p-1 rounded-[12px]">
           <TabsTrigger
             value="all"
             className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
@@ -737,7 +737,7 @@ export default function AcademicServicesBookingsPage() {
                         <CardContent>
                           <div className="space-y-4">
                             {booking.userNotes && (
-                              <div className="bg-gray-50 p-4 rounded-xl">
+                              <div className="bg-gray-50 p-4 rounded-[12px]">
                                 <div className="text-sm font-medium text-gray-700 mb-1">
                                   Notes:
                                 </div>
@@ -831,7 +831,7 @@ export default function AcademicServicesBookingsPage() {
             {/* Product Type Selection */}
             <div className="grid grid-cols-2 gap-4">
               <div
-                className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                className={`p-4 border-2 rounded-[12px] cursor-pointer transition-all ${
                   productType === "AcademicService"
                     ? "border-blue-500 bg-blue-50"
                     : "border-gray-200 hover:border-gray-300"
@@ -854,7 +854,7 @@ export default function AcademicServicesBookingsPage() {
               </div>
 
               <div
-                className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                className={`p-4 border-2 rounded-[12px] cursor-pointer transition-all ${
                   productType === "TrainingProgram"
                     ? "border-purple-500 bg-purple-50"
                     : "border-gray-200 hover:border-gray-300"
@@ -883,7 +883,7 @@ export default function AcademicServicesBookingsPage() {
                 Select Service
               </Label>
               <Select value={productId} onValueChange={setProductId}>
-                <SelectTrigger className="w-full rounded-xl border-gray-200">
+                <SelectTrigger className="w-full rounded-[12px] border-gray-200">
                   <SelectValue
                     placeholder={
                       servicesLoading
@@ -916,7 +916,7 @@ export default function AcademicServicesBookingsPage() {
                 selected)
               </Label>
               <Select value={instructorId} onValueChange={setInstructorId}>
-                <SelectTrigger className="w-full rounded-xl border-gray-200">
+                <SelectTrigger className="w-full rounded-[12px] border-gray-200">
                   <SelectValue
                     placeholder={
                       instructorsLoading
@@ -954,7 +954,7 @@ export default function AcademicServicesBookingsPage() {
                 placeholder="e.g., PhD Mentoring Session, Data Science Training"
                 value={bookingPurpose}
                 onChange={(e) => setBookingPurpose(e.target.value)}
-                className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                className="rounded-[12px] border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                 required
               />
             </div>
@@ -969,7 +969,7 @@ export default function AcademicServicesBookingsPage() {
                   type="datetime-local"
                   value={scheduleAt}
                   onChange={(e) => setScheduleAt(e.target.value)}
-                  className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  className="rounded-[12px] border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                   required
                 />
               </div>
@@ -981,7 +981,7 @@ export default function AcademicServicesBookingsPage() {
                   type="datetime-local"
                   value={endAt}
                   onChange={(e) => setEndAt(e.target.value)}
-                  className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  className="rounded-[12px] border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                   required
                 />
               </div>
@@ -999,7 +999,7 @@ export default function AcademicServicesBookingsPage() {
                   max={480}
                   value={minutesPerSession}
                   onChange={(e) => setMinutesPerSession(Number(e.target.value))}
-                  className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  className="rounded-[12px] border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                   required
                 />
               </div>
@@ -1013,7 +1013,7 @@ export default function AcademicServicesBookingsPage() {
                   max={2880}
                   value={durationInMinutes}
                   onChange={(e) => setDurationInMinutes(Number(e.target.value))}
-                  className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  className="rounded-[12px] border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                   required
                 />
               </div>
@@ -1029,7 +1029,7 @@ export default function AcademicServicesBookingsPage() {
                   onChange={(e) =>
                     setNumberOfExpectedParticipants(Number(e.target.value))
                   }
-                  className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  className="rounded-[12px] border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                   required
                 />
               </div>
@@ -1045,7 +1045,7 @@ export default function AcademicServicesBookingsPage() {
                   value={isSession ? "session" : "classroom"}
                   onValueChange={(value) => setIsSession(value === "session")}
                 >
-                  <SelectTrigger className="w-full rounded-xl border-gray-200">
+                  <SelectTrigger className="w-full rounded-[12px] border-gray-200">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1066,7 +1066,7 @@ export default function AcademicServicesBookingsPage() {
                     setParticipantType(value)
                   }
                 >
-                  <SelectTrigger className="w-full rounded-xl border-gray-200">
+                  <SelectTrigger className="w-full rounded-[12px] border-gray-200">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1086,7 +1086,7 @@ export default function AcademicServicesBookingsPage() {
                 placeholder="https://meet.google.com/..."
                 value={meetingLink}
                 onChange={(e) => setMeetingLink(e.target.value)}
-                className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                className="rounded-[12px] border-gray-200 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
@@ -1099,12 +1099,12 @@ export default function AcademicServicesBookingsPage() {
                 placeholder="Any specific requirements or notes for your booking..."
                 value={userNotes}
                 onChange={(e) => setUserNotes(e.target.value)}
-                className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 min-h-[100px]"
+                className="rounded-[12px] border-gray-200 focus:border-blue-500 focus:ring-blue-500 min-h-[100px]"
               />
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+              <div className="bg-red-50 border border-red-200 rounded-[12px] p-4">
                 <div className="flex items-center gap-2 text-red-700">
                   <AlertCircle className="w-5 h-5" />
                   {error}
@@ -1114,7 +1114,7 @@ export default function AcademicServicesBookingsPage() {
 
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 rounded-xl text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 rounded-[12px] text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
               disabled={loading}
             >
               {loading ? (
@@ -1131,7 +1131,7 @@ export default function AcademicServicesBookingsPage() {
             </Button>
 
             {success && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
+              <div className="bg-green-50 border border-green-200 rounded-[12px] p-6 text-center">
                 <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircle className="w-6 h-6 text-green-600" />
                 </div>

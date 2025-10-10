@@ -238,7 +238,7 @@ export default function CandidatePipelinePage() {
           ))}
         </div>
         {/* Candidate cards for selected stage */}
-        <div className="bg-white rounded-xl shadow p-6 min-h-[200px] flex flex-col gap-4">
+        <div className="bg-white rounded-[12px] shadow p-6 min-h-[200px] flex flex-col gap-4">
           {candidates.filter((c) => c.stage === selectedStage).length === 0 ? (
             <div className="text-gray-400 text-xs text-center">
               No candidates in this stage

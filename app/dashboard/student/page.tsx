@@ -478,7 +478,7 @@ export default function StudentDashboard() {
               <CardContent className="relative pt-6">
                 <div className="flex items-center justify-between mb-4">
                   <div
-                    className={`p-3 rounded-xl bg-gradient-to-br ${stat.bgGradient}`}
+                    className={`p-3 rounded-[12px] bg-gradient-to-br ${stat.bgGradient}`}
                   >
                     {stat.icon}
                   </div>
@@ -569,7 +569,7 @@ export default function StudentDashboard() {
                 {servicesToShow.map((service: any) => (
                   <div
                     key={service.id}
-                    className="group p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:border-purple-200 hover:shadow-md transition-all duration-200"
+                    className="group p-4 bg-gradient-to-r from-gray-50 to-white rounded-[12px] border border-gray-100 hover:border-purple-200 hover:shadow-md transition-all duration-200"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -648,7 +648,7 @@ export default function StudentDashboard() {
                 {announcementsToShow.map((a: any, index: number) => (
                   <div
                     key={a.title}
-                    className="group p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:border-orange-200 hover:shadow-md transition-all duration-200"
+                    className="group p-4 bg-gradient-to-r from-gray-50 to-white rounded-[12px] border border-gray-100 hover:border-orange-200 hover:shadow-md transition-all duration-200"
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0" />
@@ -713,7 +713,7 @@ export default function StudentDashboard() {
                 className="block group"
               >
                 <div
-                  className={`p-6 rounded-xl border-2 border-transparent hover:border-gray-200 transition-all duration-200 group-hover:shadow-md ${shortcut.color}`}
+                  className={`p-6 rounded-[12px] border-2 border-transparent hover:border-gray-200 transition-all duration-200 group-hover:shadow-md ${shortcut.color}`}
                 >
                   <div className="flex flex-col items-center text-center gap-3">
                     <div className="p-3 rounded-full bg-white shadow-sm group-hover:shadow-md transition-shadow">

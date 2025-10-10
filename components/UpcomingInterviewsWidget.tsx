@@ -71,7 +71,7 @@ export const UpcomingInterviewsWidget: React.FC = () => {
     .slice(0, 3);
 
   return (
-    <div className="bg-white border border-blue-100 rounded-xl shadow p-6 h-full flex flex-col">
+    <div className="bg-white border border-blue-100 rounded-[12px] shadow p-6 h-full flex flex-col">
       <h2 className="text-lg font-semibold text-[#011F72] mb-4 flex items-center gap-2">
         <Calendar size={20} className="text-blue-400" /> Upcoming Interviews
       </h2>

@@ -500,7 +500,7 @@ export default function SingleJobPage({
                 </div>
 
                 {/* Enhanced Job Details */}
-                <div className="bg-gray-50 rounded-xl p-6">
+                <div className="bg-gray-50 rounded-[12px] p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <BriefcaseIcon className="w-5 h-5 text-gray-600" />
                     Job Details

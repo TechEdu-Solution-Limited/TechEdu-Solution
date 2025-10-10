@@ -4,7 +4,7 @@ import Link from "next/link";
 export default function PartnerHiringInquiries() {
   return (
     <section className="bg-white py-16 flex justify-center items-center">
-      <div className="bg-[#0D1140] text-white py-8 rounded-xl relative overflow-hidden px-4 sm:px-12 lg:px-16 w-[90%] md:w-[80%]">
+      <div className="bg-[#0D1140] text-white py-8 rounded-[12px] relative overflow-hidden px-4 sm:px-12 lg:px-16 w-[90%] md:w-[80%]">
         <div className="max-w-6xl mx-auto text-center">
           <h2 className="text-2xl md:text-3xl font-bold mb-2">
             Partnership & Hiring Inquiries

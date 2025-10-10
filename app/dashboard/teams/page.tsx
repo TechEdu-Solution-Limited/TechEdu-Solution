@@ -181,7 +181,7 @@ export default function TeamsPage() {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">
+              <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-[12px]">
                 <Users className="w-6 h-6 text-white" />
               </div>
               <div>

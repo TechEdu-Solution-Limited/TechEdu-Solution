@@ -71,7 +71,7 @@ export default function RecruiterAnalyticsPage() {
           {stats.map((stat) => (
             <div
               key={stat.label}
-              className="flex flex-col items-center bg-white rounded-xl shadow p-4"
+              className="flex flex-col items-center bg-white rounded-[12px] shadow p-4"
             >
               <div className="text-2xl font-bold text-[#011F72]">
                 {stat.value}
@@ -83,7 +83,7 @@ export default function RecruiterAnalyticsPage() {
           ))}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <div className="bg-white rounded-xl shadow p-6">
+          <div className="bg-white rounded-[12px] shadow p-6">
             <h2 className="text-lg font-semibold text-[#011F72] mb-4">
               Applications Per Job
             </h2>
@@ -101,7 +101,7 @@ export default function RecruiterAnalyticsPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <div className="bg-white rounded-xl shadow p-6">
+          <div className="bg-white rounded-[12px] shadow p-6">
             <h2 className="text-lg font-semibold text-[#011F72] mb-4">
               Interview Conversion Funnel
             </h2>
@@ -129,7 +129,7 @@ export default function RecruiterAnalyticsPage() {
             </ResponsiveContainer>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow p-6 mb-8">
+        <div className="bg-white rounded-[12px] shadow p-6 mb-8">
           <h2 className="text-lg font-semibold text-[#011F72] mb-4">
             Hires Per Month
           </h2>

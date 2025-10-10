@@ -62,7 +62,7 @@ export default function NotFound() {
           {/* <div className="mb-12">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
               <Link href="/">
-                <div className="group p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-blue-200">
+                <div className="group p-6 bg-white rounded-[12px] shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-blue-200">
                   <Home className="w-8 h-8 text-blue-600 mx-auto mb-3 group-hover:scale-110 transition-transform duration-300" />
                   <h3 className="font-semibold text-gray-900 mb-2">Home</h3>
                   <p className="text-sm text-gray-600">Return to homepage</p>
@@ -70,7 +70,7 @@ export default function NotFound() {
               </Link>
 
               <Link href="/training">
-                <div className="group p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-blue-200">
+                <div className="group p-6 bg-white rounded-[12px] shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-blue-200">
                   <BookOpen className="w-8 h-8 text-indigo-600 mx-auto mb-3 group-hover:scale-110 transition-transform duration-300" />
                   <h3 className="font-semibold text-gray-900 mb-2">Training</h3>
                   <p className="text-sm text-gray-600">Explore courses</p>
@@ -78,7 +78,7 @@ export default function NotFound() {
               </Link>
 
               <Link href="/career-connect">
-                <div className="group p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-blue-200">
+                <div className="group p-6 bg-white rounded-[12px] shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-blue-200">
                   <Briefcase className="w-8 h-8 text-purple-600 mx-auto mb-3 group-hover:scale-110 transition-transform duration-300" />
                   <h3 className="font-semibold text-gray-900 mb-2">
                     Career Connect
@@ -88,7 +88,7 @@ export default function NotFound() {
               </Link>
 
               <Link href="/about">
-                <div className="group p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-blue-200">
+                <div className="group p-6 bg-white rounded-[12px] shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-blue-200">
                   <Users className="w-8 h-8 text-green-600 mx-auto mb-3 group-hover:scale-110 transition-transform duration-300" />
                   <h3 className="font-semibold text-gray-900 mb-2">About Us</h3>
                   <p className="text-sm text-gray-600">Learn more</p>

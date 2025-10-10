@@ -608,16 +608,16 @@ export default function TeamTechProfessionalDashboard() {
             <div className="flex flex-wrap gap-2 sm:gap-3">
               <Button
                 variant="outline"
-                className="rounded-xl text-sm sm:text-base px-4 py-2"
+                className="rounded-[12px] text-sm sm:text-base px-4 py-2"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Refresh</span>
               </Button>
-              <Button className="rounded-xl text-sm sm:text-base px-4 py-2 bg-blue-600 hover:bg-blue-700">
+              <Button className="rounded-[12px] text-sm sm:text-base px-4 py-2 bg-blue-600 hover:bg-blue-700">
                 <Plus className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Invite Members</span>
               </Button>
-              <Button className="rounded-xl text-sm sm:text-base px-4 py-2 bg-green-600 hover:bg-green-700">
+              <Button className="rounded-[12px] text-sm sm:text-base px-4 py-2 bg-green-600 hover:bg-green-700">
                 <Settings className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Settings</span>
               </Button>
@@ -639,7 +639,7 @@ export default function TeamTechProfessionalDashboard() {
                   </p>
                   <p className="text-xs text-blue-600">Active members</p>
                 </div>
-                <div className="p-3 bg-blue-200 rounded-xl">
+                <div className="p-3 bg-blue-200 rounded-[12px]">
                   <Users className="w-5 h-5 sm:w-6 sm:h-6 text-blue-700" />
                 </div>
               </div>
@@ -658,7 +658,7 @@ export default function TeamTechProfessionalDashboard() {
                   </p>
                   <p className="text-xs text-green-600">Ongoing sessions</p>
                 </div>
-                <div className="p-3 bg-green-200 rounded-xl">
+                <div className="p-3 bg-green-200 rounded-[12px]">
                   <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-green-700" />
                 </div>
               </div>
@@ -677,7 +677,7 @@ export default function TeamTechProfessionalDashboard() {
                   </p>
                   <p className="text-xs text-purple-600">Learning spaces</p>
                 </div>
-                <div className="p-3 bg-purple-200 rounded-xl">
+                <div className="p-3 bg-purple-200 rounded-[12px]">
                   <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-purple-700" />
                 </div>
               </div>
@@ -704,7 +704,7 @@ export default function TeamTechProfessionalDashboard() {
                   </p>
                   <p className="text-xs text-yellow-600">Completion rate</p>
                 </div>
-                <div className="p-3 bg-yellow-200 rounded-xl">
+                <div className="p-3 bg-yellow-200 rounded-[12px]">
                   <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-700" />
                 </div>
               </div>
@@ -860,14 +860,14 @@ export default function TeamTechProfessionalDashboard() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   <Button
                     variant="outline"
-                    className="flex items-center justify-center gap-2 h-12 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all"
+                    className="flex items-center justify-center gap-2 h-12 rounded-[12px] hover:bg-blue-50 hover:border-blue-300 transition-all"
                   >
                     <Users className="w-4 h-4" />
                     <span className="text-sm font-medium">Manage Members</span>
                   </Button>
                   <Button
                     variant="outline"
-                    className="flex items-center justify-center gap-2 h-12 rounded-xl hover:bg-green-50 hover:border-green-300 transition-all"
+                    className="flex items-center justify-center gap-2 h-12 rounded-[12px] hover:bg-green-50 hover:border-green-300 transition-all"
                   >
                     <Edit className="w-4 h-4" />
                     <span className="text-sm font-medium">
@@ -876,7 +876,7 @@ export default function TeamTechProfessionalDashboard() {
                   </Button>
                   <Button
                     variant="outline"
-                    className="flex items-center justify-center gap-2 h-12 rounded-xl hover:bg-purple-50 hover:border-purple-300 transition-all sm:col-span-2 lg:col-span-1"
+                    className="flex items-center justify-center gap-2 h-12 rounded-[12px] hover:bg-purple-50 hover:border-purple-300 transition-all sm:col-span-2 lg:col-span-1"
                   >
                     <Download className="w-4 h-4" />
                     <span className="text-sm font-medium">
@@ -1054,7 +1054,7 @@ export default function TeamTechProfessionalDashboard() {
                     {projects.slice(0, 3).map((project) => (
                       <div
                         key={project.id}
-                        className="p-4 bg-white rounded-xl border border-purple-100 hover:shadow-md transition-all duration-300"
+                        className="p-4 bg-white rounded-[12px] border border-purple-100 hover:shadow-md transition-all duration-300"
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
                           <div className="flex-1 min-w-0">
@@ -1204,7 +1204,7 @@ export default function TeamTechProfessionalDashboard() {
                         <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-gray-100">
                           <Button
                             size="sm"
-                            className="flex-1 h-10 rounded-xl bg-blue-600 hover:bg-blue-700"
+                            className="flex-1 h-10 rounded-[12px] bg-blue-600 hover:bg-blue-700"
                           >
                             <Eye className="w-4 h-4 mr-2" />
                             View Details
@@ -1212,7 +1212,7 @@ export default function TeamTechProfessionalDashboard() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-10 rounded-xl hover:bg-gray-50"
+                            className="h-10 rounded-[12px] hover:bg-gray-50"
                           >
                             <Edit className="w-4 h-4 mr-2" />
                             Edit
@@ -1328,7 +1328,7 @@ export default function TeamTechProfessionalDashboard() {
                         <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-gray-100">
                           <Button
                             size="sm"
-                            className="flex-1 h-10 rounded-xl bg-blue-600 hover:bg-blue-700"
+                            className="flex-1 h-10 rounded-[12px] bg-blue-600 hover:bg-blue-700"
                           >
                             <MessageCircle className="w-4 h-4 mr-2" />
                             Message
@@ -1336,7 +1336,7 @@ export default function TeamTechProfessionalDashboard() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-10 rounded-xl hover:bg-gray-50"
+                            className="h-10 rounded-[12px] hover:bg-gray-50"
                           >
                             <Eye className="w-4 h-4 mr-2" />
                             Profile
@@ -1438,7 +1438,7 @@ export default function TeamTechProfessionalDashboard() {
                         <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-gray-100">
                           <Button
                             size="sm"
-                            className="flex-1 h-10 rounded-xl bg-blue-600 hover:bg-blue-700"
+                            className="flex-1 h-10 rounded-[12px] bg-blue-600 hover:bg-blue-700"
                           >
                             <Edit className="w-4 h-4 mr-2" />
                             Update
@@ -1446,7 +1446,7 @@ export default function TeamTechProfessionalDashboard() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-10 rounded-xl hover:bg-gray-50"
+                            className="h-10 rounded-[12px] hover:bg-gray-50"
                           >
                             <Eye className="w-4 h-4 mr-2" />
                             Details

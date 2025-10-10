@@ -1059,7 +1059,7 @@ export default function CartPage() {
                 {cartItems.map((item) => (
                   <div
                     key={item.id}
-                    className="flex flex-col lg:flex-row items-start gap-4 p-6 border border-gray-200 rounded-xl hover:shadow-md transition-all duration-200 bg-white"
+                    className="flex flex-col lg:flex-row items-start gap-4 p-6 border border-gray-200 rounded-[12px] hover:shadow-md transition-all duration-200 bg-white"
                   >
                     <div className="relative w-full lg:w-32 h-40 lg:h-32 flex-shrink-0">
                       <Image

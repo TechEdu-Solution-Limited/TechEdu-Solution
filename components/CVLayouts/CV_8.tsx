@@ -3,7 +3,7 @@ import Image from "next/image";
 export default function Resume8() {
   return (
     <div className="min-h-screen bg-white p-6 md:p-10">
-      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 bg-white shadow-lg rounded-xl overflow-hidden border border-gray-300">
+      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 bg-white shadow-lg rounded-[12px] overflow-hidden border border-gray-300">
         {/* Left Column */}
         <div className="md:col-span-2 p-8">
           <Section title="Professional Experience">

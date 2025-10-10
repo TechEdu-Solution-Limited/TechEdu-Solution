@@ -343,7 +343,7 @@ export default function Pricing() {
             {addOns.map((category, idx) => (
               <div
                 key={idx}
-                className="bg-white p-4 sm:p-6 rounded-xl shadow-sm"
+                className="bg-white p-4 sm:p-6 rounded-[12px] shadow-sm"
               >
                 <h3 className="font-bold text-base sm:text-lg mb-3 sm:mb-4 text-blue-600">
                   {category.category}

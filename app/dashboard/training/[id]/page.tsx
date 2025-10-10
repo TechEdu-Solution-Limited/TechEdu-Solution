@@ -227,7 +227,7 @@ export default function TrainingDetailPage() {
             <Button
               variant="ghost"
               onClick={() => router.back()}
-              className="p-2 hover:bg-white/50 rounded-xl"
+              className="p-2 hover:bg-white/50 rounded-[12px]"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
@@ -293,7 +293,7 @@ export default function TrainingDetailPage() {
             <Button
               variant="ghost"
               onClick={() => router.back()}
-              className="p-2 hover:bg-white/50 rounded-xl"
+              className="p-2 hover:bg-white/50 rounded-[12px]"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
@@ -343,7 +343,7 @@ export default function TrainingDetailPage() {
               <CardHeader>
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div className="flex items-start gap-4">
-                    <div className="p-3 bg-gradient-to-r from-blue-100 to-purple-100 rounded-xl">
+                    <div className="p-3 bg-gradient-to-r from-blue-100 to-purple-100 rounded-[12px]">
                       <BookOpen className="w-6 h-6 text-blue-600" />
                     </div>
                     <div className="min-w-0 flex-1">

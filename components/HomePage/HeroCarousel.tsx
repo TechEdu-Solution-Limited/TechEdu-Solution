@@ -68,7 +68,7 @@ export default function HeroCarousel({
       {/* Carousel Container */}
       <div
         className={clsx(
-          "relative w-full rounded-xl overflow-hidden shadow-lg",
+          "relative w-full rounded-[12px] overflow-hidden shadow-lg",
           heightClass
         )}
       >

@@ -130,7 +130,7 @@ const page = () => {
           {/* Right Image */}
           <div className="flex flex-col items-center w-full max-w-xl mx-auto xl:pt-[6rem] pb-4">
             {/* Image Container */}
-            <div className="relative w-full rounded-xl overflow-hidden shadow-lg h-[16rem] md:h-[22rem]">
+            <div className="relative w-full rounded-[12px] overflow-hidden shadow-lg h-[16rem] md:h-[22rem]">
               <Image
                 src="/assets/young-serious-busy-professional-business.webp"
                 alt="young professionals online training"

@@ -337,7 +337,7 @@ export default function CVStep2({
             <button
               key={layout.id}
               onClick={() => setData({ ...data, layout: layout.id })}
-              className={`group relative text-left border rounded-xl shadow-sm p-3 md:p-4 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`group relative text-left border rounded-[12px] shadow-sm p-3 md:p-4 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 (data.layout || "cv_1") === layout.id
                   ? "border-blue-600 ring-1 ring-blue-300 bg-blue-50"
                   : "hover:border-gray-400 hover:shadow-md"

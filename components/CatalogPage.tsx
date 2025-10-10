@@ -466,7 +466,7 @@ export default function CatalogPage({
             {products.slice(0, 6).map((product) => (
               <div
                 key={product._id}
-                className="flex-shrink-0 bg-white border border-gray-200 rounded-xl p-4 w-[240px] cursor-pointer group hover:shadow-lg hover:border-blue-200 transition-all duration-300 transform hover:-translate-y-1"
+                className="flex-shrink-0 bg-white border border-gray-200 rounded-[12px] p-4 w-[240px] cursor-pointer group hover:shadow-lg hover:border-blue-200 transition-all duration-300 transform hover:-translate-y-1"
                 onClick={() => handleViewDetails(product._id)}
               >
                 
@@ -664,7 +664,7 @@ export default function CatalogPage({
             setPage(1);
           }}
         >
-          <SelectTrigger className="w-40 rounded-xl border-gray-200">
+          <SelectTrigger className="w-40 rounded-[12px] border-gray-200">
             <SelectValue placeholder="Delivery" />
           </SelectTrigger>
           <SelectContent className="bg-white">
@@ -682,7 +682,7 @@ export default function CatalogPage({
           <Button
             variant="outline"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            className="border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2 rounded-xl font-medium transition-colors"
+            className="border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2 rounded-[12px] font-medium transition-colors"
           >
             <svg
               className={`w-4 h-4 mr-2 transition-transform ${
@@ -719,7 +719,7 @@ export default function CatalogPage({
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="w-full rounded-xl border-gray-200">
+                <SelectTrigger className="w-full rounded-[12px] border-gray-200">
                   <SelectValue placeholder="Program Mode" />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
@@ -737,7 +737,7 @@ export default function CatalogPage({
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="w-full rounded-xl border-gray-200">
+                <SelectTrigger className="w-full rounded-[12px] border-gray-200">
                   <SelectValue placeholder="Session Type" />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
@@ -754,7 +754,7 @@ export default function CatalogPage({
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="w-full rounded-xl border-gray-200">
+                <SelectTrigger className="w-full rounded-[12px] border-gray-200">
                   <SelectValue placeholder="Sort By" />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
@@ -774,7 +774,7 @@ export default function CatalogPage({
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="w-full rounded-xl border-gray-200">
+                <SelectTrigger className="w-full rounded-[12px] border-gray-200">
                   <SelectValue placeholder="Order" />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
@@ -792,7 +792,7 @@ export default function CatalogPage({
                   onChange={(e) =>
                     setMinPrice(e.target.value ? Number(e.target.value) : null)
                   }
-                  className="rounded-xl border-gray-200"
+                  className="rounded-[12px] border-gray-200"
                 />
                 <Input
                   type="number"
@@ -801,7 +801,7 @@ export default function CatalogPage({
                   onChange={(e) =>
                     setMaxPrice(e.target.value ? Number(e.target.value) : null)
                   }
-                  className="rounded-xl border-gray-200"
+                  className="rounded-[12px] border-gray-200"
                 />
               </div>
 
@@ -816,7 +816,7 @@ export default function CatalogPage({
                       e.target.value ? Number(e.target.value) : null
                     )
                   }
-                  className="rounded-xl border-gray-200"
+                  className="rounded-[12px] border-gray-200"
                 />
                 <Input
                   type="number"
@@ -827,7 +827,7 @@ export default function CatalogPage({
                       e.target.value ? Number(e.target.value) : null
                     )
                   }
-                  className="rounded-xl border-gray-200"
+                  className="rounded-[12px] border-gray-200"
                 />
               </div>
 
@@ -842,7 +842,7 @@ export default function CatalogPage({
                       e.target.value ? Number(e.target.value) : null
                     )
                   }
-                  className="rounded-xl border-gray-200"
+                  className="rounded-[12px] border-gray-200"
                 />
                 <Input
                   type="number"
@@ -853,7 +853,7 @@ export default function CatalogPage({
                       e.target.value ? Number(e.target.value) : null
                     )
                   }
-                  className="rounded-xl border-gray-200"
+                  className="rounded-[12px] border-gray-200"
                 />
               </div>
 
@@ -868,7 +868,7 @@ export default function CatalogPage({
                       e.target.value ? Number(e.target.value) : null
                     )
                   }
-                  className="rounded-xl border-gray-200"
+                  className="rounded-[12px] border-gray-200"
                 />
                 <Input
                   type="number"
@@ -879,7 +879,7 @@ export default function CatalogPage({
                       e.target.value ? Number(e.target.value) : null
                     )
                   }
-                  className="rounded-xl border-gray-200"
+                  className="rounded-[12px] border-gray-200"
                 />
               </div>
             </div>
@@ -1034,7 +1034,7 @@ export default function CatalogPage({
                   setPage(1);
                   setShowAdvancedFilters(false);
                 }}
-                className="border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2 rounded-xl font-medium transition-colors"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2 rounded-[12px] font-medium transition-colors"
               >
                 <svg
                   className="w-4 h-4 mr-2"
@@ -1142,7 +1142,7 @@ export default function CatalogPage({
                     setMaxProgramLength(null);
                     setPage(1);
                   }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-colors"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-[12px] font-medium transition-colors"
                 >
                   <svg
                     className="w-5 h-5 mr-2"
@@ -1163,7 +1163,7 @@ export default function CatalogPage({
                 {/* <Button
                   variant="outline"
                   onClick={() => setSearch(productType)}
-                  className="border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-3 rounded-xl font-medium transition-colors"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-3 rounded-[12px] font-medium transition-colors"
                 >
                   <svg
                     className="w-5 h-5 mr-2"
@@ -1207,7 +1207,7 @@ export default function CatalogPage({
               {products.map((product) => (
                 <Card
                   key={product._id}
-                  className="flex flex-col h-full bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 group cursor-pointer"
+                  className="flex flex-col h-full bg-white border border-gray-200 rounded-[12px] shadow-sm hover:shadow-lg transition-all duration-200 group cursor-pointer"
                   onClick={(e) => {
                     // Prevent navigation if Add to Cart button is clicked
                     if (
@@ -1438,7 +1438,7 @@ export default function CatalogPage({
                 {detailsLoading ? (
                   <div className="space-y-4 animate-pulse">
                     <div
-                      className="w-full aspect-video bg-gray-200 rounded-xl"
+                      className="w-full aspect-video bg-gray-200 rounded-[12px]"
                       style={{ minHeight: 180 }}
                     />
                     <div className="h-6 bg-gray-200 rounded w-2/3 mx-auto" />
@@ -1455,7 +1455,7 @@ export default function CatalogPage({
                 ) : selectedProduct ? (
                   <div className="space-y-4">
                     <div
-                      className="relative w-full aspect-video bg-gray-100 rounded-xl overflow-hidden"
+                      className="relative w-full aspect-video bg-gray-100 rounded-[12px] overflow-hidden"
                       style={{ minHeight: 180 }}
                     >
                       {/* Main Product Image */}
@@ -1467,7 +1467,7 @@ export default function CatalogPage({
                         }
                         alt={selectedProduct.service}
                         fill
-                        className="object-cover rounded-xl"
+                        className="object-cover rounded-[12px]"
                       />
 
                       {/* Icon Overlay (if both thumbnail and icon exist) */}

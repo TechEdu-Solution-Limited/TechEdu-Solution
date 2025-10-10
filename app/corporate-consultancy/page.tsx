@@ -294,7 +294,7 @@ export default function CorporateConsultancy() {
           {/* Right Image */}
           <div className="flex flex-col items-center w-full max-w-xl mx-auto xl:pt-[6rem] pb-4">
             {/* Image Container */}
-            <div className="relative w-full rounded-xl overflow-hidden shadow-lg h-[16rem] md:h-[22rem]">
+            <div className="relative w-full rounded-[12px] overflow-hidden shadow-lg h-[16rem] md:h-[22rem]">
               <Image
                 src="/assets/corporate-consultancy.webp"
                 alt="corporate consultacy team performance analytics"
@@ -469,7 +469,7 @@ export default function CorporateConsultancy() {
           </div>
 
           {/* Video Section with iframe */}
-          <div className="relative z-10 md:w-1/2 w-full aspect-video bg-gray-300 rounded-xl shadow-md overflow-hidden">
+          <div className="relative z-10 md:w-1/2 w-full aspect-video bg-gray-300 rounded-[12px] shadow-md overflow-hidden">
             <iframe
               src="https://www.youtube.com/embed/dQw4w9WgXcQ" // Replace with your actual video URL
               title="Why Work With Us Video"

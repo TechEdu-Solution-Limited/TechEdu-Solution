@@ -186,7 +186,7 @@ export default function ForEmployers() {
           {/* Right Illustration */}
           <div className="flex flex-col items-center w-full max-w-xl mx-auto xl:pt-[5rem] pb-4">
             {/* Video Container */}
-            <div className="relative w-full rounded-xl overflow-hidden h-[16rem] md:h-[24rem]">
+            <div className="relative w-full rounded-[12px] overflow-hidden h-[16rem] md:h-[24rem]">
               <Image
                 src="/icons/undraw_interview_yz52.svg"
                 alt=""

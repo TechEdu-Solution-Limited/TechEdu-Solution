@@ -279,7 +279,7 @@ export default function PaymentsPage() {
 
     return (
       <div
-        className={`p-2.5 rounded-xl ${config.bgColor} ${config.borderColor} border`}
+        className={`p-2.5 rounded-[12px] ${config.bgColor} ${config.borderColor} border`}
       >
         <IconComponent className={`w-4 h-4 ${config.color}`} />
       </div>
@@ -500,7 +500,7 @@ export default function PaymentsPage() {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg">
+              <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-[12px] shadow-lg">
                 <CreditCard className="w-6 h-6 text-white" />
               </div>
               <div>

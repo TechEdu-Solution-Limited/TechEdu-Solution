@@ -189,7 +189,7 @@ export default function NotesFeedbackPage() {
         </h1>
         {/* Analytics */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow flex items-center gap-3 p-4">
+          <div className="bg-white rounded-[12px] shadow flex items-center gap-3 p-4">
             <Star className="text-yellow-500 w-6 h-6" />
             <div>
               <div className="text-xs text-gray-500">Average Rating</div>
@@ -198,7 +198,7 @@ export default function NotesFeedbackPage() {
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl shadow flex items-center gap-3 p-4">
+          <div className="bg-white rounded-[12px] shadow flex items-center gap-3 p-4">
             <FileText className="text-blue-500 w-6 h-6" />
             <div>
               <div className="text-xs text-gray-500">Total Feedback</div>
@@ -207,7 +207,7 @@ export default function NotesFeedbackPage() {
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl shadow flex items-center gap-3 p-4">
+          <div className="bg-white rounded-[12px] shadow flex items-center gap-3 p-4">
             <ThumbsUp className="text-green-600 w-6 h-6" />
             <div>
               <div className="text-xs text-gray-500">Recommendation Rate</div>
@@ -267,7 +267,7 @@ export default function NotesFeedbackPage() {
           {filteredCandidates.map((c) => (
             <div
               key={c.id}
-              className="bg-white rounded-xl shadow flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border-b last:border-b-0"
+              className="bg-white rounded-[12px] shadow flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border-b last:border-b-0"
             >
               <div>
                 <div className="font-semibold text-[#011F72] text-lg flex items-center gap-2">

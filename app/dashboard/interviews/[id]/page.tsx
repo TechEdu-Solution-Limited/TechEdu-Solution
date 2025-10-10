@@ -103,7 +103,7 @@ export default function InterviewDetailPage() {
   return (
     <div className="p-6 max-w-xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Interview Details</h1>
-      <div className="bg-white border border-blue-100 rounded-xl shadow p-6 mb-6">
+      <div className="bg-white border border-blue-100 rounded-[12px] shadow p-6 mb-6">
         <div className="mb-4">
           <span className="font-semibold text-[#011F72]">Job Title:</span>{" "}
           {interview.jobTitle}

@@ -181,7 +181,7 @@ const page = () => {
           {/* Right Image */}
           <div className="flex flex-col items-center w-full max-w-xl mx-auto xl:pt-[6rem] pb-4">
             {/* Image Container */}
-            <div className="relative w-full rounded-xl overflow-hidden shadow-lg h-[16rem] md:h-[22rem]">
+            <div className="relative w-full rounded-[12px] overflow-hidden shadow-lg h-[16rem] md:h-[22rem]">
               <Image
                 src="/assets/people-graduating-with-diplomas.webp"
                 alt="people-graduating-with-diplomas"
@@ -310,7 +310,7 @@ const page = () => {
               className="p-2 border-2 border-gray-400 rounded-2xl"
             >
               <div
-                className="bg-gray-200 rounded-xl shadow-md border border-gray-300 px-10 py-16 flex flex-col justify-between h-full"
+                className="bg-gray-200 rounded-[12px] shadow-md border border-gray-300 px-10 py-16 flex flex-col justify-between h-full"
                 role="region"
                 aria-labelledby={`plan-${index}`}
               >

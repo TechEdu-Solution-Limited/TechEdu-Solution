@@ -414,7 +414,7 @@ function JobApplicationContent() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50/30 to-indigo-50/30">
       <div className="max-w-6xl mx-auto space-y-8 p-6">
         {/* Enhanced Header */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-[12px] shadow-sm border border-gray-100 p-6">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -460,7 +460,7 @@ function JobApplicationContent() {
                       {uploadedCVs.map((cv) => (
                         <div
                           key={cv.id}
-                          className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                          className={`flex items-center gap-3 p-4 border-2 rounded-[12px] cursor-pointer transition-all duration-200 ${
                             selectedCV === cv.id
                               ? "border-green-500 bg-green-50 shadow-md scale-[1.02]"
                               : "border-gray-200 hover:border-gray-300 hover:shadow-md hover:scale-[1.01]"
@@ -595,7 +595,7 @@ function JobApplicationContent() {
                           {uploadedCoverLetters.map((cl) => (
                             <div
                               key={cl.id}
-                              className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                              className={`flex items-center gap-3 p-4 border-2 rounded-[12px] cursor-pointer transition-all duration-200 ${
                                 selectedCoverLetter === cl.id
                                   ? "border-blue-500 bg-blue-50 shadow-md scale-[1.02]"
                                   : "border-gray-200 hover:border-gray-300 hover:shadow-md hover:scale-[1.01]"

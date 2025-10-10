@@ -206,7 +206,7 @@ const page = () => {
           {/* Right Image */}
           <div className="flex flex-col items-center w-full max-w-xl mx-auto xl:pt-[5rem] pb-4">
             {/* Image Container */}
-            <div className="relative w-full rounded-xl overflow-hidden shadow-lg h-[16rem] md:h-[24rem]">
+            <div className="relative w-full rounded-[12px] overflow-hidden shadow-lg h-[16rem] md:h-[24rem]">
               <Image
                 src="/assets/online-instructor-led-course.avif"
                 alt="corporate consultacy team performance analytics"
@@ -280,7 +280,7 @@ const page = () => {
             {audiences.map((audience) => (
               <div
                 key={audience.id}
-                className="p-6 rounded-xl flex flex-col justify-between h-full"
+                className="p-6 rounded-[12px] flex flex-col justify-between h-full"
                 aria-labelledby={`${audience.id}-heading`}
               >
                 <div>

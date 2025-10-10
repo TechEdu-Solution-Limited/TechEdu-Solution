@@ -32,7 +32,7 @@ export default function Contact() {
         <div className="relative z-10">
           {/* Content with floating image on the left */}
           <div className="space-y-4 text-center md:text-left md:pt-[6rem] xl:text-left xl:pt-8">
-            <div className="md:float-left md:w-[380px] w-full max-w-xl mx-auto md:mr-6 mb-4 rounded-xl overflow-hidden shadow-lg">
+            <div className="md:float-left md:w-[380px] w-full max-w-xl mx-auto md:mr-6 mb-4 rounded-[12px] overflow-hidden shadow-lg">
               <Image
                 src="/assets/Precious-The-Founder.png"
                 alt="Precious Akaighe, Founder & Principal Consultant"
@@ -114,7 +114,7 @@ export default function Contact() {
         {/* Foreground Content with floating image on the right */}
         <div className="relative z-10">
           <div className="space-y-4 text-center md:text-left xl:text-left xl:pt-8">
-            <div className="md:float-right md:w-[380px] w-full max-w-xl mx-auto md:ml-6 mb-4 rounded-xl overflow-hidden shadow-lg">
+            <div className="md:float-right md:w-[380px] w-full max-w-xl mx-auto md:ml-6 mb-4 rounded-[12px] overflow-hidden shadow-lg">
               <Image
                 src="/assets/Dr-Godbless-Akaighe.png"
                 alt="Dr. Godbless Akaighe"

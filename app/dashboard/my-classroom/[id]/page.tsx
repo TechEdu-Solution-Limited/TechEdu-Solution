@@ -371,7 +371,7 @@ export default function SingleClassroomPage() {
             </Button>
             <div className="h-6 w-px bg-gray-300" />
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg">
+              <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-[12px] shadow-lg">
                 <BookOpen className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -427,7 +427,7 @@ export default function SingleClassroomPage() {
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-3 bg-gradient-to-r from-blue-100 to-purple-100 rounded-xl">
+                    <div className="p-3 bg-gradient-to-r from-blue-100 to-purple-100 rounded-[12px]">
                       {ProductTypeIcon && (
                         <ProductTypeIcon className="w-6 h-6 text-blue-600" />
                       )}
@@ -487,7 +487,7 @@ export default function SingleClassroomPage() {
               <CardContent className="space-y-6">
                 {/* Session Details Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200">
+                  <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-[12px] border border-blue-200">
                     <div className="flex items-center gap-3 mb-2">
                       <Calendar className="w-5 h-5 text-blue-600" />
                       <span className="font-semibold text-blue-800">
@@ -504,7 +504,7 @@ export default function SingleClassroomPage() {
                     </div>
                   </div>
 
-                  <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200">
+                  <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-[12px] border border-green-200">
                     <div className="flex items-center gap-3 mb-2">
                       <Clock className="w-5 h-5 text-green-600" />
                       <span className="font-semibold text-green-800">
@@ -516,7 +516,7 @@ export default function SingleClassroomPage() {
                     </div>
                   </div>
 
-                  <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200">
+                  <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-[12px] border border-purple-200">
                     <div className="flex items-center gap-3 mb-2">
                       <Users className="w-5 h-5 text-purple-600" />
                       <span className="font-semibold text-purple-800">
@@ -533,7 +533,7 @@ export default function SingleClassroomPage() {
                 {/* Meeting Link */}
                 {classroom.meetingLink &&
                 classroom.meetingLink.trim() !== "" ? (
-                  <div className="p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl border border-emerald-200">
+                  <div className="p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-[12px] border border-emerald-200">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <Video className="w-5 h-5 text-emerald-600" />
@@ -577,7 +577,7 @@ export default function SingleClassroomPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-200">
+                  <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-[12px] border border-amber-200">
                     <div className="flex items-center gap-3">
                       <AlertCircle className="w-5 h-5 text-amber-600" />
                       <div>
@@ -594,7 +594,7 @@ export default function SingleClassroomPage() {
                 )}
 
                 {/* Session Progress */}
-                <div className="p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl border border-indigo-200">
+                <div className="p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-[12px] border border-indigo-200">
                   <div className="flex items-center gap-3 mb-3">
                     <TrendingUp className="w-5 h-5 text-indigo-600" />
                     <span className="font-semibold text-indigo-800">
@@ -656,7 +656,7 @@ export default function SingleClassroomPage() {
                     {classroom.actualDaysAndTime.map((session, index) => (
                       <div
                         key={index}
-                        className="p-4 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl border border-slate-200 hover:border-blue-300 transition-all duration-300"
+                        className="p-4 bg-gradient-to-br from-slate-50 to-blue-50 rounded-[12px] border border-slate-200 hover:border-blue-300 transition-all duration-300"
                       >
                         <div className="flex items-center gap-3 mb-2">
                           <div className="p-2 bg-blue-100 rounded-full">
@@ -673,7 +673,7 @@ export default function SingleClassroomPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-6 text-center bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl border border-slate-200">
+                  <div className="p-6 text-center bg-gradient-to-br from-slate-50 to-blue-50 rounded-[12px] border border-slate-200">
                     <div className="flex items-center justify-center gap-3 mb-3">
                       <div className="p-3 bg-blue-100 rounded-full">
                         <Calendar className="w-6 h-6 text-blue-600" />
@@ -715,7 +715,7 @@ export default function SingleClassroomPage() {
                     {classroom.participants.map((participant, index) => (
                       <div
                         key={participant._id}
-                        className="p-4 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl border border-slate-200 hover:border-blue-300 transition-all duration-300"
+                        className="p-4 bg-gradient-to-br from-slate-50 to-blue-50 rounded-[12px] border border-slate-200 hover:border-blue-300 transition-all duration-300"
                       >
                         <div className="flex items-center gap-3 mb-2">
                           <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -755,7 +755,7 @@ export default function SingleClassroomPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-200">
+                  <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-[12px] border border-amber-200">
                     <p className="text-slate-700 leading-relaxed">
                       {classroom.instructorNotes}
                     </p>
@@ -788,7 +788,7 @@ export default function SingleClassroomPage() {
                 <CollapsibleContent>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="p-4 bg-slate-50 rounded-xl">
+                      <div className="p-4 bg-slate-50 rounded-[12px]">
                         <div className="text-sm font-medium text-slate-600 mb-1">
                           Booking ID
                         </div>
@@ -796,7 +796,7 @@ export default function SingleClassroomPage() {
                           {classroom.bookingId}
                         </div>
                       </div>
-                      <div className="p-4 bg-slate-50 rounded-xl">
+                      <div className="p-4 bg-slate-50 rounded-[12px]">
                         <div className="text-sm font-medium text-slate-600 mb-1">
                           Product ID
                         </div>
@@ -807,7 +807,7 @@ export default function SingleClassroomPage() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="p-4 bg-slate-50 rounded-xl">
+                      <div className="p-4 bg-slate-50 rounded-[12px]">
                         <div className="text-sm font-medium text-slate-600 mb-1">
                           Session Type
                         </div>
@@ -815,7 +815,7 @@ export default function SingleClassroomPage() {
                           {classroom.sessionType || "Not specified"}
                         </div>
                       </div>
-                      <div className="p-4 bg-slate-50 rounded-xl">
+                      <div className="p-4 bg-slate-50 rounded-[12px]">
                         <div className="text-sm font-medium text-slate-600 mb-1">
                           Participant Type
                         </div>
@@ -828,7 +828,7 @@ export default function SingleClassroomPage() {
                     {(classroom.sessionsCompleted !== undefined ||
                       classroom.sessionsRemaining !== undefined) && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="p-4 bg-slate-50 rounded-xl">
+                        <div className="p-4 bg-slate-50 rounded-[12px]">
                           <div className="text-sm font-medium text-slate-600 mb-1">
                             Sessions Completed
                           </div>
@@ -836,7 +836,7 @@ export default function SingleClassroomPage() {
                             {classroom.sessionsCompleted || 0}
                           </div>
                         </div>
-                        <div className="p-4 bg-slate-50 rounded-xl">
+                        <div className="p-4 bg-slate-50 rounded-[12px]">
                           <div className="text-sm font-medium text-slate-600 mb-1">
                             Sessions Remaining
                           </div>
@@ -848,7 +848,7 @@ export default function SingleClassroomPage() {
                     )}
 
                     {classroom.createdBy && (
-                      <div className="p-4 bg-slate-50 rounded-xl">
+                      <div className="p-4 bg-slate-50 rounded-[12px]">
                         <div className="text-sm font-medium text-slate-600 mb-1">
                           Created By
                         </div>
@@ -859,7 +859,7 @@ export default function SingleClassroomPage() {
                     )}
 
                     {classroom.internalNotes && (
-                      <div className="p-4 bg-slate-50 rounded-xl">
+                      <div className="p-4 bg-slate-50 rounded-[12px]">
                         <div className="text-sm font-medium text-slate-600 mb-2">
                           Internal Notes
                         </div>
@@ -870,7 +870,7 @@ export default function SingleClassroomPage() {
                     )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="p-4 bg-slate-50 rounded-xl">
+                      <div className="p-4 bg-slate-50 rounded-[12px]">
                         <div className="text-sm font-medium text-slate-600 mb-1">
                           Created
                         </div>
@@ -879,7 +879,7 @@ export default function SingleClassroomPage() {
                         </div>
                       </div>
                       {classroom.updatedAt && (
-                        <div className="p-4 bg-slate-50 rounded-xl">
+                        <div className="p-4 bg-slate-50 rounded-[12px]">
                           <div className="text-sm font-medium text-slate-600 mb-1">
                             Last Updated
                           </div>
@@ -922,7 +922,7 @@ export default function SingleClassroomPage() {
                     </Link>
                   </Button>
                 ) : (
-                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">
+                  <div className="p-3 bg-amber-50 rounded-[12px] border border-amber-200">
                     <div className="flex items-center gap-2 text-amber-700">
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm font-medium">
@@ -989,13 +989,13 @@ export default function SingleClassroomPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 text-center">
-                  <div className="p-3 bg-blue-50 rounded-xl">
+                  <div className="p-3 bg-blue-50 rounded-[12px]">
                     <div className="text-lg font-bold text-blue-600">
                       {classroom.minutesPerSession || 60}
                     </div>
                     <div className="text-xs text-blue-600">Minutes</div>
                   </div>
-                  <div className="p-3 bg-green-50 rounded-xl">
+                  <div className="p-3 bg-green-50 rounded-[12px]">
                     <div className="text-lg font-bold text-green-600">
                       {getParticipantInfo(classroom).count}
                     </div>
@@ -1006,13 +1006,13 @@ export default function SingleClassroomPage() {
                 {(classroom.sessionsCompleted !== undefined ||
                   classroom.sessionsRemaining !== undefined) && (
                   <div className="grid grid-cols-2 gap-4 text-center">
-                    <div className="p-3 bg-purple-50 rounded-xl">
+                    <div className="p-3 bg-purple-50 rounded-[12px]">
                       <div className="text-lg font-bold text-purple-600">
                         {classroom.sessionsCompleted || 0}
                       </div>
                       <div className="text-xs text-purple-600">Completed</div>
                     </div>
-                    <div className="p-3 bg-orange-50 rounded-xl">
+                    <div className="p-3 bg-orange-50 rounded-[12px]">
                       <div className="text-lg font-bold text-orange-600">
                         {classroom.sessionsRemaining || 0}
                       </div>
@@ -1032,25 +1032,25 @@ export default function SingleClassroomPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl">
+                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-[12px]">
                   <Wifi className="w-4 h-4 text-green-600" />
                   <span className="text-sm text-green-700">
                     Stable internet connection
                   </span>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
+                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-[12px]">
                   <Headphones className="w-4 h-4 text-blue-600" />
                   <span className="text-sm text-blue-700">
                     Audio device (headphones/mic)
                   </span>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-xl">
+                <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-[12px]">
                   <Camera className="w-4 h-4 text-purple-600" />
                   <span className="text-sm text-purple-700">
                     Webcam (optional)
                   </span>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-xl">
+                <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-[12px]">
                   <Keyboard className="w-4 h-4 text-orange-600" />
                   <span className="text-sm text-orange-700">
                     Keyboard for interaction
@@ -1068,19 +1068,19 @@ export default function SingleClassroomPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-[12px]">
                   <Mail className="w-4 h-4 text-slate-600" />
                   <span className="text-sm text-slate-700">
                     support@techeduk.com
                   </span>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-[12px]">
                   <Phone className="w-4 h-4 text-slate-600" />
                   <span className="text-sm text-slate-700">
                     +1 (555) 123-4567
                   </span>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-[12px]">
                   <Globe className="w-4 h-4 text-slate-600" />
                   <span className="text-sm text-slate-700">24/7 Live Chat</span>
                 </div>

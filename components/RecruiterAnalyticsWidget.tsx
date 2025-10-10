@@ -24,7 +24,7 @@ const applicationsData = [
 ];
 
 export const RecruiterAnalyticsWidget: React.FC = () => (
-  <div className="bg-white border border-blue-100 rounded-xl shadow p-6 flex flex-col gap-6">
+  <div className="bg-white border border-blue-100 rounded-[12px] shadow p-6 flex flex-col gap-6">
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
       {stats.map((stat) => (
         <div key={stat.label} className="flex flex-col items-center">

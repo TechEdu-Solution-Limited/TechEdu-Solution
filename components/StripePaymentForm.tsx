@@ -288,7 +288,7 @@ function PaymentForm({
       </div>
 
       {/* Order Summary */}
-      <div className="bg-gray-50 rounded-xl p-4 mb-6">
+      <div className="bg-gray-50 rounded-[12px] p-4 mb-6">
         <div className="flex justify-between items-center mb-3">
           <span className="text-sm font-medium text-gray-700">
             Order Summary
@@ -333,7 +333,7 @@ function PaymentForm({
                 Card Number
               </label>
               <div className="relative">
-                <div className="border-2 border-gray-200 rounded-xl p-4 bg-white hover:border-blue-300 focus-within:border-blue-500 transition-colors">
+                <div className="border-2 border-gray-200 rounded-[12px] p-4 bg-white hover:border-blue-300 focus-within:border-blue-500 transition-colors">
                   <CardNumberElement
                     options={cardElementStyle}
                     onChange={handleCardChange("number")}
@@ -359,7 +359,7 @@ function PaymentForm({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Expiry Date
                 </label>
-                <div className="border-2 border-gray-200 rounded-xl p-4 bg-white hover:border-blue-300 focus-within:border-blue-500 transition-colors">
+                <div className="border-2 border-gray-200 rounded-[12px] p-4 bg-white hover:border-blue-300 focus-within:border-blue-500 transition-colors">
                   <CardExpiryElement
                     options={cardElementStyle}
                     onChange={handleCardChange("expiry")}
@@ -371,7 +371,7 @@ function PaymentForm({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   CVC
                 </label>
-                <div className="border-2 border-gray-200 rounded-xl p-4 bg-white hover:border-blue-300 focus-within:border-blue-500 transition-colors">
+                <div className="border-2 border-gray-200 rounded-[12px] p-4 bg-white hover:border-blue-300 focus-within:border-blue-500 transition-colors">
                   <CardCvcElement
                     options={cardElementStyle}
                     onChange={handleCardChange("cvc")}
@@ -383,7 +383,7 @@ function PaymentForm({
 
           {/* Error Display */}
           {error && (
-            <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-[12px]">
               <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="text-sm font-medium text-red-800">
@@ -418,7 +418,7 @@ function PaymentForm({
             disabled={
               !stripe || isProcessing || !isFormComplete || paymentSuccessful
             }
-            className={`w-full py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`w-full py-4 rounded-[12px] font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
               paymentSuccessful
                 ? "bg-green-600 hover:bg-green-600"
                 : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
@@ -459,7 +459,7 @@ function PaymentForm({
 
       {/* Test Mode Indicator */}
       {process.env.NODE_ENV === "development" && (
-        <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+        <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-[12px]">
           <div className="flex items-start gap-3">
             <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
             <div>
