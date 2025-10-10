@@ -593,20 +593,37 @@ class OptimizedCVService {
   // EXPERIENCE: returns ExperienceAssessment
   async generateExperience(
     cvId: string,
-    context: {
-      targetRole: string;
-      industry: string;
-      // startDate: string;
-      // endDate: string;
-      // position: string;
-    }
-  ): Promise<ExperienceAssessment> {
+    context: { targetRole?: string; industry?: string },
+    extra?: Record<string, unknown>
+  ) {
+    if (!cvId) throw new Error("CV must be created first");
+
+    // ✅ single call, POST, with cvId in the body (and still in the query if your API expects it)
     const res = await this.apiRequest<any>(
       `/api/cv/ai/experience?cvId=${encodeURIComponent(cvId)}`,
       "POST",
-      { context }
+      {
+        cvId, // many backends require it in the body
+        context, // { targetRole, industry }
+        ...(extra || {}),
+      }
     );
+
+    // ✅ normalize to the shape your UI expects
     return normalizeExperience(res);
+  }
+
+  /**
+   * Call once if backend requires explicit AI processing consent
+   * POST /api/auth/ai/consent/accept  -> { ok: true }
+   */
+  async acceptAIProcessing() {
+    const json = await this.apiRequest<any>(
+      `/api/auth/ai/consent/accept`,
+      "POST"
+    );
+    if (!json?.ok) throw new Error("Failed to accept AI processing consent");
+    return true;
   }
 
   // SKILLS: returns SkillsAssessment

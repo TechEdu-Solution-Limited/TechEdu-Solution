@@ -142,48 +142,6 @@ export default function ProfessionalSummarySection({
     onUpdateProfessionalSummary({ summary: next });
   };
 
-  const replaceWithAll = () => {
-    const html = buildHtml({
-      content: ai?.content,
-      bullets: ai?.bullets,
-      includeContent: !!ai?.content?.trim(),
-      includeBullets: !!(ai?.bullets && ai.bullets.length),
-    });
-    if (html) commitHtml(html, "replace");
-  };
-  const insertContent = () => {
-    if (!ai?.content?.trim()) return;
-    const html = buildHtml({
-      content: ai.content,
-      bullets: [],
-      includeContent: true,
-      includeBullets: false,
-    });
-    if (html) commitHtml(html, insertMode);
-  };
-  const addSelectedBullets = () => {
-    const bullets = selectedBullets;
-    if (!bullets.length) return;
-    const html = buildHtml({
-      content: undefined,
-      bullets,
-      includeContent: false,
-      includeBullets: true,
-    });
-    if (html) commitHtml(html, insertMode);
-  };
-  const addAllBullets = () => {
-    const bullets = ai?.bullets ?? [];
-    if (!bullets.length) return;
-    const html = buildHtml({
-      content: undefined,
-      bullets,
-      includeContent: false,
-      includeBullets: true,
-    });
-    if (html) commitHtml(html, insertMode);
-  };
-
   // --- AI request (training-gated; processing auto-accepted) ---
   const generateAISuggestion = async () => {
     if (!personalInfo?.targetedJobTitle?.trim()) {
