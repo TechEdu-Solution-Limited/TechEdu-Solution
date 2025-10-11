@@ -15,9 +15,13 @@ function scoreToLevel(score: number): string {
 }
 
 // --- helpers ----------------------------------------------------
+// make plain text safe HTML (<p>...</p>) so RichHtml can render it
+// top of file (or shared util)
 const isHtml = (s?: string) => !!s && /<\/?[a-z][\s\S]*>/i.test(s);
 const esc = (s = "") =>
   s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+const ensureHtml = (s?: string) =>
+  !s ? "" : isHtml(s) ? s : `<p>${esc(s)}</p>`;
 
 export function toExperienceHtml(
   description?: string,
@@ -49,23 +53,18 @@ export function toExperienceHtml(
 export function formatSectionContent(section: ResumeSection) {
   switch (section.type) {
     // utils/cv/sectionHelpers.ts (inside formatSectionContent)
-    case "work-experience": {
+    case "education": {
       const data = Array.isArray(section.data) ? section.data : [];
       return data.map((e: any) => ({
         id: e.id,
-        title: e.position || e.title || e.jobTitle,
-        jobTitle: e.jobTitle,
-        company: e.company,
+        degree: e.degree,
+        field: e.field,
+        school: e.institution,
         startDate: e.startDate,
         endDate: e.current ? "Present" : e.endDate,
-        current: !!e.current,
         location: e.location,
-        description: toExperienceHtml(
-          e.description,
-          e.achievements ?? e.bullets
-        ),
-        bullets: [], // not needed anymore
-        technologies: e.technologies,
+        gpa: e.gpa,
+        description: ensureHtml(e.description), // ✅ ensure HTML here
       }));
     }
 

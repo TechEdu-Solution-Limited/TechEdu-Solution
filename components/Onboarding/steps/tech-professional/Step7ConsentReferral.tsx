@@ -13,14 +13,14 @@ interface Step7Props {
 }
 
 const referralSources = [
-  "Social Media",
-  "Friend",
+  // "Social Media",
+  // "Friend",
   "Referral",
-  "Tech Event",
-  "Google Search",
-  "LinkedIn",
-  "GitHub",
-  "Other",
+  // "Tech Event",
+  // "Google Search",
+  // "LinkedIn",
+  // "GitHub",
+  // "Other",
 ];
 
 export default function Step7ConsentReferral({
