@@ -253,11 +253,11 @@ export const dashboardSidebarConfig = {
       {
         title: "Team Management",
         items: [
-          {
-            label: "Team",
-            icon: Settings,
-            href: "/dashboard/team-tech-professional/team-management",
-          },
+          // {
+          //   label: "Team",
+          //   icon: Settings,
+          //   href: "/dashboard/team-tech-professional/team-management",
+          // },
           {
             label: "My Team",
             icon: Users,
