@@ -13,8 +13,6 @@ import type {
 } from "@/types";
 
 export class PaymentService {
-  private static baseUrl = "/api/payments";
-
   /**
    * Create a payment intent
    */
@@ -22,13 +20,9 @@ export class PaymentService {
     data: CreatePaymentIntentRequest,
     token: string
   ): Promise<ApiResponse<PaymentResponse>> {
-    const response = await postApiRequest(
-      `${this.baseUrl}/create-intent`,
-      data,
-      {
-        Authorization: `Bearer ${token}`,
-      }
-    );
+    const response = await postApiRequest(`/api/payments/create-intent`, data, {
+      Authorization: `Bearer ${token}`,
+    });
     return response;
   }
 
@@ -55,7 +49,7 @@ export class PaymentService {
     };
 
     const response = await postApiRequest(
-      `${this.baseUrl}/create-intent`,
+      `/api/payments/create-intent`,
       payload,
       {
         Authorization: `Bearer ${token}`,
@@ -71,7 +65,7 @@ export class PaymentService {
     paymentIntentId: string,
     token: string
   ): Promise<ApiResponse<PaymentIntent>> {
-    return getApiRequest(`${this.baseUrl}/intent/${paymentIntentId}`, token);
+    return getApiRequest(`/api/payments/intent/${paymentIntentId}`, token);
   }
 
   /**
@@ -82,7 +76,7 @@ export class PaymentService {
     token: string
   ): Promise<ApiResponse<PaymentResponse>> {
     return postApiRequest(
-      `${this.baseUrl}/intent/${paymentIntentId}/confirm`,
+      `/api/payments/intent/${paymentIntentId}/confirm`,
       {},
       { Authorization: `Bearer ${token}` }
     );
@@ -96,7 +90,7 @@ export class PaymentService {
     token: string
   ): Promise<ApiResponse<{ message: string }>> {
     return postApiRequest(
-      `${this.baseUrl}/intent/${paymentIntentId}/cancel`,
+      `/api/payments/intent/${paymentIntentId}/cancel`,
       {},
       { Authorization: `Bearer ${token}` }
     );
@@ -109,7 +103,7 @@ export class PaymentService {
     paymentId: string,
     token: string
   ): Promise<ApiResponse<Payment>> {
-    return getApiRequest(`${this.baseUrl}/${paymentId}`, token);
+    return getApiRequest(`/api/payments/${paymentId}`, token);
   }
 
   /**
@@ -131,8 +125,8 @@ export class PaymentService {
 
     const queryString = queryParams.toString();
     const url = queryString
-      ? `${this.baseUrl}/my-payments?${queryString}`
-      : `${this.baseUrl}/my-payments`;
+      ? `/api/payments/my-payments?${queryString}`
+      : `/api/payments/my-payments`;
 
     return getApiRequest(url, token);
   }
@@ -145,7 +139,7 @@ export class PaymentService {
     data: UpdatePaymentRequest,
     token: string
   ): Promise<ApiResponse<Payment>> {
-    return putApiRequest(`${this.baseUrl}/${paymentId}`, data, token);
+    return putApiRequest(`/api/payments/${paymentId}`, data, token);
   }
 
   /**
@@ -177,8 +171,8 @@ export class PaymentService {
     }
     const queryString = queryParams.toString();
     const url = queryString
-      ? `${this.baseUrl}/stats?${queryString}`
-      : `${this.baseUrl}/stats`;
+      ? `/api/payments/stats?${queryString}`
+      : `/api/payments/stats`;
     return getApiRequest(url, token);
   }
 
@@ -188,7 +182,7 @@ export class PaymentService {
   static async processWebhook(
     webhookData: any
   ): Promise<ApiResponse<{ message: string }>> {
-    return postApiRequest(`${this.baseUrl}/webhook`, webhookData);
+    return postApiRequest(`/api/payments/webhook`, webhookData);
   }
 
   /**
@@ -202,7 +196,7 @@ export class PaymentService {
     },
     token: string
   ): Promise<ApiResponse<PaymentRefund>> {
-    return postApiRequest(`${this.baseUrl}/${paymentId}/refund`, data, {
+    return postApiRequest(`/api/payments/${paymentId}/refund`, data, {
       Authorization: `Bearer ${token}`,
     });
   }
@@ -214,7 +208,7 @@ export class PaymentService {
     refundId: string,
     token: string
   ): Promise<ApiResponse<PaymentRefund>> {
-    return getApiRequest(`${this.baseUrl}/refunds/${refundId}`, token);
+    return getApiRequest(`/api/payments/refunds/${refundId}`, token);
   }
 
   /**
@@ -224,7 +218,7 @@ export class PaymentService {
     paymentId: string,
     token: string
   ): Promise<ApiResponse<PaymentRefund[]>> {
-    return getApiRequest(`${this.baseUrl}/${paymentId}/refunds`, token);
+    return getApiRequest(`/api/payments/${paymentId}/refunds`, token);
   }
 
   /**
@@ -236,7 +230,7 @@ export class PaymentService {
       defaultMethod?: any;
     }>
   > {
-    return getApiRequest(`${this.baseUrl}/payment-methods`, token);
+    return getApiRequest(`/api/payments/payment-methods`, token);
   }
 
   /**
@@ -249,7 +243,7 @@ export class PaymentService {
     },
     token: string
   ): Promise<ApiResponse<{ message: string }>> {
-    return postApiRequest(`${this.baseUrl}/payment-methods`, data, {
+    return postApiRequest(`/api/payments/payment-methods`, data, {
       Authorization: `Bearer ${token}`,
     });
   }
@@ -262,7 +256,7 @@ export class PaymentService {
     token: string
   ): Promise<ApiResponse<{ message: string }>> {
     return postApiRequest(
-      `${this.baseUrl}/payment-methods/${paymentMethodId}/remove`,
+      `/api/payments/payment-methods/${paymentMethodId}/remove`,
       {},
       { Authorization: `Bearer ${token}` }
     );
@@ -276,7 +270,7 @@ export class PaymentService {
     token: string
   ): Promise<ApiResponse<{ message: string }>> {
     return postApiRequest(
-      `${this.baseUrl}/payment-methods/${paymentMethodId}/default`,
+      `/api/payments/payment-methods/${paymentMethodId}/default`,
       {},
       { Authorization: `Bearer ${token}` }
     );
@@ -313,8 +307,8 @@ export class PaymentService {
     }
     const queryString = queryParams.toString();
     const url = queryString
-      ? `${this.baseUrl}/analytics?${queryString}`
-      : `${this.baseUrl}/analytics`;
+      ? `/api/payments/analytics?${queryString}`
+      : `/api/payments/analytics`;
     return getApiRequest(url, token);
   }
 
@@ -339,8 +333,8 @@ export class PaymentService {
     }
     const queryString = queryParams.toString();
     const url = queryString
-      ? `${this.baseUrl}/export?${queryString}`
-      : `${this.baseUrl}/export`;
+      ? `/api/payments/export?${queryString}`
+      : `/api/payments/export`;
     return getApiRequest(url, token);
   }
 }

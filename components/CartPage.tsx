@@ -334,7 +334,7 @@ export default function CartPage() {
               "Booking created successfully with ID:",
               currentBookingId
             );
-            // Update the cart item with the new booking ID
+            // Update the cart item with the new booking ID (mutating here as per your current pattern)
             if (item.bookingDetails) {
               item.bookingDetails = {
                 ...item.bookingDetails,
@@ -348,8 +348,7 @@ export default function CartPage() {
           }
         } catch (bookingError) {
           safeConsole.error("Booking creation error:", bookingError);
-          // For now, let's continue with payment intent creation even if booking fails
-          // This allows us to test the payment flow
+          // For now, continue with payment intent creation even if booking fails
           safeConsole.warn(
             "Continuing with payment intent creation despite booking failure"
           );
@@ -379,44 +378,44 @@ export default function CartPage() {
         safeConsole.log("Non-bookable service - no booking ID needed");
       }
 
-      // For individualTechProfessional, use default values since modal is skipped
-      const isIndividualTechProfessional =
-        userData?.role === "individualTechProfessional";
+      // ---- minimal: only pass fields if required ----
+      const needsBooking = !!item.requiresBooking;
+      const needsAttachment = !!item.isAttachmentRequired;
 
-      const paymentData: SimplePaymentIntentRequest = {
+      // take first uploaded file (validated in handleBookingFormSubmit)
+      const firstAttachment = bookingFormData.attachments?.[0];
+
+      // extra safety (defensive)
+      if (needsAttachment && !firstAttachment) {
+        throw new Error("Attachment URL is required for this product");
+      }
+      if (needsAttachment && !bookingFormData.userNotes?.trim()) {
+        throw new Error("User notes are required for this product");
+      }
+
+      // Build payment payload (only include when needed)
+      const paymentData: SimplePaymentIntentRequest & {
+        attachmentUrl?: string; // keep if backend uses this
+      } = {
         productId: item.id,
-        isTeam: isIndividualTechProfessional ? false : bookingFormData.isTeam,
-        userNotes: isIndividualTechProfessional
-          ? ""
-          : bookingFormData.userNotes,
-        attachments: isIndividualTechProfessional
-          ? undefined
-          : bookingFormData.attachments.length > 0
-          ? bookingFormData.attachments[0]
-          : undefined, // Single attachment URL
-        participantType: isIndividualTechProfessional
-          ? "individual"
-          : bookingFormData.participantType,
+        isTeam: bookingFormData.isTeam ?? false,
+        participantType: bookingFormData.participantType ?? "individual",
         numberOfExpectedParticipants: 1,
-        // Only include optional fields if they have valid values
+
+        ...(needsBooking ? { userNotes: bookingFormData.userNotes } : {}),
+
+        // If your API expects `attachments` (string), keep this:
+        ...(needsAttachment ? { attachments: firstAttachment } : {}),
+        // If your API expects `attachmentUrl` instead, keep this too:
+        ...(needsAttachment ? { attachmentUrl: firstAttachment } : {}),
+
+        // Optional Stripe customer
         ...((userData as any)?.stripeCustomerId && {
           customerId: (userData as any).stripeCustomerId,
         }),
       };
 
-      safeConsole.log("Payment data:", paymentData);
-      safeConsole.log("Four booking details being sent:", {
-        userNotes: isIndividualTechProfessional
-          ? ""
-          : bookingFormData.userNotes,
-        attachments: isIndividualTechProfessional
-          ? []
-          : bookingFormData.attachments,
-        isTeam: isIndividualTechProfessional ? false : bookingFormData.isTeam,
-        participantType: isIndividualTechProfessional
-          ? "individual"
-          : bookingFormData.participantType,
-      });
+      safeConsole.log("Payment data (final):", paymentData);
 
       let response;
       try {
@@ -430,14 +429,18 @@ export default function CartPage() {
       } catch (apiError: any) {
         safeConsole.error("ed:", apiError);
         throw new Error(
-          `API call failed: ${apiError.message || "Unknown error"}`
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : `API call failed: ${apiError.message || "Unknown error"}`
         );
       }
 
       if (!response || !response.data?.success) {
         safeConsole.error("Payment intent creation failed:", response);
         throw new Error(
-          response?.data?.message || "Failed to create payment intent"
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : response?.data?.message || "Failed to create payment intent"
         );
       }
 
@@ -473,7 +476,7 @@ export default function CartPage() {
       safeConsole.error("Init payment error:", err);
 
       // Provide error message
-      let errorMessage = err?.message || "Failed to start payment";
+      const errorMessage = err?.message || "Failed to start payment";
 
       setPaymentError(
         process.env.NEXT_PUBLIC_NODE_ENV === "production"
