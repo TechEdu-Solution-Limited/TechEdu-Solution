@@ -301,40 +301,23 @@ export function ClassicTemplateHtmlRenderer({
                     }
                   >
                     {/* Work Experience */}
-                    {(item.title || item.position || item.jobTitle) &&
-                      item.company && (
-                        <div>
-                          <div className="flex justify-between items-start">
-                            <p
-                              className="font-semibold"
-                              style={{
-                                color: template.styles.colors.text,
-                                fontFamily: mapFontFamily(
-                                  template.styles.typography.fontFamily
-                                ),
-                                fontSize: `${template.styles.typography.bodySize}px`,
-                              }}
-                            >
-                              {item.title || item.position || item.jobTitle} —{" "}
-                              <span className="italic">{item.company}</span>
-                            </p>
-                            {(item.startDate || item.endDate) && (
-                              <p
-                                className="text-xs text-gray-500"
-                                style={{
-                                  color: template.styles.colors.secondary,
-                                  fontFamily: mapFontFamily(
-                                    template.styles.typography.fontFamily
-                                  ),
-                                }}
-                              >
-                                {item.startDate}{" "}
-                                {item.endDate ? "– " + item.endDate : ""}
-                              </p>
-                            )}
-                          </div>
-
-                          {item.location && (
+                    {(item.title || item.jobTitle) && item.company && (
+                      <div>
+                        <div className="flex justify-between items-start">
+                          <p
+                            className="font-semibold"
+                            style={{
+                              color: template.styles.colors.text,
+                              fontFamily: mapFontFamily(
+                                template.styles.typography.fontFamily
+                              ),
+                              fontSize: `${template.styles.typography.bodySize}px`,
+                            }}
+                          >
+                            {(item.title || item.jobTitle) as string} —{" "}
+                            <span className="italic">{item.company}</span>
+                          </p>
+                          {item.startDate && (
                             <p
                               className="text-xs text-gray-500"
                               style={{
@@ -344,49 +327,51 @@ export function ClassicTemplateHtmlRenderer({
                                 ),
                               }}
                             >
-                              {item.location}
+                              {item.startDate} –{" "}
+                              {item.endDate || (item.current ? "Present" : "")}
                             </p>
                           )}
-
-                          {/* 🟦 Quill HTML (paragraphs, inline styles, lists…) */}
-                          {item.description && (
-                            <RichHtml
-                              html={item.description}
-                              template={template}
-                              sizeOffset={-1}
-                            />
-                          )}
-
-                          {/* 🟩 Bullets: prefer item.bullets, else item.achievements */}
-                          {Array.isArray(item.bullets) &&
-                            item.bullets.length > 0 && (
-                              <ul className="list-disc pl-6 mt-2">
-                                {item.bullets.map(
-                                  (line: string, idx: number) => (
-                                    <li
-                                      key={idx}
-                                      className="prose prose-sm max-w-none [&_strong]:font-bold [&_em]:italic"
-                                      style={{
-                                        color: template.styles.colors.text,
-                                        fontFamily: mapFontFamily(
-                                          template.styles.typography.fontFamily
-                                        ),
-                                        fontSize: `${
-                                          template.styles.typography.bodySize -
-                                          1
-                                        }px`,
-                                      }}
-                                      // bullet lines are plain text; sanitizeHtml handles it safely
-                                      dangerouslySetInnerHTML={{
-                                        __html: sanitizeHtml(line),
-                                      }}
-                                    />
-                                  )
-                                )}
-                              </ul>
-                            )}
                         </div>
-                      )}
+
+                        {item.location && (
+                          <p
+                            className="text-xs text-gray-500"
+                            style={{
+                              color: template.styles.colors.secondary,
+                              fontFamily: mapFontFamily(
+                                template.styles.typography.fontFamily
+                              ),
+                            }}
+                          >
+                            {item.location}
+                          </p>
+                        )}
+
+                        {/* ✅ description already contains <p> + <ul><li> */}
+                        {item.description && (
+                          <RichHtml
+                            html={item.description}
+                            template={template}
+                            sizeOffset={-1}
+                          />
+                        )}
+
+                        {Array.isArray(item.technologies) &&
+                          item.technologies.length > 0 && (
+                            <p
+                              className="text-xs text-gray-500 mt-1"
+                              style={{
+                                color: template.styles.colors.secondary,
+                                fontFamily: mapFontFamily(
+                                  template.styles.typography.fontFamily
+                                ),
+                              }}
+                            >
+                              Technologies: {item.technologies.join(", ")}
+                            </p>
+                          )}
+                      </div>
+                    )}
 
                     {/* Education */}
                     {item.degree && item.field && (

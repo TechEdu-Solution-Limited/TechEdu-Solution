@@ -507,7 +507,7 @@ export function ClassicTemplatePdfRenderer({
                             <Text style={styles.itemDate}>{item.location}</Text>
                           )}
 
-                          {/* description is guaranteed HTML by formatter */}
+                          {/* ✅ merged HTML */}
                           {item.description ? (
                             <RichPdf
                               html={item.description}
@@ -515,21 +515,7 @@ export function ClassicTemplatePdfRenderer({
                             />
                           ) : null}
 
-                          {/* bullets are already normalized by formatter */}
-                          {Array.isArray(item.bullets) &&
-                            item.bullets.length > 0 && (
-                              <View style={styles.bulletList}>
-                                {item.bullets.map(
-                                  (line: string, idx: number) => (
-                                    <Text key={idx} style={styles.bullet}>
-                                      • {convertHtmlToPdfText(line)}
-                                    </Text>
-                                  )
-                                )}
-                              </View>
-                            )}
-
-                          {/* optional technologies */}
+                          {/* Optional: technologies */}
                           {Array.isArray(item.technologies) &&
                             item.technologies.length > 0 && (
                               <Text style={styles.itemDate}>

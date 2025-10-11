@@ -15,84 +15,57 @@ function scoreToLevel(score: number): string {
 }
 
 // --- helpers ----------------------------------------------------
-function toArray<T = any>(data: unknown): T[] {
-  if (Array.isArray(data)) return data as T[];
-  if (data && typeof data === "object") {
-    const d = data as any;
-    if (Array.isArray(d.items)) return d.items as T[];
-    if (Array.isArray(d.list)) return d.list as T[];
-    if (Array.isArray(d.rows)) return d.rows as T[];
-    return [data as T];
-  }
-  return [];
-}
+const isHtml = (s?: string) => !!s && /<\/?[a-z][\s\S]*>/i.test(s);
+const esc = (s = "") =>
+  s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 
-function hasHtml(s?: string): boolean {
-  return !!s && /<\/?[a-z][\s\S]*>/i.test(s);
-}
-
-/** turn plain text (with \n) into minimal Quill-friendly HTML */
-function textToHtmlParagraphs(s?: string): string {
-  if (!s) return "";
-  // split on blank line or single line breaks; wrap in <p> … </p>
-  const parts = s
-    .split(/\r?\n\r?\n|\r?\n/g)
-    .map((t) => t.trim())
-    .filter(Boolean);
-  return parts.length
-    ? parts.map((t) => `<p>${t}</p>`).join("")
-    : `<p>${s}</p>`;
-}
-
-/** normalize description to guaranteed HTML for RichHtml/RichPdf */
-function normalizeDescription(desc?: unknown): string {
-  if (typeof desc !== "string" || desc.trim() === "") return "";
-  return hasHtml(desc) ? desc : textToHtmlParagraphs(desc);
-}
-
-/** normalize achievements/bullets to a flat string[] */
-function normalizeBullets(e: any): string[] {
-  const raw: string[] = [];
-
-  if (Array.isArray(e?.achievements)) raw.push(...e.achievements);
-  if (typeof e?.achievements === "string") {
-    raw.push(
-      ...e.achievements
+export function toExperienceHtml(
+  description?: string,
+  achievements?: string[] | string
+) {
+  // normalize achievements to array
+  const ach = Array.isArray(achievements)
+    ? achievements
+    : typeof achievements === "string"
+    ? achievements
         .split(/\r?\n/)
-        .map((s: string) => s.trim())
+        .map((x) => x.trim())
         .filter(Boolean)
-    );
-  }
+    : [];
 
-  if (Array.isArray(e?.bullets)) raw.push(...e.bullets);
-  if (typeof e?.bullets === "string") {
-    raw.push(
-      ...e.bullets
-        .split(/\r?\n/)
-        .map((s: string) => s.trim())
-        .filter(Boolean)
-    );
-  }
+  const descHtml = description
+    ? isHtml(description)
+      ? description
+      : `<p>${esc(description)}</p>`
+    : "";
 
-  // strip empty, dedupe
-  return Array.from(new Set(raw.map((s) => s.trim()).filter(Boolean)));
+  const ulHtml = ach.length
+    ? `<ul>${ach.map((li) => `<li>${esc(li)}</li>`).join("")}</ul>`
+    : "";
+
+  return `${descHtml}${ulHtml}`;
 }
 
 export function formatSectionContent(section: ResumeSection) {
   switch (section.type) {
     // utils/cv/sectionHelpers.ts (inside formatSectionContent)
     case "work-experience": {
-      const rows = toArray(section?.data);
-      return rows.map((e: any) => ({
+      const data = Array.isArray(section.data) ? section.data : [];
+      return data.map((e: any) => ({
         id: e.id,
-        title: e.position || e.title || e.jobTitle, // backend may send jobTitle
+        title: e.position || e.title || e.jobTitle,
+        jobTitle: e.jobTitle,
         company: e.company,
         startDate: e.startDate,
         endDate: e.current ? "Present" : e.endDate,
+        current: !!e.current,
         location: e.location,
-        description: normalizeDescription(e.description), // <- ALWAYS HTML
-        bullets: normalizeBullets(e), // <- merged bullets
-        technologies: Array.isArray(e?.technologies) ? e.technologies : [],
+        description: toExperienceHtml(
+          e.description,
+          e.achievements ?? e.bullets
+        ),
+        bullets: [], // not needed anymore
+        technologies: e.technologies,
       }));
     }
 
