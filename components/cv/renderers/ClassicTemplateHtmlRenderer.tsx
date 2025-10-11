@@ -358,34 +358,33 @@ export function ClassicTemplateHtmlRenderer({
                           )}
 
                           {/* 🟩 Bullets: prefer item.bullets, else item.achievements */}
-                          {!!(
-                            (item.bullets && item.bullets.length) ||
-                            (item.achievements && item.achievements.length)
-                          ) && (
-                            <ul className="list-disc pl-6 mt-2">
-                              {(item.bullets ?? item.achievements ?? []).map(
-                                (text: string, j: number) => (
-                                  <li
-                                    key={j}
-                                    className="prose prose-sm max-w-none [&_a]:text-blue-600 [&_a]:underline"
-                                    style={{
-                                      color: template.styles.colors.text,
-                                      fontFamily: mapFontFamily(
-                                        template.styles.typography.fontFamily
-                                      ),
-                                      fontSize: `${
-                                        template.styles.typography.bodySize - 1
-                                      }px`,
-                                    }}
-                                    // bullets are plain text; sanitize and inject as simple text
-                                    dangerouslySetInnerHTML={{
-                                      __html: sanitizeHtml(String(text)),
-                                    }}
-                                  />
-                                )
-                              )}
-                            </ul>
-                          )}
+                          {Array.isArray(item.bullets) &&
+                            item.bullets.length > 0 && (
+                              <ul className="list-disc pl-6 mt-2">
+                                {item.bullets.map(
+                                  (line: string, idx: number) => (
+                                    <li
+                                      key={idx}
+                                      className="prose prose-sm max-w-none [&_strong]:font-bold [&_em]:italic"
+                                      style={{
+                                        color: template.styles.colors.text,
+                                        fontFamily: mapFontFamily(
+                                          template.styles.typography.fontFamily
+                                        ),
+                                        fontSize: `${
+                                          template.styles.typography.bodySize -
+                                          1
+                                        }px`,
+                                      }}
+                                      // bullet lines are plain text; sanitizeHtml handles it safely
+                                      dangerouslySetInnerHTML={{
+                                        __html: sanitizeHtml(line),
+                                      }}
+                                    />
+                                  )
+                                )}
+                              </ul>
+                            )}
                         </div>
                       )}
 

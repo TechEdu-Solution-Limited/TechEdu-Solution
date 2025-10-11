@@ -493,18 +493,21 @@ export function ClassicTemplatePdfRenderer({
                                 {item.company}
                               </Text>
                             </Text>
-                            {item.startDate && (
+
+                            {item.startDate ? (
                               <Text style={styles.itemDate}>
-                                {item.startDate} – {item.endDate || "Present"}
+                                {item.startDate} –{" "}
+                                {item.endDate ||
+                                  (item.current ? "Present" : "")}
                               </Text>
-                            )}
+                            ) : null}
                           </View>
 
                           {item.location && (
                             <Text style={styles.itemDate}>{item.location}</Text>
                           )}
 
-                          {/* 🟦 Quill HTML (paragraphs, inline styles, lists…) */}
+                          {/* description is guaranteed HTML by formatter */}
                           {item.description ? (
                             <RichPdf
                               html={item.description}
@@ -512,50 +515,21 @@ export function ClassicTemplatePdfRenderer({
                             />
                           ) : null}
 
-                          {/* 🟩 Merged bullets from legacy `bullets` + new `achievements` */}
-                          {(() => {
-                            // 1) Gather raw lines from bullets/achievements
-                            const raw: string[] = [];
-
-                            if (Array.isArray(item.achievements))
-                              raw.push(...item.achievements);
-                            if (
-                              typeof item.achievements === "string" &&
-                              item.achievements.trim().length
-                            ) {
-                              raw.push(
-                                ...item.achievements
-                                  .split(/\r?\n/)
-                                  .map((s: string) => s.trim())
-                                  .filter(Boolean)
-                              );
-                            }
-
-                            // 2) Normalize: split HTML paragraphs if present; strip empty
-                            const bullets = raw
-                              .flatMap((b) =>
-                                /<p[^>]*>/i.test(b)
-                                  ? b
-                                      .split(/<\/p>\s*<p[^>]*>/i)
-                                      .map((p) =>
-                                        p.replace(/<p[^>]*>|<\/p>/gi, "").trim()
-                                      )
-                                  : [b]
-                              )
-                              .filter(Boolean);
-
-                            return bullets.length ? (
+                          {/* bullets are already normalized by formatter */}
+                          {Array.isArray(item.bullets) &&
+                            item.bullets.length > 0 && (
                               <View style={styles.bulletList}>
-                                {bullets.map((line, idx) => (
-                                  <Text key={idx} style={styles.bullet}>
-                                    • {convertHtmlToPdfText(line)}
-                                  </Text>
-                                ))}
+                                {item.bullets.map(
+                                  (line: string, idx: number) => (
+                                    <Text key={idx} style={styles.bullet}>
+                                      • {convertHtmlToPdfText(line)}
+                                    </Text>
+                                  )
+                                )}
                               </View>
-                            ) : null;
-                          })()}
+                            )}
 
-                          {/* Optional: technologies list if provided by backend */}
+                          {/* optional technologies */}
                           {Array.isArray(item.technologies) &&
                             item.technologies.length > 0 && (
                               <Text style={styles.itemDate}>
