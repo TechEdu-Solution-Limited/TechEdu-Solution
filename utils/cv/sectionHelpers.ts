@@ -14,11 +14,45 @@ function scoreToLevel(score: number): string {
   return "Beginner";
 }
 
+// Small helper: always return an array from unknown shapes
+function toArray<T = any>(data: unknown): T[] {
+  if (Array.isArray(data)) return data as T[];
+  if (data && typeof data === "object") {
+    const d = data as any;
+    if (Array.isArray(d.items)) return d.items as T[];
+    if (Array.isArray(d.list)) return d.list as T[];
+    if (Array.isArray(d.rows)) return d.rows as T[];
+    // Sometimes APIs return a single object – treat as one row
+    return [data as T];
+  }
+  return [];
+}
+
+// Normalize bullets: accept string, string[], fallback to e.bullets
+function normalizeBullets(e: any): string[] {
+  if (Array.isArray(e?.achievements)) return e.achievements.filter(Boolean);
+  if (typeof e?.achievements === "string") {
+    return e.achievements
+      .split(/\r?\n/)
+      .map((s: string) => s.trim())
+      .filter(Boolean);
+  }
+  if (Array.isArray(e?.bullets)) return e.bullets.filter(Boolean);
+  if (typeof e?.bullets === "string") {
+    return e.bullets
+      .split(/\r?\n/)
+      .map((s: string) => s.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
 export function formatSectionContent(section: ResumeSection) {
   switch (section.type) {
     // utils/cv/sectionHelpers.ts (inside formatSectionContent)
-    case "work-experience":
-      return (section.data || []).map((e: any) => ({
+    case "work-experience": {
+      const rows = toArray(section?.data); // <-- no more .map on non-array
+      return rows.map((e: any) => ({
         id: e.id,
         title: e.position || e.title || e.jobTitle,
         company: e.company,
@@ -26,8 +60,9 @@ export function formatSectionContent(section: ResumeSection) {
         endDate: e.current ? "Present" : e.endDate,
         location: e.location,
         description: e.description, // Quill HTML
-        bullets: e.achievements ?? e.bullets ?? [], // <-- map achievements
+        bullets: normalizeBullets(e), // <-- handles string | string[] | undefined
       }));
+    }
 
     case "education":
       return Array.isArray(section.data)
