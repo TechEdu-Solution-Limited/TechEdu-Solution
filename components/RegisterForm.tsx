@@ -196,11 +196,23 @@ const Page = () => {
     } catch (error: any) {
       // Handle the backend error structure with error.details array
       if (error?.error?.details && Array.isArray(error.error.details)) {
-        toast.error(error.error.details.join(", "));
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : error.error.details.join(", ")
+        );
       } else if (error?.details && Array.isArray(error.details)) {
-        toast.error(error.details.join(", "));
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : error.details.join(", ")
+        );
       } else {
-        toast.error(error.message || "Registration failed");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Registration failed"
+            : error.message || "Registration failed"
+        );
       }
     }
   };
@@ -218,7 +230,11 @@ const Page = () => {
 
       toast.success("Verification email sent! Please check your inbox.");
     } catch (error: any) {
-      toast.error(error.message || "Failed to resend verification email");
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Failed to resend verification email"
+          : error.message || "Failed to resend verification email"
+      );
     } finally {
       setIsResending(false);
     }

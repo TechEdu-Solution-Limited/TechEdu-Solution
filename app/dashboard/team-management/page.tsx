@@ -152,7 +152,7 @@ export default function TeamManagementPage() {
         }
       } catch (error) {
         safeConsole.error("Error fetching team data:", error);
-        toast.error("Failed to fetch team data");
+        toast.error("Something went wrong");
       } finally {
         setLoading(false);
       }
@@ -267,7 +267,11 @@ export default function TeamManagementPage() {
           setTeamMembers(membersRes.data || []);
         }
       } else {
-        toast.error(response.message || "Failed to send invitation");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : response.message || "Failed to send invitation"
+        );
       }
     } catch (error) {
       safeConsole.error("Error inviting member:", error);
@@ -306,7 +310,11 @@ export default function TeamManagementPage() {
           setTeamMembers(membersRes.data || []);
         }
       } else {
-        toast.error(response.message || "Failed to revoke invitation");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : response.message || "Failed to revoke invitation"
+        );
       }
     } catch (error) {
       safeConsole.error("Error revoking invitation:", error);
@@ -345,7 +353,11 @@ export default function TeamManagementPage() {
           setTeamInfo(teamInfoRes.data);
         }
       } else {
-        toast.error(response.message || "Failed to update team information");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : response.message || "Failed to update team information"
+        );
       }
     } catch (error) {
       safeConsole.error("Error updating team info:", error);

@@ -261,11 +261,23 @@ const LoginPage = () => {
     } catch (error: any) {
       // Handle the backend error structure with error.details array
       if (error?.error?.details && Array.isArray(error.error.details)) {
-        toast.error(error.error.details.join(", "));
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : error.error.details.join(", ")
+        );
       } else if (error?.details && Array.isArray(error.details)) {
-        toast.error(error.details.join(", "));
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : error.details.join(", ")
+        );
       } else {
-        toast.error(error.message || "Login failed");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Login Failed"
+            : error.message || "Login failed"
+        );
       }
     } finally {
       setIsSubmitting(false);

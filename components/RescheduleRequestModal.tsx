@@ -97,7 +97,9 @@ export function CreateRescheduleRequestModal({
         setFormData({ newStartTime: "", newEndTime: "", reason: "" });
       } else {
         toast.error(
-          response.data?.message || "Failed to create reschedule request"
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : response.data?.message || "Failed to create reschedule request"
         );
       }
     } catch (error) {
@@ -257,7 +259,9 @@ export function RescheduleRequestActionModal({
         setReason("");
       } else {
         toast.error(
-          response.data?.message || `Failed to ${action} reschedule request`
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? `Failed to ${action} reschedule request`
+            : response.data?.message || `Failed to ${action} reschedule request`
         );
       }
     } catch (error) {

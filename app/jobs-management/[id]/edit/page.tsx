@@ -221,8 +221,12 @@ export default function EditJobPage() {
         toast.error("Failed to update job");
       }
     } catch (error: any) {
-      setError(error.message || "An error occurred while updating the job");
-      toast.error("An error occurred while updating the job");
+      setError(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : error.message || "An error occurred while updating the job"
+      );
+      // toast.error("An error occurred while updating the job");
     } finally {
       setSaving(false);
     }

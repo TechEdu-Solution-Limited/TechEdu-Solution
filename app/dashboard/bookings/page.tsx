@@ -201,11 +201,15 @@ export default function UserBookingsPage() {
         toast.success("Booking cancelled successfully");
         fetchUserBookings(); // Refresh the list
       } else {
-        toast.error(response?.data?.message || "Failed to cancel booking");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : response?.data?.message || "Failed to cancel booking"
+        );
       }
     } catch (error) {
       safeConsole.error("Error cancelling booking:", error);
-      toast.error("Error cancelling booking");
+      toast.error("Something went wrong");
     } finally {
       setCancellingId(null);
       setShowCancelModal(false);

@@ -288,7 +288,11 @@ export default function CreateAcademicBookingPage() {
         toast.success("Academic booking created successfully!");
         router.push("/dashboard/bookings");
       } else {
-        toast.error(response?.data?.message || "Failed to create booking");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : response?.data?.message || "Failed to create booking"
+        );
       }
     } catch (error: any) {
       safeConsole.error("Error creating booking:", error);

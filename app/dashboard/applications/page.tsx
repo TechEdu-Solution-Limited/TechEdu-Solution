@@ -43,6 +43,7 @@ import { getApiRequest, putApiRequest, deleteApiRequest } from "@/lib/apiFetch";
 import { getCookie } from "@/lib/cookies";
 import { toast } from "react-toastify";
 import { JobApplication } from "@/types/jobs";
+import { isProduction } from "@/lib/env";
 
 // Confirmation Modal Component
 function ConfirmationModal({
@@ -173,13 +174,25 @@ export default function ApplicationsPage() {
           );
           toast.success(`Application status updated to ${newStatus}`);
         } else {
-          toast.error(res.data?.message || "Failed to update status");
+          toast.error(
+            process.env.NEXT_PUBLIC_NODE_ENV === "production" || isProduction
+              ? "Something went wrong"
+              : res.data?.message || "Failed to update status"
+          );
         }
       } else {
-        toast.error(res.message || "Failed to update status");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : res.message || "Failed to update status"
+        );
       }
     } catch (e: any) {
-      toast.error(e.message || "An error occurred while updating status");
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : e.message || "Something went wrong"
+      );
     }
   };
 
@@ -201,13 +214,25 @@ export default function ApplicationsPage() {
           setApplications((prev) => prev.filter((app) => app._id !== id));
           toast.success("Application has been deleted");
         } else {
-          toast.error(res.data?.message || "Failed to delete application");
+          toast.error(
+            process.env.NEXT_PUBLIC_NODE_ENV === "production"
+              ? "Something went wrong"
+              : res.data?.message || "Failed to delete application"
+          );
         }
       } else {
-        toast.error(res.message || "Failed to delete application");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : res.message || "Failed to delete application"
+        );
       }
     } catch (e: any) {
-      toast.error(e.message || "An error occurred while deleting");
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : e.message || "Something went wrong"
+      );
     }
     setDeleteModal({ isOpen: false, applicationId: null });
   };

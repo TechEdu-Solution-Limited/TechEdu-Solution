@@ -60,7 +60,11 @@ const ForgotPasswordPage = () => {
       toast.success("Password reset email sent! Please check your inbox.");
       setIsEmailSent(true);
     } catch (error: any) {
-      toast.error(error.message || "Failed to send reset email");
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : error.message || "Failed to send reset email"
+      );
     }
   };
 

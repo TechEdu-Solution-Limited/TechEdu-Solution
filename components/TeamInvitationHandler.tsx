@@ -87,7 +87,11 @@ export default function TeamInvitationHandler() {
           router.push("/dashboard/team-tech-professional");
         }, 2000);
       } else {
-        toast.error(response.message || "Failed to accept invitation");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Failed to accept Invitation"
+            : response.message || "Failed to accept invitation"
+        );
       }
     } catch (error) {
       safeConsole.error("Error accepting invitation:", error);
@@ -115,7 +119,11 @@ export default function TeamInvitationHandler() {
           router.push("/");
         }, 2000);
       } else {
-        toast.error(response.message || "Failed to accept invitation");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Failed to accept invitation"
+            : response.message || "Failed to accept invitation"
+        );
       }
     } catch (error) {
       safeConsole.error("Error declining invitation:", error);

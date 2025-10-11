@@ -87,7 +87,11 @@ export default function GoogleCallbackHandler() {
         router.push("/login");
       }
     } else {
-      toast.error(error || "Google login failed.");
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : error || "Google login failed."
+      );
       router.push("/login");
     }
   }, [router, searchParams]);

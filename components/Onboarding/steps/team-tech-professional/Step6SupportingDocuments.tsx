@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, FileText, FileSpreadsheet, X } from "lucide-react";
 import { uploadAttachment } from "@/lib/firebase";
 import { toast } from "react-toastify";
+import safeConsole from "@/lib/console";
 
 interface Step6SupportingDocumentsProps {
   form: any;
@@ -83,7 +84,7 @@ export function Step6SupportingDocuments({
 
       toast.success("Document uploaded successfully");
     } catch (error) {
-      console.error("Error uploading document:", error);
+      safeConsole.error("Error uploading document:", error);
       toast.error("Failed to upload document. Please try again.");
     } finally {
       setUploading(false);

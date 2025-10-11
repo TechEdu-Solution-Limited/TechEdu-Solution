@@ -124,7 +124,7 @@ export default function JobDetailPage() {
 
         const token = getTokenFromCookies();
         if (!token) {
-          toast.error("Authentication required");
+          toast.error("Authentication required. Please login");
           return;
         }
 
@@ -142,9 +142,11 @@ export default function JobDetailPage() {
         }
       } catch (error: any) {
         setDeleteError(
-          error.message || "An error occurred while deleting the job"
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : error.message || "An error occurred while deleting the job"
         );
-        toast.error("An error occurred while deleting the job");
+        toast.error("Something went wrong");
       } finally {
         setDeleteLoading(false);
       }

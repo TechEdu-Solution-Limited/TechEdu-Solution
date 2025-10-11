@@ -112,7 +112,7 @@ export default function EditBookingPage() {
       }
     } catch (error) {
       safeConsole.error("Error fetching booking details:", error);
-      toast.error("Error fetching booking details");
+      toast.error("Something went wrong");
       router.push("/dashboard/bookings");
     } finally {
       setLoading(false);
@@ -188,11 +188,15 @@ export default function EditBookingPage() {
         toast.success("Booking updated successfully");
         router.push("/dashboard/bookings");
       } else {
-        toast.error(response?.data?.message || "Failed to update booking");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : response?.data?.message || "Failed to update booking"
+        );
       }
     } catch (error) {
       safeConsole.error("Error updating booking:", error);
-      toast.error("Error updating booking");
+      toast.error("Something went wrong");
     } finally {
       setSaving(false);
       setShowConfirmation(false);

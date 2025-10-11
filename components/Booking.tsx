@@ -180,7 +180,7 @@ export default function BookingPage() {
 
     const token = getTokenFromCookies();
     if (!token) {
-      toast.error("Authentication token not found. Please login again.");
+      toast.error("Authentication required. Please login again.");
       return;
     }
 
@@ -295,7 +295,11 @@ export default function BookingPage() {
             "Instructor availability not found. Please contact support."
           );
         } else if (error.message.includes("500")) {
-          toast.error("Server error. Please try again later.");
+          toast.error(
+            process.env.NEXT_PUBLIC_NODE_ENV === "production"
+              ? "Something went wrong"
+              : "Server error. Please try again later."
+          );
         } else {
           toast.error(`Failed to load available time slots: ${error.message}`);
         }
@@ -319,7 +323,7 @@ export default function BookingPage() {
       try {
         const token = getTokenFromCookies();
         if (!token) {
-          toast.error("Authentication token not found. Please login again.");
+          toast.error("Authentication required. Please login again.");
           return;
         }
 
@@ -328,13 +332,21 @@ export default function BookingPage() {
           token
         );
         if (response.status >= 400) {
-          throw new Error(`Failed to fetch product: ${response.message}`);
+          throw new Error(
+            process.env.NEXT_PUBLIC_NODE_ENV === "production"
+              ? "Something went wrong"
+              : `Failed to fetch product: ${response.message}`
+          );
         }
 
         setProductData(response.data);
       } catch (error) {
         safeConsole.error("Failed to fetch product:", error);
-        toast.error("Failed to load product details. Please try again.");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : "Failed to load product details. Please try again."
+        );
       } finally {
         setLoadingProduct(false);
       }
@@ -625,7 +637,11 @@ export default function BookingPage() {
       toast.success("Booking created and added to cart successfully!");
       router.push("/cart");
     } catch (error: any) {
-      toast.error(error.message || "Failed to create booking");
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : error.message || "Failed to create booking"
+      );
     } finally {
       setLoading(false);
     }

@@ -92,7 +92,11 @@ export default function TeamInvitesPage() {
 
   const handleAcceptInvitation = async () => {
     if (!invitationToken) {
-      toast.error("No invitation token found");
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : "No invitation token found"
+      );
       return;
     }
 
@@ -172,9 +176,11 @@ export default function TeamInvitesPage() {
     } catch (error: any) {
       safeConsole.error("Error accepting invitation:", error);
       toast.error(
-        error?.error?.details?.[0] ||
-          error?.message ||
-          "Failed to accept invitation"
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : error?.error?.details?.[0] ||
+              error?.message ||
+              "Failed to accept invitation"
       );
     } finally {
       setProcessingAction(null);
@@ -183,7 +189,11 @@ export default function TeamInvitesPage() {
 
   const handleDeclineInvitation = async () => {
     if (!invitationToken) {
-      toast.error("No invitation token found");
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : "No invitation token found"
+      );
       return;
     }
 

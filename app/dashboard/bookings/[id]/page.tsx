@@ -133,7 +133,11 @@ export default function BookingDetailsPage() {
         toast.success("Booking cancelled successfully");
         router.push("/dashboard/bookings");
       } else {
-        toast.error(response?.data?.message || "Failed to cancel booking");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : response?.data?.message || "Failed to cancel booking"
+        );
       }
     } catch (error) {
       safeConsole.error("Error cancelling booking:", error);

@@ -102,16 +102,32 @@ export default function AttendanceDetailPage() {
           toast.success("Attendance record updated");
         }
       } else {
-        setError(response.message || "Failed to fetch attendance record");
+        setError(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : response.message || "Failed to fetch attendance record"
+        );
         if (showRefreshLoader) {
-          toast.error(response.message || "Failed to fetch attendance record");
+          toast.error(
+            process.env.NEXT_PUBLIC_NODE_ENV === "production"
+              ? "Something went wrong"
+              : response.message || "Failed to fetch attendance record"
+          );
         }
       }
     } catch (err) {
       const errorMessage = "Failed to fetch attendance record";
-      setError(errorMessage);
+      setError(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : errorMessage
+      );
       if (showRefreshLoader) {
-        toast.error(errorMessage);
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : errorMessage
+        );
       }
       safeConsole.error("Error fetching attendance:", err);
     } finally {

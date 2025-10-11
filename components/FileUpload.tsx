@@ -10,6 +10,7 @@ import {
   STORAGE_FOLDERS,
   type StorageFolder,
 } from "@/lib/firebase";
+import safeConsole from "@/lib/console";
 
 interface FileUploadProps {
   onFileUploaded: (url: string, fileName: string) => void;
@@ -77,7 +78,7 @@ export default function FileUpload({
         toast.success(`${file.name} uploaded successfully`);
       }
     } catch (error) {
-      console.error("Upload error:", error);
+      safeConsole.error("Upload error:", error);
       toast.error("Failed to upload files");
     } finally {
       setUploading(false);
@@ -110,7 +111,7 @@ export default function FileUpload({
       onFileRemoved?.(url);
       toast.success("File removed successfully");
     } catch (error) {
-      console.error("Delete error:", error);
+      safeConsole.error("Delete error:", error);
       toast.error("Failed to remove file");
     }
   };

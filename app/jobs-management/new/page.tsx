@@ -194,12 +194,20 @@ export default function NewJobPage() {
           router.push("/dashboard/jobs-management");
         }, 2000);
       } else {
-        setError(response?.data?.message || "Failed to post job");
+        setError(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : response?.data?.message || "Failed to post job"
+        );
         toast.error("Failed to post job");
       }
     } catch (error: any) {
-      setError(error.message || "An error occurred while posting the job");
-      toast.error("An error occurred while posting the job");
+      setError(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : error.message || "An error occurred while posting the job"
+      );
+      toast.error("Something went wrong");
     } finally {
       setLoading(false);
     }

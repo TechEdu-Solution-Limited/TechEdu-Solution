@@ -229,7 +229,11 @@ export default function JobsManagementPage() {
       if (result.success) {
         toast.success("Job deleted successfully");
       } else {
-        toast.error(result.message || "Failed to delete job");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : result.message || "Failed to delete job"
+        );
       }
     }
   };
@@ -359,11 +363,7 @@ export default function JobsManagementPage() {
                     const token = getTokenFromCookies();
 
                     if (!token) {
-                      toast.error(
-                        "No authentication token found. Please log in."
-                      );
-                    } else {
-                      toast.success("Token found. API should work.");
+                      toast.error("Authentication required. Please log in.");
                     }
                   }}
                   variant="outline"

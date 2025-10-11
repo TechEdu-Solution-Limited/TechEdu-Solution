@@ -132,7 +132,11 @@ const ResetPassword = () => {
       );
       setIsPasswordReset(true);
     } catch (error: any) {
-      toast.error(error.message || "Failed to reset password");
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Failed to reset password"
+          : error.message || "Failed to reset password"
+      );
     }
   };
 

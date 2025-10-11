@@ -57,7 +57,7 @@ export default function TeamsPage() {
       }
     } catch (error) {
       safeConsole.error("Error fetching teams:", error);
-      toast.error("Failed to fetch teams");
+      toast.error("Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -112,7 +112,7 @@ export default function TeamsPage() {
       }
     } catch (error) {
       safeConsole.error("Error accepting invitation:", error);
-      toast.error("Failed to accept invitation");
+      toast.error("Something went wrong");
     }
   };
 
@@ -130,7 +130,7 @@ export default function TeamsPage() {
       }
     } catch (error) {
       safeConsole.error("Error declining invitation:", error);
-      toast.error("Failed to decline invitation");
+      toast.error("Something went wrong");
     }
   };
 
@@ -147,7 +147,7 @@ export default function TeamsPage() {
       }
     } catch (error) {
       safeConsole.error("Error leaving team:", error);
-      toast.error("Failed to leave team");
+      toast.error("Something went wrong");
     }
   };
 

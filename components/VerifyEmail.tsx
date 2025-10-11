@@ -83,8 +83,16 @@ const VerifyEmailPage = () => {
         res.message || "Verification email sent. Please check your inbox."
       );
     } catch (err: any) {
-      setResendError(err?.message || "Failed to resend verification email.");
-      toast.error(err?.message || "Failed to resend verification email.");
+      setResendError(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Failed to resend verification email. Try again later."
+          : err?.message || "Failed to resend verification email."
+      );
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Failed to resend verification email. Try again later."
+          : err?.message || "Failed to resend verification email."
+      );
     } finally {
       setResendLoading(false);
     }

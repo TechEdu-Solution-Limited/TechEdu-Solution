@@ -428,7 +428,7 @@ export default function CartPage() {
         );
         safeConsole.log("Payment intent response:", response);
       } catch (apiError: any) {
-        safeConsole.error("API call failed:", apiError);
+        safeConsole.error("ed:", apiError);
         throw new Error(
           `API call failed: ${apiError.message || "Unknown error"}`
         );
@@ -475,8 +475,16 @@ export default function CartPage() {
       // Provide error message
       let errorMessage = err?.message || "Failed to start payment";
 
-      setPaymentError(errorMessage);
-      toast.error(errorMessage);
+      setPaymentError(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : errorMessage
+      );
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : errorMessage
+      );
     } finally {
       setIsInitializingPayment(false);
     }

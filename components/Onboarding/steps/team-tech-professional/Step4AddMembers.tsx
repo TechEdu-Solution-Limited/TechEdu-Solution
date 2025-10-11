@@ -235,7 +235,11 @@ export function Step4AddMembers({
 
       toast.success(`Successfully added ${pendingMembers.length} members!`);
     } catch (error: any) {
-      setInviteError(error.message || "Failed to add members");
+      setInviteError(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Failed to add members. Please try again."
+          : error.message || "Failed to add members"
+      );
       toast.error("Failed to add members. Please try again.");
     } finally {
       setLoadingInvite(false);

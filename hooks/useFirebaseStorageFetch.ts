@@ -144,7 +144,11 @@ export function useFirebaseStorageFetch({
         const errorMessage =
           error instanceof Error ? error.message : "Delete failed";
         onError?.(error instanceof Error ? error : new Error(errorMessage));
-        toast.error(`Failed to delete file: ${errorMessage}`);
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Failed to delete file"
+            : `Failed to delete file: ${errorMessage}`
+        );
         throw error;
       }
     },

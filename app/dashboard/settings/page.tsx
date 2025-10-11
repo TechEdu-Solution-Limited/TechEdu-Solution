@@ -145,7 +145,11 @@ export default function SettingsPage() {
           response.message ||
           (response as any).error?.details?.[0] ||
           "Failed to change password.";
-        toast.error(errorMessage);
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : errorMessage
+        );
       }
     } catch (error: any) {
       safeConsole.error("Password change error:", error);
@@ -153,7 +157,11 @@ export default function SettingsPage() {
         error.message ||
         error.response?.data?.message ||
         "Failed to change password. Please try again.";
-      toast.error(errorMessage);
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : errorMessage
+      );
     } finally {
       setIsChanging(false);
     }
