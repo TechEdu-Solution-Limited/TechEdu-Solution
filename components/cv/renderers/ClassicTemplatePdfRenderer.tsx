@@ -478,7 +478,7 @@ export function ClassicTemplatePdfRenderer({
                   items.map((item: any, i: number) => (
                     <View key={i} style={styles.itemContainer}>
                       {/* Work Experience */}
-                      {item.title && item.company && (
+                      {(item.title || item.jobTitle) && item.company && (
                         <View>
                           <View
                             style={{
@@ -488,17 +488,18 @@ export function ClassicTemplatePdfRenderer({
                             }}
                           >
                             <Text style={styles.itemTitle}>
-                              {item.title} —{" "}
+                              {(item.title || item.jobTitle) as string} —{" "}
                               <Text style={{ fontStyle: "italic" }}>
                                 {item.company}
                               </Text>
                             </Text>
                             {item.startDate && (
                               <Text style={styles.itemDate}>
-                                {item.startDate} – {item.endDate}
+                                {item.startDate} – {item.endDate || "Present"}
                               </Text>
                             )}
                           </View>
+
                           {item.location && (
                             <Text style={styles.itemDate}>{item.location}</Text>
                           )}
@@ -511,26 +512,56 @@ export function ClassicTemplatePdfRenderer({
                             />
                           ) : null}
 
-                          {/* 🟩 Optional explicit bullets array (kept for backwards-compat) */}
-                          {item.bullets?.length > 0 && (
-                            <View style={styles.bulletList}>
-                              {item.bullets.map((bullet: string, j: number) => {
-                                // Split by paragraph breaks and render each as a bullet
-                                const paragraphs = bullet
-                                  .split(/<\/p>\s*<p[^>]*>/i)
-                                  .map((p) =>
-                                    p.replace(/<p[^>]*>|<\/p>/gi, "").trim()
-                                  )
-                                  .filter((p) => p.length > 0);
+                          {/* 🟩 Merged bullets from legacy `bullets` + new `achievements` */}
+                          {(() => {
+                            // 1) Gather raw lines from bullets/achievements
+                            const raw: string[] = [];
 
-                                return paragraphs.map((paragraph, k) => (
-                                  <Text key={`${j}-${k}`} style={styles.bullet}>
-                                    • {convertHtmlToPdfText(paragraph)}
+                            if (Array.isArray(item.achievements))
+                              raw.push(...item.achievements);
+                            if (
+                              typeof item.achievements === "string" &&
+                              item.achievements.trim().length
+                            ) {
+                              raw.push(
+                                ...item.achievements
+                                  .split(/\r?\n/)
+                                  .map((s: string) => s.trim())
+                                  .filter(Boolean)
+                              );
+                            }
+
+                            // 2) Normalize: split HTML paragraphs if present; strip empty
+                            const bullets = raw
+                              .flatMap((b) =>
+                                /<p[^>]*>/i.test(b)
+                                  ? b
+                                      .split(/<\/p>\s*<p[^>]*>/i)
+                                      .map((p) =>
+                                        p.replace(/<p[^>]*>|<\/p>/gi, "").trim()
+                                      )
+                                  : [b]
+                              )
+                              .filter(Boolean);
+
+                            return bullets.length ? (
+                              <View style={styles.bulletList}>
+                                {bullets.map((line, idx) => (
+                                  <Text key={idx} style={styles.bullet}>
+                                    • {convertHtmlToPdfText(line)}
                                   </Text>
-                                ));
-                              })}
-                            </View>
-                          )}
+                                ))}
+                              </View>
+                            ) : null;
+                          })()}
+
+                          {/* Optional: technologies list if provided by backend */}
+                          {Array.isArray(item.technologies) &&
+                            item.technologies.length > 0 && (
+                              <Text style={styles.itemDate}>
+                                Technologies: {item.technologies.join(", ")}
+                              </Text>
+                            )}
                         </View>
                       )}
 

@@ -301,23 +301,40 @@ export function ClassicTemplateHtmlRenderer({
                     }
                   >
                     {/* Work Experience */}
-                    {item.title && item.company && (
-                      <div>
-                        <div className="flex justify-between items-start">
-                          <p
-                            className="font-semibold"
-                            style={{
-                              color: template.styles.colors.text,
-                              fontFamily: mapFontFamily(
-                                template.styles.typography.fontFamily
-                              ),
-                              fontSize: `${template.styles.typography.bodySize}px`,
-                            }}
-                          >
-                            {item.title} —{" "}
-                            <span className="italic">{item.company}</span>
-                          </p>
-                          {item.startDate && (
+                    {(item.title || item.position || item.jobTitle) &&
+                      item.company && (
+                        <div>
+                          <div className="flex justify-between items-start">
+                            <p
+                              className="font-semibold"
+                              style={{
+                                color: template.styles.colors.text,
+                                fontFamily: mapFontFamily(
+                                  template.styles.typography.fontFamily
+                                ),
+                                fontSize: `${template.styles.typography.bodySize}px`,
+                              }}
+                            >
+                              {item.title || item.position || item.jobTitle} —{" "}
+                              <span className="italic">{item.company}</span>
+                            </p>
+                            {(item.startDate || item.endDate) && (
+                              <p
+                                className="text-xs text-gray-500"
+                                style={{
+                                  color: template.styles.colors.secondary,
+                                  fontFamily: mapFontFamily(
+                                    template.styles.typography.fontFamily
+                                  ),
+                                }}
+                              >
+                                {item.startDate}{" "}
+                                {item.endDate ? "– " + item.endDate : ""}
+                              </p>
+                            )}
+                          </div>
+
+                          {item.location && (
                             <p
                               className="text-xs text-gray-500"
                               style={{
@@ -327,68 +344,50 @@ export function ClassicTemplateHtmlRenderer({
                                 ),
                               }}
                             >
-                              {item.startDate} – {item.endDate}
+                              {item.location}
                             </p>
                           )}
-                        </div>
-                        {item.location && (
-                          <p
-                            className="text-xs text-gray-500"
-                            style={{
-                              color: template.styles.colors.secondary,
-                              fontFamily: mapFontFamily(
-                                template.styles.typography.fontFamily
-                              ),
-                            }}
-                          >
-                            {item.location}
-                          </p>
-                        )}
 
-                        {/* 🟦 Quill HTML (paragraphs, inline styles, lists…) */}
-                        {item.description && (
-                          <RichHtml
-                            html={item.description}
-                            template={template}
-                            sizeOffset={-1}
-                          />
-                        )}
+                          {/* 🟦 Quill HTML (paragraphs, inline styles, lists…) */}
+                          {item.description && (
+                            <RichHtml
+                              html={item.description}
+                              template={template}
+                              sizeOffset={-1}
+                            />
+                          )}
 
-                        {/* 🟩 Optional explicit bullets array (kept for backwards-compat) */}
-                        {item.bullets?.length > 0 && (
-                          <ul className="list-disc pl-6 mt-2">
-                            {item.bullets.map((bullet: string, j: number) => {
-                              // Split by paragraph breaks and render each as a bullet
-                              const paragraphs = bullet
-                                .split(/<\/p>\s*<p[^>]*>/i)
-                                .map((p) =>
-                                  p.replace(/<p[^>]*>|<\/p>/gi, "").trim()
+                          {/* 🟩 Bullets: prefer item.bullets, else item.achievements */}
+                          {!!(
+                            (item.bullets && item.bullets.length) ||
+                            (item.achievements && item.achievements.length)
+                          ) && (
+                            <ul className="list-disc pl-6 mt-2">
+                              {(item.bullets ?? item.achievements ?? []).map(
+                                (text: string, j: number) => (
+                                  <li
+                                    key={j}
+                                    className="prose prose-sm max-w-none [&_a]:text-blue-600 [&_a]:underline"
+                                    style={{
+                                      color: template.styles.colors.text,
+                                      fontFamily: mapFontFamily(
+                                        template.styles.typography.fontFamily
+                                      ),
+                                      fontSize: `${
+                                        template.styles.typography.bodySize - 1
+                                      }px`,
+                                    }}
+                                    // bullets are plain text; sanitize and inject as simple text
+                                    dangerouslySetInnerHTML={{
+                                      __html: sanitizeHtml(String(text)),
+                                    }}
+                                  />
                                 )
-                                .filter((p) => p.length > 0);
-
-                              return paragraphs.map((paragraph, k) => (
-                                <li
-                                  key={`${j}-${k}`}
-                                  className="prose prose-sm max-w-none [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_h3]:text-sm [&_h3]:font-bold [&_strong]:font-bold [&_em]:italic [&_u]:underline [&_s]:line-through [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6 [&_li]:my-1 [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_pre]:bg-gray-100 [&_pre]:p-2 [&_pre]:rounded [&_pre]:text-sm [&_a]:text-blue-600 [&_a]:underline"
-                                  style={{
-                                    color: template.styles.colors.text,
-                                    fontFamily: mapFontFamily(
-                                      template.styles.typography.fontFamily
-                                    ),
-                                    fontSize: `${
-                                      template.styles.typography.bodySize - 1
-                                    }px`,
-                                  }}
-                                  dangerouslySetInnerHTML={{
-                                    __html: sanitizeHtml(paragraph),
-                                  }}
-                                />
-                              ));
-                            })}
-                          </ul>
-                        )}
-                      </div>
-                    )}
+                              )}
+                            </ul>
+                          )}
+                        </div>
+                      )}
 
                     {/* Education */}
                     {item.degree && item.field && (

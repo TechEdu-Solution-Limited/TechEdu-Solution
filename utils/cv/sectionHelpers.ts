@@ -16,18 +16,18 @@ function scoreToLevel(score: number): string {
 
 export function formatSectionContent(section: ResumeSection) {
   switch (section.type) {
+    // utils/cv/sectionHelpers.ts (inside formatSectionContent)
     case "work-experience":
-      return Array.isArray(section.data)
-        ? section.data.map((exp: any) => ({
-            title: exp.position || exp.title,
-            company: exp.company,
-            startDate: exp.startDate,
-            endDate: exp.endDate || "Present",
-            location: exp.location,
-            description: exp.description, // Pass through the raw description
-            bullets: exp.highlights || [], // Only use explicit highlights, not description
-          }))
-        : [];
+      return (section.data || []).map((e: any) => ({
+        id: e.id,
+        title: e.position || e.title || e.jobTitle,
+        company: e.company,
+        startDate: e.startDate,
+        endDate: e.current ? "Present" : e.endDate,
+        location: e.location,
+        description: e.description, // Quill HTML
+        bullets: e.achievements ?? e.bullets ?? [], // <-- map achievements
+      }));
 
     case "education":
       return Array.isArray(section.data)
