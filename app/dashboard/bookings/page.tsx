@@ -361,20 +361,20 @@ export default function UserBookingsPage() {
           <div className="flex flex-col lg:flex-row gap-3">
             <Button
               onClick={() => {
-                if (isStudent) {
-                  router.push("/academic-services");
-                } else if (
-                  userData?.role === "individualTechProfessional" ||
-                  userData?.role === "teamTechProfessional"
-                ) {
-                  router.push("/training/catalog");
-                } else if (userData?.role === "institution") {
-                  // For institutions, show options or route to corporate consultancy
-                  router.push("/corporate-consultancy");
-                } else {
-                  // Default fallback
-                  router.push("/academic-services");
-                }
+                // if (isStudent) {
+                //   router.push("/academic-services");
+                // } else if (
+                //   userData?.role === "individualTechProfessional" ||
+                //   userData?.role === "teamTechProfessional"
+                // ) {
+                //   router.push("/training/catalog");
+                // } else if (userData?.role === "institution") {
+                //   // For institutions, show options or route to corporate consultancy
+                //   router.push("/corporate-consultancy");
+                // } else {
+                // Default fallback
+                router.push("/pricing");
+                // }
               }}
               disabled={loading}
               className="group relative px-6 py-3 bg-gradient-to-r from-sky-400 to-blue-600 text-white font-semibold rounded-2xl hover:from-sky-500 hover:to-blue-900 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
