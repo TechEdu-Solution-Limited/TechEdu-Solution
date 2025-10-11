@@ -240,7 +240,7 @@ const LoginPage = () => {
       case "teamTechProfessional":
         return `/onboarding/team-tech-professional?userId=${id}`;
       default:
-        return `/onboarding?userId=${id}`;
+        return `/login`;
     }
   };
 

@@ -25,12 +25,19 @@ import Image from "next/image";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import { useSearchParams } from "next/navigation";
-import { postApiRequest, registerUser, loginUser } from "@/lib/apiFetch";
+import {
+  postApiRequest,
+  registerUser,
+  loginUser,
+  apiRequest,
+} from "@/lib/apiFetch";
 import { Input } from "@/components/ui/input";
 import {
+  getCookie,
   getTokenFromCookies,
   saveTokenToCookies,
   saveUserDataToCookies,
+  setCookie,
 } from "@/lib/cookies";
 import StripePaymentForm from "@/components/StripePaymentForm";
 import { PaymentService } from "@/lib/api/paymentService";
@@ -93,6 +100,14 @@ export default function CartPage() {
     null
   );
   const [paymentBookingId, setPaymentBookingId] = useState<string | null>(null);
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
+
+  // Get redirect parameter directly from URL
+  const redirectParam =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("redirect")
+      : null;
+  const redirectTo = redirectParam || "/dashboard";
 
   // Two-step checkout state for bookable services
   const [showBookingDetailsForm, setShowBookingDetailsForm] = useState(false);
@@ -167,6 +182,132 @@ export default function CartPage() {
   const handleClearCart = () => {
     clearCart();
     toast.success("Cart cleared");
+  };
+
+  // Function to determine redirect route based on user role and onboarding status
+  const getRedirectRoute = async (userData: any) => {
+    const { role, id } = userData;
+
+    // Store userId in cookie for onboarding if needed
+    if (id) {
+      setCookie("userId", id, {
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+      });
+    }
+
+    // PRIORITY 1: If there's a redirect parameter, use it (highest priority)
+    if (
+      redirectTo &&
+      redirectTo !== "/dashboard" &&
+      redirectTo.startsWith("/")
+    ) {
+      // Only allow students to access /cart
+      if (redirectTo === "/cart" && role !== "student") {
+        toast.error(
+          "Only students can purchase from the catalog. Please log in with a student account."
+        );
+        return "/dashboard";
+      }
+      return redirectTo;
+    }
+
+    // PRIORITY 2: Check onboarding status from API for intelligent routing
+    try {
+      // Get fresh token after login
+      const token = getCookie("token");
+      if (!token) {
+        return getOnboardingRoute(role, id);
+      }
+
+      // Set loading state for better UX
+      setIsCheckingOnboarding(true);
+
+      // Check onboarding status to determine routing
+      const startResponse = await apiRequest(
+        "/api/onboarding/start",
+        "POST",
+        { userId: id, userType: role },
+        token
+      );
+
+      if (startResponse.status === 200 && startResponse.data) {
+        const onboardingStatus = startResponse.data?.status;
+
+        // If onboarding is completed, go directly to dashboard
+        if (onboardingStatus === "completed") {
+          return getDashboardRoute(role);
+        }
+
+        // If onboarding is in progress, get detailed progress and route to onboarding
+        if (onboardingStatus === "in_progress") {
+          try {
+            const progressResponse = await apiRequest(
+              `/api/onboarding/${id}/progress`,
+              "GET",
+              undefined,
+              token
+            );
+          } catch (progressError) {
+            safeConsole.error(
+              "Error fetching progress details:",
+              progressError
+            );
+          }
+          return getOnboardingRoute(role, id);
+        }
+
+        // If onboarding hasn't started, route to onboarding
+        if (onboardingStatus === "not_started" || !onboardingStatus) {
+          return getOnboardingRoute(role, id);
+        } else {
+          safeConsole.warn("Unexpected onboarding response:", startResponse);
+        }
+      }
+    } catch (error) {
+      safeConsole.error("Error checking onboarding status:", error);
+      // If API call fails, fall back to onboarding route for safety
+    } finally {
+      // Reset loading state
+      setIsCheckingOnboarding(false);
+    }
+
+    // PRIORITY 3: Fallback to onboarding route if anything goes wrong
+    return getOnboardingRoute(role, id);
+  };
+
+  // Helper functions for routing
+  const getDashboardRoute = (role: string) => {
+    const roleToDashboardRoute: Record<string, string> = {
+      student: "student",
+      recruiter: "recruiter",
+      institution: "institution",
+      individualTechProfessional: "individual-tech-professional",
+      teamTechProfessional: "team-tech-professional",
+    };
+    return `/dashboard/${roleToDashboardRoute[role] || "student"}`;
+  };
+
+  const getOnboardingRoute = (role: string, id: string) => {
+    switch (role) {
+      case "student":
+        return `/onboarding/student?userId=${id}${
+          redirectTo && redirectTo !== "/dashboard"
+            ? `&redirect=${encodeURIComponent(redirectTo)}`
+            : ""
+        }`;
+      case "recruiter":
+        return `/onboarding/recruiter?userId=${id}`;
+      case "institution":
+        return `/onboarding/institution?userId=${id}`;
+      case "individualTechProfessional":
+        return `/onboarding/tech-professional?userId=${id}`;
+      case "teamTechProfessional":
+        return `/onboarding/team-tech-professional?userId=${id}`;
+      default:
+        return `/login`;
+    }
   };
 
   // Compute total for a single item: price + 20% VAT + £2.99 fee
@@ -647,11 +788,10 @@ export default function CartPage() {
       });
 
       if (response.status >= 400) {
-        throw new Error(response.data.message || "Login failed");
+        throw new Error(response.data?.message || "Login failed");
       }
 
-      // Check if the response contains authentication data
-      // Try multiple possible token locations in the response
+      // Possible token locations
       const possibleTokenPaths = [
         response.data?.token,
         response.data?.accessToken,
@@ -660,49 +800,76 @@ export default function CartPage() {
         response.data?.access_token,
         response.data?.data?.access_token,
       ];
-
       const token = possibleTokenPaths.find((t) => t);
 
-      // Try multiple possible user data locations
+      // Possible user locations
       const possibleUserPaths = [
         response.data?.user,
         response.data?.userData,
         response.data?.data?.user,
         response.data?.data?.userData,
       ];
+      const user = possibleUserPaths.find((u) => u);
 
-      const userData = possibleUserPaths.find((u) => u);
-
-      // Save token and user data to cookies
-      if (token) {
-        saveTokenToCookies(token);
-      }
-      if (userData) {
-        saveUserDataToCookies(userData);
-      }
-
-      // Also save refresh token if available
-      if (response.data?.data?.refresh_token) {
-      }
+      // Save token and user
+      if (token) saveTokenToCookies(token);
+      if (user) saveUserDataToCookies(user);
 
       if (!token) {
         safeConsole.warn("No token found in login response");
       }
 
       toast.success("Login successful!");
-      // Clear form immediately
       setAuthEmail("");
       setAuthPassword("");
       setAuthError("");
 
-      // Update authentication state directly
-      if (token && userData) {
-        // Immediately update RoleContext
-        setUserData(userData);
-        setUserRole(userData.role || "student");
+      if (token && user) {
+        // Update RoleContext
+        setUserData(user);
+        setUserRole(user.role || "student");
         setIsAuthenticated(true);
+
+        // ---- Onboarding check (same idea as Login page) ----
+        const role: string = user.role || "student";
+        const userId: string =
+          user?.id || user?._id || user?.userId || user?.user_id || "";
+
+        try {
+          // Start/inspect onboarding
+          const startResp = await postApiRequest(
+            "/api/onboarding/start",
+            { userId, userType: role },
+            { Authorization: `Bearer ${token}` }
+          );
+
+          // Try to read status from either shape
+          const onboardingStatus =
+            startResp?.data?.status ??
+            startResp?.data?.data?.status ??
+            "unknown";
+
+          if (onboardingStatus === "completed") {
+            // Route to dashboard (matches your Login page behavior)
+            window.location.href = getDashboardRoute(role);
+            return;
+          }
+
+          // Not completed or unknown → send to onboarding with redirect back to /cart
+          window.location.href = getOnboardingRoute(role, userId);
+          return;
+        } catch (e) {
+          // If onboarding check fails, default to onboarding (safer)
+          safeConsole.error("Onboarding check failed:", e);
+          const role: string = user.role || "student";
+          const userId: string =
+            user?.id || user?._id || user?.userId || user?.user_id || "";
+          window.location.href = getOnboardingRoute(role, userId);
+          return;
+        }
+        // ---- end onboarding check ----
       } else {
-        // Fallback: try refreshAuth
+        // Fallback: try refreshAuth then reload if needed
         try {
           const authUpdated = await refreshAuth();
           if (!authUpdated) {
@@ -716,7 +883,7 @@ export default function CartPage() {
       }
     } catch (error: any) {
       safeConsole.error("Login error:", error);
-      setAuthError(error.message || "Failed to login");
+      setAuthError(error?.message || "Failed to login");
     } finally {
       setIsAuthLoading(false);
     }
