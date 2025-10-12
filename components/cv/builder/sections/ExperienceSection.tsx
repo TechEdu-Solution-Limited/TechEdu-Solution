@@ -319,7 +319,7 @@ export default function ExperienceSection({
                 </div>
 
                 <QuillTextEditor
-                  value={editorValue}
+                  value={toEditorHtml(exp.description, exp.achievements)}
                   onChange={(value) => {
                     const next = fromEditorHtml(value);
                     const nextDescHtml = ensureHtml(next.description || "");
@@ -340,7 +340,6 @@ export default function ExperienceSection({
                     if (achChanged)
                       onUpdate(exp.id, "achievements", next.achievements);
                   }}
-                  placeholder="Describe your key responsibilities and achievements…"
                 />
               </div>
             </>

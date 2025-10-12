@@ -1,11 +1,33 @@
 // utils/cv/sectionHelpers.ts
 import { ResumeSection } from "@/types/cv/index";
 
+// helpers near top
 const isHtml = (s?: string) => !!s && /<\/?[a-z][\s\S]*>/i.test(s);
 const esc = (s = "") =>
   s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 const ensureHtml = (s?: string) =>
   !s ? "" : isHtml(s) ? s : `<p>${esc(s)}</p>`;
+
+export function toExperienceHtml(
+  description?: string,
+  achievements?: string[] | string
+) {
+  const ach = Array.isArray(achievements)
+    ? achievements
+    : typeof achievements === "string"
+    ? achievements
+        .split(/\r?\n/)
+        .map((x) => x.trim())
+        .filter(Boolean)
+    : [];
+
+  const descHtml = description ? ensureHtml(description) : "";
+  const ulHtml = ach.length
+    ? `<ul>${ach.map((li) => `<li>${esc(li)}</li>`).join("")}</ul>`
+    : "";
+
+  return `${descHtml}${ulHtml}`;
+}
 
 export function formatSectionContent(section: ResumeSection) {
   switch (section.type) {
@@ -13,29 +35,17 @@ export function formatSectionContent(section: ResumeSection) {
       const data = Array.isArray(section.data) ? section.data : [];
       return data.map((e: any) => ({
         id: e.id,
-        title: e.position || e.title || e.jobTitle, // map all possible keys
+        title: e.position || e.title || e.jobTitle, // supports backend jobTitle
         company: e.company,
         startDate: e.startDate,
         endDate: e.current ? "Present" : e.endDate,
         current: !!e.current,
         location: e.location,
-
-        // ⬅️ description is HTML-only (no bullets inside)
-        description: ensureHtml(e.description),
-
-        // ⬅️ bullets merged from new `achievements` and legacy `bullets`
-        bullets: Array.isArray(e.achievements)
-          ? e.achievements
-          : typeof e.achievements === "string"
-          ? e.achievements
-              .split(/\r?\n/)
-              .map((s: string) => s.trim())
-              .filter(Boolean)
-          : Array.isArray(e.bullets)
-          ? e.bullets
-          : [],
-
-        technologies: Array.isArray(e.technologies) ? e.technologies : [],
+        description: toExperienceHtml(
+          e.description,
+          e.achievements ?? e.bullets
+        ),
+        technologies: e.technologies ?? [],
       }));
     }
 
