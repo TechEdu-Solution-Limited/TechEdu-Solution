@@ -6,7 +6,7 @@
 
 import { ResumeSection } from "@/types/cv/index";
 
-// utils/cv/sectionHelpers.ts
+// --- helpers ----------------------------------------------------
 function scoreToLevel(score: number): string {
   if (score >= 85) return "Expert";
   if (score >= 65) return "Advanced";
@@ -14,20 +14,18 @@ function scoreToLevel(score: number): string {
   return "Beginner";
 }
 
-// --- helpers ----------------------------------------------------
-// make plain text safe HTML (<p>...</p>) so RichHtml can render it
-// top of file (or shared util)
+// make plain text safe HTML (<p>...</p>) so RichHtml/RichPdf can render it
 const isHtml = (s?: string) => !!s && /<\/?[a-z][\s\S]*>/i.test(s);
 const esc = (s = "") =>
   s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 const ensureHtml = (s?: string) =>
   !s ? "" : isHtml(s) ? s : `<p>${esc(s)}</p>`;
 
+// Optional exporter if you want to combine desc+achievements elsewhere
 export function toExperienceHtml(
   description?: string,
   achievements?: string[] | string
 ) {
-  // normalize achievements to array
   const ach = Array.isArray(achievements)
     ? achievements
     : typeof achievements === "string"
@@ -37,12 +35,7 @@ export function toExperienceHtml(
         .filter(Boolean)
     : [];
 
-  const descHtml = description
-    ? isHtml(description)
-      ? description
-      : `<p>${esc(description)}</p>`
-    : "";
-
+  const descHtml = ensureHtml(description);
   const ulHtml = ach.length
     ? `<ul>${ach.map((li) => `<li>${esc(li)}</li>`).join("")}</ul>`
     : "";
@@ -52,7 +45,29 @@ export function toExperienceHtml(
 
 export function formatSectionContent(section: ResumeSection) {
   switch (section.type) {
-    // utils/cv/sectionHelpers.ts (inside formatSectionContent)
+    case "work-experience": {
+      const data = Array.isArray(section.data) ? section.data : [];
+      return data.map((e: any) => ({
+        id: e.id,
+        title: e.position || e.title || e.jobTitle,
+        jobTitle: e.jobTitle, // kept for places that check this
+        company: e.company,
+        startDate: e.startDate,
+        endDate: e.current ? "Present" : e.endDate,
+        current: !!e.current,
+        location: e.location,
+        // ✅ ensure description is HTML so RichHtml/RichPdf render it
+        description: ensureHtml(e.description),
+        // ✅ normalize achievements → bullets
+        bullets: Array.isArray(e.achievements)
+          ? e.achievements
+          : Array.isArray(e.bullets)
+          ? e.bullets
+          : [],
+        technologies: Array.isArray(e.technologies) ? e.technologies : [],
+      }));
+    }
+
     case "education": {
       const data = Array.isArray(section.data) ? section.data : [];
       return data.map((e: any) => ({
@@ -64,22 +79,9 @@ export function formatSectionContent(section: ResumeSection) {
         endDate: e.current ? "Present" : e.endDate,
         location: e.location,
         gpa: e.gpa,
-        description: ensureHtml(e.description), // ✅ ensure HTML here
+        description: ensureHtml(e.description), // safe for Rich components
       }));
     }
-
-    case "education":
-      return Array.isArray(section.data)
-        ? section.data.map((edu: any) => ({
-            degree: edu.degree,
-            school: edu.institution,
-            field: edu.field,
-            startDate: edu.startDate,
-            endDate: edu.endDate || "Present",
-            location: edu.location,
-            gpa: edu.gpa,
-          }))
-        : [];
 
     case "skills": {
       const raw = Array.isArray(section.data)
@@ -87,7 +89,6 @@ export function formatSectionContent(section: ResumeSection) {
         : Array.isArray((section as any)?.data?.skills)
         ? (section as any).data.skills
         : [];
-
       return raw
         .map((skill: any) => ({
           name:
@@ -97,7 +98,7 @@ export function formatSectionContent(section: ResumeSection) {
           level: skill?.level,
           category: skill?.category,
         }))
-        .filter((s: any) => s.name && s.name.trim().length > 0); // ✅ drop empties
+        .filter((s: any) => s.name && s.name.trim().length > 0);
     }
 
     case "languages":
@@ -112,9 +113,11 @@ export function formatSectionContent(section: ResumeSection) {
       return Array.isArray(section.data)
         ? section.data.map((project: any) => ({
             name: project.name,
-            description: project.description,
+            description: ensureHtml(project.description), // ✅
             url: project.url,
-            technologies: project.technologies || [],
+            technologies: Array.isArray(project.technologies)
+              ? project.technologies
+              : [],
             startDate: project.startDate,
             endDate: project.endDate || "Present",
           }))
@@ -136,7 +139,7 @@ export function formatSectionContent(section: ResumeSection) {
             title: award.title,
             issuer: award.issuer,
             date: award.date,
-            description: award.description,
+            description: ensureHtml(award.description), // ✅
           }))
         : [];
 
@@ -151,7 +154,8 @@ export function formatSectionContent(section: ResumeSection) {
     case "professional-summary":
       return [
         {
-          summary: section.data.summary,
+          // ✅ summary may be plain text; make it HTML for RichPdf/RichHtml
+          summary: ensureHtml(section.data?.summary),
         },
       ];
 
@@ -174,25 +178,20 @@ export function formatSectionContent(section: ResumeSection) {
       ];
 
     default:
-      return section.data;
+      return Array.isArray(section.data) ? section.data : [];
   }
 }
 
 /**
- * Get section display name
- * Prioritizes custom heading from section data, falls back to default mapping
+ * Display name helper (unchanged)
  */
 export function getSectionDisplayName(
   sectionType: string,
   section?: ResumeSection
 ): string {
-  // If section has a custom heading, use it
-  if (section?.heading) {
-    return section.heading;
-  }
+  if (section?.heading) return section.heading;
 
-  // Fallback to default display names
-  const displayNames: { [key: string]: string } = {
+  const displayNames: Record<string, string> = {
     "work-experience": "Work Experience",
     education: "Education",
     skills: "Skills",
