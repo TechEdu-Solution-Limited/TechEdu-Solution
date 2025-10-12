@@ -1,47 +1,11 @@
-/**
- * Shared Section Logic for Classic Template
- *
- * Provides consistent data formatting for both HTML preview and PDF rendering
- */
-
+// utils/cv/sectionHelpers.ts
 import { ResumeSection } from "@/types/cv/index";
 
-// --- helpers ----------------------------------------------------
-function scoreToLevel(score: number): string {
-  if (score >= 85) return "Expert";
-  if (score >= 65) return "Advanced";
-  if (score >= 45) return "Intermediate";
-  return "Beginner";
-}
-
-// make plain text safe HTML (<p>...</p>) so RichHtml/RichPdf can render it
 const isHtml = (s?: string) => !!s && /<\/?[a-z][\s\S]*>/i.test(s);
 const esc = (s = "") =>
   s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 const ensureHtml = (s?: string) =>
   !s ? "" : isHtml(s) ? s : `<p>${esc(s)}</p>`;
-
-// Optional exporter if you want to combine desc+achievements elsewhere
-export function toExperienceHtml(
-  description?: string,
-  achievements?: string[] | string
-) {
-  const ach = Array.isArray(achievements)
-    ? achievements
-    : typeof achievements === "string"
-    ? achievements
-        .split(/\r?\n/)
-        .map((x) => x.trim())
-        .filter(Boolean)
-    : [];
-
-  const descHtml = ensureHtml(description);
-  const ulHtml = ach.length
-    ? `<ul>${ach.map((li) => `<li>${esc(li)}</li>`).join("")}</ul>`
-    : "";
-
-  return `${descHtml}${ulHtml}`;
-}
 
 export function formatSectionContent(section: ResumeSection) {
   switch (section.type) {
@@ -49,21 +13,28 @@ export function formatSectionContent(section: ResumeSection) {
       const data = Array.isArray(section.data) ? section.data : [];
       return data.map((e: any) => ({
         id: e.id,
-        title: e.position || e.title || e.jobTitle,
-        jobTitle: e.jobTitle, // kept for places that check this
+        title: e.position || e.title || e.jobTitle, // map all possible keys
         company: e.company,
         startDate: e.startDate,
         endDate: e.current ? "Present" : e.endDate,
         current: !!e.current,
         location: e.location,
-        // ✅ ensure description is HTML so RichHtml/RichPdf render it
+
+        // ⬅️ description is HTML-only (no bullets inside)
         description: ensureHtml(e.description),
-        // ✅ normalize achievements → bullets
+
+        // ⬅️ bullets merged from new `achievements` and legacy `bullets`
         bullets: Array.isArray(e.achievements)
           ? e.achievements
+          : typeof e.achievements === "string"
+          ? e.achievements
+              .split(/\r?\n/)
+              .map((s: string) => s.trim())
+              .filter(Boolean)
           : Array.isArray(e.bullets)
           ? e.bullets
           : [],
+
         technologies: Array.isArray(e.technologies) ? e.technologies : [],
       }));
     }
@@ -79,7 +50,7 @@ export function formatSectionContent(section: ResumeSection) {
         endDate: e.current ? "Present" : e.endDate,
         location: e.location,
         gpa: e.gpa,
-        description: ensureHtml(e.description), // safe for Rich components
+        description: ensureHtml(e.description),
       }));
     }
 
@@ -111,53 +82,46 @@ export function formatSectionContent(section: ResumeSection) {
 
     case "projects":
       return Array.isArray(section.data)
-        ? section.data.map((project: any) => ({
-            name: project.name,
-            description: ensureHtml(project.description), // ✅
-            url: project.url,
-            technologies: Array.isArray(project.technologies)
-              ? project.technologies
-              : [],
-            startDate: project.startDate,
-            endDate: project.endDate || "Present",
+        ? section.data.map((p: any) => ({
+            name: p.name,
+            description: ensureHtml(p.description),
+            url: p.url,
+            technologies: p.technologies || [],
+            startDate: p.startDate,
+            endDate: p.endDate || "Present",
           }))
         : [];
 
     case "certifications":
       return Array.isArray(section.data)
-        ? section.data.map((cert: any) => ({
-            name: cert.name,
-            issuer: cert.issuer,
-            date: cert.date,
-            credentialId: cert.credentialId,
+        ? section.data.map((c: any) => ({
+            name: c.name,
+            issuer: c.issuer,
+            date: c.date,
+            credentialId: c.credentialId,
           }))
         : [];
 
     case "awards":
       return Array.isArray(section.data)
-        ? section.data.map((award: any) => ({
-            title: award.title,
-            issuer: award.issuer,
-            date: award.date,
-            description: ensureHtml(award.description), // ✅
+        ? section.data.map((a: any) => ({
+            title: a.title,
+            issuer: a.issuer,
+            date: a.date,
+            description: ensureHtml(a.description),
           }))
         : [];
 
     case "interests":
       return Array.isArray(section.data)
-        ? section.data.map((interest: any) => ({
-            name: interest.name,
-            description: interest.description,
+        ? section.data.map((i: any) => ({
+            name: i.name,
+            description: i.description,
           }))
         : [];
 
     case "professional-summary":
-      return [
-        {
-          // ✅ summary may be plain text; make it HTML for RichPdf/RichHtml
-          summary: ensureHtml(section.data?.summary),
-        },
-      ];
+      return [{ summary: ensureHtml(section.data.summary) }];
 
     case "personal-info":
       return [
@@ -178,7 +142,7 @@ export function formatSectionContent(section: ResumeSection) {
       ];
 
     default:
-      return Array.isArray(section.data) ? section.data : [];
+      return section.data;
   }
 }
 
