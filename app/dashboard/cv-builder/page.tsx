@@ -9,6 +9,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { CVBuilderState } from "@/types/cv/cv-builder";
 import { useFirebaseStorage } from "@/hooks/useFirebaseStorage";
 import { STORAGE_FOLDERS } from "@/lib/firebase";
+import safeConsole from "@/lib/console";
 
 export default function ResumeBuilder() {
   const [dragActive, setDragActive] = useState(false);
@@ -44,8 +45,8 @@ export default function ResumeBuilder() {
     try {
       const result = await uploadFile(file);
 
-      console.log("✅ Uploaded file URL:", result);
-      console.log("ℹ️ Uploaded path:", result);
+      safeConsole.log("✅ Uploaded file URL:", result);
+      safeConsole.log("ℹ️ Uploaded path:", result);
 
       // Store upload success data
       setUploadedFile({
@@ -60,7 +61,7 @@ export default function ResumeBuilder() {
         setUploadStatus("idle");
       }, 5000);
     } catch (e) {
-      console.error("❌ Upload failed:", e);
+      safeConsole.error("❌ Upload failed:", e);
       setUploadError(
         e instanceof Error ? e.message : "Upload failed. Please try again."
       );
@@ -105,46 +106,45 @@ export default function ResumeBuilder() {
             debounceDelay: 500, // 0.5 seconds
             onSave: async (state: CVBuilderState) => {
               try {
-                console.log("Auto-saving state:", state);
+                safeConsole.log("Auto-saving state:", state);
                 // TODO: Implement secure auto-save to CV and draft endpoints
-                console.log("Auto-save successful");
+                safeConsole.log("Auto-save successful");
               } catch (error) {
-                console.error("Auto-save failed:", error);
+                safeConsole.error("Auto-save failed:", error);
                 throw error;
               }
             },
           }}
           onStateChange={(state: CVBuilderState) => {
             // Handle state changes if needed
-            console.log("State changed:", state);
+            safeConsole.log("State changed:", state);
           }}
           onSave={async (state: CVBuilderState) => {
             try {
-              // TODO: Implement secure manual save to CV and draft endpoints
-              console.log("Manual save successful:", state);
+              safeConsole.log("Manual save successful:", state);
             } catch (error) {
-              console.error("Manual save failed:", error);
+              safeConsole.error("Manual save failed:", error);
               throw error;
             }
           }}
           onLoad={async (id: string) => {
             try {
-              console.log("onLoad called with id:", id);
+              safeConsole.log("onLoad called with id:", id);
               // TODO: Load from secure CV endpoint
-              console.log("No saved state found, using defaults");
+              safeConsole.log("No saved state found, using defaults");
               return {};
             } catch (error) {
-              console.error("Load failed:", error);
+              safeConsole.error("Load failed:", error);
               return {};
             }
           }}
           onExport={async (state: CVBuilderState) => {
             try {
-              console.log("Exporting CV:", state);
+              safeConsole.log("Exporting CV:", state);
               // TODO: Implement PDF/DOCX export
-              console.log("Export successful");
+              safeConsole.log("Export successful");
             } catch (error) {
-              console.error("Export failed:", error);
+              safeConsole.error("Export failed:", error);
               throw error;
             }
           }}
@@ -251,7 +251,10 @@ export default function ResumeBuilder() {
                     <button
                       onClick={() => {
                         // TODO: Process the uploaded CV and navigate to template selection
-                        console.log("Process CV with URL:", uploadedFile.url);
+                        safeConsole.log(
+                          "Process CV with URL:",
+                          uploadedFile.url
+                        );
                         router.push(`/dashboard/cv-builder/template-selection`);
                       }}
                       className="px-4 py-2 bg-green-600 text-white rounded-[10px] hover:bg-green-700 transition-colors"
@@ -380,7 +383,7 @@ export default function ResumeBuilder() {
                 Multiple Formats
               </h4>
               <p className="text-sm text-gray-600 dark:text-gray-300">
-                Export your CV in PDF, DOCX, and HTML formats
+                Export your CV in PDF
               </p>
             </div>
             <div className="text-center">
