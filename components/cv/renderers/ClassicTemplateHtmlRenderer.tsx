@@ -364,7 +364,7 @@ export function ClassicTemplateHtmlRenderer({
                           )
                         )}
 
-                        {Array.isArray(item.technologies) &&
+                        {/* {Array.isArray(item.technologies) &&
                           item.technologies.length > 0 && (
                             <p
                               className="text-xs text-gray-500 mt-1"
@@ -377,7 +377,7 @@ export function ClassicTemplateHtmlRenderer({
                             >
                               Technologies: {item.technologies.join(", ")}
                             </p>
-                          )}
+                          )} */}
                       </div>
                     )}
 

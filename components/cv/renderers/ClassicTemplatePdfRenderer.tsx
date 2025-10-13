@@ -469,7 +469,6 @@ export function ClassicTemplatePdfRenderer({
                   </View>
                 )}
                 {/* Other sections - Individual items */}
-                {/* /* Other sections - Individual items */}
                 {Array.isArray(items) &&
                   (section.type as string) !== "skills" &&
                   (section.type as string) !== "languages" &&
@@ -479,35 +478,39 @@ export function ClassicTemplatePdfRenderer({
                       {/* Work Experience */}
                       {(item.title || item.jobTitle) && item.company && (
                         <View>
-                          {/* header + meta */}
-                          <View
-                            style={{
-                              flexDirection: "row",
-                              justifyContent: "space-between",
-                              alignItems: "flex-start",
-                            }}
-                          >
-                            <Text style={styles.itemTitle}>
-                              {(item.title || item.jobTitle) as string} —{" "}
-                              <Text style={{ fontStyle: "italic" }}>
-                                {item.company}
+                          {/* Keep just the header/meta together on one page */}
+                          <View wrap={false}>
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                justifyContent: "space-between",
+                                alignItems: "flex-start",
+                              }}
+                            >
+                              <Text style={styles.itemTitle}>
+                                {(item.title || item.jobTitle) as string} —{" "}
+                                <Text style={{ fontStyle: "italic" }}>
+                                  {item.company}
+                                </Text>
                               </Text>
-                            </Text>
 
-                            {item.startDate ? (
+                              {item.startDate ? (
+                                <Text style={styles.itemDate}>
+                                  {item.startDate} –{" "}
+                                  {item.endDate ||
+                                    (item.current ? "Present" : "")}
+                                </Text>
+                              ) : null}
+                            </View>
+
+                            {item.location && (
                               <Text style={styles.itemDate}>
-                                {item.startDate} –{" "}
-                                {item.endDate ||
-                                  (item.current ? "Present" : "")}
+                                {item.location}
                               </Text>
-                            ) : null}
+                            )}
                           </View>
 
-                          {item.location && (
-                            <Text style={styles.itemDate}>{item.location}</Text>
-                          )}
-
-                          {/* description + bullets (all kept with this item because parent has wrap={false}) */}
+                          {/* Allow this content to split across pages */}
                           {item.description ? (
                             <RichPdf
                               html={item.description}
@@ -517,8 +520,8 @@ export function ClassicTemplatePdfRenderer({
                             Array.isArray(item.bullets) &&
                             item.bullets.length > 0 && (
                               <View style={styles.bulletList}>
-                                {item.bullets.map((b: string, k: number) => (
-                                  <Text key={k} style={styles.bullet}>
+                                {item.bullets.map((b: string, idx: number) => (
+                                  <Text key={idx} style={styles.bullet}>
                                     • {b}
                                   </Text>
                                 ))}
@@ -526,12 +529,12 @@ export function ClassicTemplatePdfRenderer({
                             )
                           )}
 
-                          {Array.isArray(item.technologies) &&
+                          {/* {Array.isArray(item.technologies) &&
                             item.technologies.length > 0 && (
                               <Text style={styles.itemDate}>
                                 Technologies: {item.technologies.join(", ")}
                               </Text>
-                            )}
+                            )} */}
                         </View>
                       )}
 
