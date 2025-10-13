@@ -480,34 +480,39 @@ export function ClassicTemplatePdfRenderer({
                       {/* Work Experience */}
                       {(item.title || item.jobTitle) && item.company && (
                         <View>
-                          <View
-                            style={{
-                              flexDirection: "row",
-                              justifyContent: "space-between",
-                              alignItems: "flex-start",
-                            }}
-                          >
-                            <Text style={styles.itemTitle}>
-                              {(item.title || item.jobTitle) as string} —{" "}
-                              <Text style={{ fontStyle: "italic" }}>
-                                {item.company}
+                          {/* Keep header + meta together, but allow the body to flow */}
+                          <View wrap={false} minPresenceAhead={24}>
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                justifyContent: "space-between",
+                                alignItems: "flex-start",
+                              }}
+                            >
+                              <Text style={styles.itemTitle}>
+                                {(item.title || item.jobTitle) as string} —{" "}
+                                <Text style={{ fontStyle: "italic" }}>
+                                  {item.company}
+                                </Text>
                               </Text>
-                            </Text>
 
-                            {item.startDate ? (
+                              {item.startDate ? (
+                                <Text style={styles.itemDate}>
+                                  {item.startDate} –{" "}
+                                  {item.endDate ||
+                                    (item.current ? "Present" : "")}
+                                </Text>
+                              ) : null}
+                            </View>
+
+                            {item.location && (
                               <Text style={styles.itemDate}>
-                                {item.startDate} –{" "}
-                                {item.endDate ||
-                                  (item.current ? "Present" : "")}
+                                {item.location}
                               </Text>
-                            ) : null}
+                            )}
                           </View>
 
-                          {item.location && (
-                            <Text style={styles.itemDate}>{item.location}</Text>
-                          )}
-
-                          {/* ✅ merged HTML */}
+                          {/* Let description/bullets flow onto the next page if needed */}
                           {item.description ? (
                             <RichPdf
                               html={item.description}
@@ -526,7 +531,6 @@ export function ClassicTemplatePdfRenderer({
                             )
                           )}
 
-                          {/* Optional: technologies */}
                           {Array.isArray(item.technologies) &&
                             item.technologies.length > 0 && (
                               <Text style={styles.itemDate}>
