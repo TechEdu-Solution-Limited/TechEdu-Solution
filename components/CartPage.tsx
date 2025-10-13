@@ -48,6 +48,13 @@ import type {
 import { CartItem } from "@/types/cart";
 import { safeConsole } from "@/lib/console";
 import { uploadAttachment, STORAGE_FOLDERS } from "@/lib/firebase";
+import {
+  individualTechProfessionalServices,
+  institutionServices,
+  recruiterServices,
+  studentServices,
+  teamTechProfessionalServices,
+} from "@/lib/constants/productTypes";
 
 export default function CartPage() {
   const {
@@ -149,26 +156,42 @@ export default function CartPage() {
   };
 
   // Helper function to check if user can purchase a product type
-  const canPurchaseProductType = (productType: string) => {
+  const canPurchaseProductType = (productType: string, role: string) => {
     if (!isAuthenticated) return false;
 
-    if (productType === "Academic Support Services") {
-      return userData?.role === "student";
-    } else if (productType === "Training & Certification") {
-      return (
-        userData?.role === "individualTechProfessional" ||
-        userData?.role === "teamTechProfessional"
-      );
-    }
+    switch (role) {
+      case "student":
+        return studentServices.includes(productType);
 
-    return true; // Allow other product types for now
+      case "individualTechProfessional":
+        return individualTechProfessionalServices.includes(productType);
+
+      case "teamTechProfessional":
+        return teamTechProfessionalServices.includes(productType);
+
+      case "recruiter":
+        return recruiterServices.includes(productType);
+
+      case "institution":
+        return institutionServices.includes(productType);
+
+      default:
+        return true;
+    }
   };
 
   // Helper function to get role restriction message
   const getRoleRestrictionMessage = (productType: string) => {
-    if (productType === "Academic Support Services") {
-      return "Only students can purchase Academic Support Services";
-    } else if (productType === "Training & Certification") {
+    if (
+      productType === "Academic Support Services" ||
+      productType === "Career Development & Mentorship" ||
+      productType === "Training & Certification"
+    ) {
+      return "Only students can purchase";
+    } else if (
+      productType === "Training & Certification" ||
+      productType === "Career Development & Mentorship"
+    ) {
       return "Only tech professionals can purchase Training & Certification";
     }
     return "";
@@ -1289,8 +1312,9 @@ export default function CartPage() {
                       <div className="flex items-center gap-2">
                         <Badge
                           variant={
-                            canPurchaseProductType(
-                              item.productType || "Training & Certification"
+                            !canPurchaseProductType(
+                              item.productType,
+                              userData.role || ""
                             )
                               ? "default"
                               : "destructive"
@@ -1304,7 +1328,8 @@ export default function CartPage() {
                       {/* Role restriction warning */}
                       {isAuthenticated &&
                         !canPurchaseProductType(
-                          item.productType || "Training & Certification"
+                          item.productType,
+                          userData.role || ""
                         ) && (
                           <div className="p-3 bg-red-50 border border-red-200 rounded-[10px] text-sm text-red-700">
                             <div className="flex items-center gap-2">
@@ -1352,7 +1377,8 @@ export default function CartPage() {
                           disabled={
                             isInitializingPayment ||
                             !canPurchaseProductType(
-                              item.productType || "Training & Certification"
+                              item.productType,
+                              userData.role || ""
                             )
                           }
                         >
@@ -1368,8 +1394,8 @@ export default function CartPage() {
                               {!isAuthenticated
                                 ? "Login to Purchase"
                                 : !canPurchaseProductType(
-                                    item.productType ||
-                                      "Training & Certification"
+                                    item.productType,
+                                    userData.role || ""
                                   )
                                 ? "Role Restricted"
                                 : "Purchase Now"}

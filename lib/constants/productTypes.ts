@@ -25,6 +25,37 @@ export const PRODUCT_TYPE_MAPPING: Record<TabType, string> = {
   training: "Training & Certification",
 } as const;
 
+export const studentServices = [
+  "Academic Support Services",
+  "Training & Certification",
+  "Career Development & Mentorship",
+];
+
+export const individualTechProfessionalServices = [
+  "Academic Support Services",
+  "Training & Certification",
+  "Career Development & Mentorship",
+];
+
+export const teamTechProfessionalServices = [
+  "Academic Support Services",
+  "Training & Certification",
+  "Career Development & Mentorship",
+];
+
+export const recruiterServices = [
+  "Academic Support Services",
+  "Training & Certification",
+  "Career Development & Mentorship",
+  "Career Connect",
+];
+
+export const institutionServices = [
+  "Academic Support Services",
+  "Training & Certification",
+  "Career Development & Mentorship",
+];
+
 // Empty state messages for each product type
 export const EMPTY_STATE_MESSAGES: Record<
   TabType,
