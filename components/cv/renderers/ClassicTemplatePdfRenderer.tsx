@@ -481,8 +481,9 @@ export function ClassicTemplatePdfRenderer({
                       {(item.title || item.jobTitle) && item.company && (
                         <View>
                           {/* Keep header + meta together, but allow the body to flow */}
-                          <View wrap={false} minPresenceAhead={24}>
+                          <View minPresenceAhead={24}>
                             <View
+                              wrap={false}
                               style={{
                                 flexDirection: "row",
                                 justifyContent: "space-between",
