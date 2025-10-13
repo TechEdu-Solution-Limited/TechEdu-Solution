@@ -483,7 +483,7 @@ export function ClassicTemplatePdfRenderer({
                           {/* Keep header + meta together, but allow the body to flow */}
                           <View minPresenceAhead={24}>
                             <View
-                              wrap={false}
+                              // wrap={false}
                               style={{
                                 flexDirection: "row",
                                 justifyContent: "space-between",
