@@ -320,28 +320,32 @@ export function MinimalTemplatePdfRenderer({
                   items.map((item: any, i: number) => (
                     <View key={i} style={styles.itemContainer}>
                       {/* Work Experience */}
-                      {item.title && item.company && (
+                      {(item.title || item.jobTitle) && item.company && (
                         <View>
                           <View style={styles.rowTop}>
                             <Text style={styles.itemTitle}>
-                              {item.title} —{" "}
+                              {(item.title || item.jobTitle) as string} —{" "}
                               <Text style={{ fontStyle: "italic" }}>
                                 {item.company}
                               </Text>
                             </Text>
-                            {item.startDate && (
+
+                            {item.startDate ? (
                               <Text style={styles.itemDate}>
-                                {item.startDate} – {item.endDate}
+                                {item.startDate} –{" "}
+                                {item.endDate ||
+                                  (item.current ? "Present" : "")}
                               </Text>
-                            )}
+                            ) : null}
                           </View>
+
                           {item.location && (
                             <Text style={styles.itemSubtle}>
                               {item.location}
                             </Text>
                           )}
 
-                          {/* Rich description (HTML) */}
+                          {/* ✅ merged HTML (paragraphs + lists) */}
                           {item.description ? (
                             <RichPdf
                               html={item.description}
@@ -349,19 +353,40 @@ export function MinimalTemplatePdfRenderer({
                             />
                           ) : null}
 
-                          {/* Legacy explicit bullets array */}
-                          {item.bullets?.length > 0 && (
-                            <BulletList
-                              items={item.bullets.map((b: string) =>
-                                convertHtmlToPdfText(b)
-                              )}
-                              fontSize={
-                                (template.styles.typography.bodySize || 10) - 1
-                              }
-                              color={textColor}
-                              fontFamily={fontFamily}
-                            />
-                          )}
+                          {/* 🔁 Legacy bullets fallback ONLY if description has no <li> */}
+                          {(() => {
+                            const hasList =
+                              typeof item.description === "string" &&
+                              /<li[\s>]/i.test(item.description);
+                            if (
+                              !hasList &&
+                              Array.isArray(item.bullets) &&
+                              item.bullets.length > 0
+                            ) {
+                              return (
+                                <BulletList
+                                  items={item.bullets.map((b: string) =>
+                                    convertHtmlToPdfText(b)
+                                  )}
+                                  fontSize={
+                                    (template.styles.typography.bodySize ||
+                                      10) - 1
+                                  }
+                                  color={textColor}
+                                  fontFamily={fontFamily}
+                                />
+                              );
+                            }
+                            return null;
+                          })()}
+
+                          {/* Optional technologies */}
+                          {Array.isArray(item.technologies) &&
+                            item.technologies.length > 0 && (
+                              <Text style={styles.itemDate}>
+                                Technologies: {item.technologies.join(", ")}
+                              </Text>
+                            )}
                         </View>
                       )}
 

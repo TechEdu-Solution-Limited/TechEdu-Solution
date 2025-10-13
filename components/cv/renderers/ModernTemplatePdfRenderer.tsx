@@ -696,67 +696,64 @@ export function ModernTemplatePdfRenderer({
                               )}
 
                             {/* Work Experience */}
-                            {item.title && item.company && (
+                            {(item.title || item.jobTitle) && item.company && (
                               <View style={styles.borderedItem}>
                                 <View style={styles.workExperienceHeader}>
                                   <Text style={styles.itemTitle}>
-                                    {item.title} —{" "}
+                                    {(item.title || item.jobTitle) as string} —{" "}
                                     <Text style={{ fontStyle: "italic" }}>
                                       {item.company}
                                     </Text>
                                   </Text>
-                                  {item.startDate && (
+
+                                  {item.startDate ? (
                                     <Text style={styles.itemDate}>
-                                      {item.startDate} – {item.endDate}
+                                      {item.startDate} –{" "}
+                                      {item.endDate ||
+                                        (item.current ? "Present" : "")}
                                     </Text>
-                                  )}
+                                  ) : null}
                                 </View>
+
                                 {item.location && (
                                   <Text style={styles.itemDate}>
                                     {item.location}
                                   </Text>
                                 )}
 
-                                {/* 🟦 Quill HTML (paragraphs, inline styles, lists…) */}
-                                {item.description ? (
+                                {/* ✅ merged HTML (paragraphs + lists) */}
+                                {typeof item.description === "string" &&
+                                item.description.trim() ? (
                                   <RichPdf
                                     html={item.description}
                                     template={template}
                                   />
                                 ) : null}
 
-                                {/* 🟩 Optional explicit bullets array (kept for backwards-compat) */}
-                                {item.bullets?.length > 0 && (
-                                  <View style={styles.bulletList}>
-                                    {item.bullets.map(
-                                      (bullet: string, j: number) => {
-                                        const paragraphs = bullet
-                                          .split(/<\/p>\s*<p[^>]*>/i)
-                                          .map((p) =>
-                                            p
-                                              .replace(/<p[^>]*>|<\/p>/gi, "")
-                                              .trim()
-                                          )
-                                          .filter((p) => p.length > 0);
-
-                                        return paragraphs.map(
-                                          (paragraph, k) => (
-                                            <Text
-                                              key={`${j}-${k}`}
-                                              style={styles.bullet}
-                                            >
-                                              •{" "}
-                                              {paragraph.replace(
-                                                /<[^>]*>/g,
-                                                ""
-                                              )}
+                                {/* 🔁 Legacy bullets shown ONLY if description has no <li> */}
+                                {(() => {
+                                  const hasList =
+                                    typeof item.description === "string" &&
+                                    /<li[\s>]/i.test(item.description);
+                                  if (
+                                    !hasList &&
+                                    Array.isArray(item.bullets) &&
+                                    item.bullets.length > 0
+                                  ) {
+                                    return (
+                                      <View style={styles.bulletList}>
+                                        {item.bullets.map(
+                                          (bullet: string, j: number) => (
+                                            <Text key={j} style={styles.bullet}>
+                                              • {convertHtmlToPdfText(bullet)}
                                             </Text>
                                           )
-                                        );
-                                      }
-                                    )}
-                                  </View>
-                                )}
+                                        )}
+                                      </View>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                               </View>
                             )}
 

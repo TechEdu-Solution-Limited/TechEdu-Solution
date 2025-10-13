@@ -29,7 +29,7 @@ import { toast } from "react-toastify";
 import { safeConsole } from "@/lib/console";
 // Validate Stripe publishable key
 const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE;
-const stripeAccountId = process.env.NEXT_PUBLIC_STRIPE_ACCOUNT_ID;
+// const stripeAccountId = process.env.NEXT_PUBLIC_STRIPE_ACCOUNT_ID;
 
 if (!stripePublishableKey) {
   safeConsole.error("NEXT_PUBLIC_STRIPE_PUBLISHABLE is not set");
@@ -41,13 +41,16 @@ if (stripePublishableKey && !stripePublishableKey.startsWith("pk_")) {
   );
 }
 
-if (!stripeAccountId) {
-  safeConsole.error("NEXT_PUBLIC_STRIPE_ACCOUNT_ID is not set");
-}
+// if (!stripeAccountId) {
+//   safeConsole.error("NEXT_PUBLIC_STRIPE_ACCOUNT_ID is not set");
+// }
 
-const stripePromise = loadStripe(stripePublishableKey!, {
-  stripeAccount: stripeAccountId,
-});
+const stripePromise = loadStripe(
+  stripePublishableKey!
+  //   , {
+  //   stripeAccount: stripeAccountId,
+  // }
+);
 
 interface PaymentFormProps {
   clientSecret: string;
@@ -165,8 +168,16 @@ function PaymentForm({
 
       if (submitError) {
         safeConsole.error("Stripe confirmation error:", submitError);
-        setError(submitError.message || "Payment failed");
-        onError(submitError.message || "Payment failed");
+        setError(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : submitError.message || "Payment failed"
+        );
+        onError(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : submitError.message || "Payment failed"
+        );
         setIsProcessing(false);
       } else if (paymentIntent && paymentIntent.status === "succeeded") {
         // Set payment successful state
@@ -206,8 +217,16 @@ function PaymentForm({
           "Unexpected payment intent status:",
           paymentIntent?.status
         );
-        setError(`Payment status: ${paymentIntent?.status || "unknown"}`);
-        onError(`Payment status: ${paymentIntent?.status || "unknown"}`);
+        setError(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : `Payment status: ${paymentIntent?.status || "unknown"}`
+        );
+        onError(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : `Payment status: ${paymentIntent?.status || "unknown"}`
+        );
         setIsProcessing(false);
       }
     } catch (error: any) {
