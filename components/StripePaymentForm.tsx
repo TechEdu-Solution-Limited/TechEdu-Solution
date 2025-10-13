@@ -245,7 +245,7 @@ function PaymentForm({
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: currency.toUpperCase(),
-    }).format(amount);
+    }).format(amount / 100);
   };
 
   const handleCardChange =
