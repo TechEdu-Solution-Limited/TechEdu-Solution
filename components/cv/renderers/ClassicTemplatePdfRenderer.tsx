@@ -392,7 +392,6 @@ export function ClassicTemplatePdfRenderer({
             return (
               <View key={section.id} style={styles.sectionContainer}>
                 <Text style={styles.sectionTitle}>{displayName}</Text>
-
                 {/* Skills - Render once for the entire section */}
                 {(section.type as string) === "skills" && (
                   <View
@@ -431,7 +430,6 @@ export function ClassicTemplatePdfRenderer({
                       ))}
                   </View>
                 )}
-
                 {/* Languages - Render once for the entire section */}
                 {(section.type as string) === "languages" && (
                   <View
@@ -470,50 +468,46 @@ export function ClassicTemplatePdfRenderer({
                       ))}
                   </View>
                 )}
-
                 {/* Other sections - Individual items */}
+                {/* /* Other sections - Individual items */}
                 {Array.isArray(items) &&
                   (section.type as string) !== "skills" &&
                   (section.type as string) !== "languages" &&
                   items.map((item: any, i: number) => (
-                    <View key={i} style={styles.itemContainer}>
+                    // ⬇️ make the whole item a non-splittable block
+                    <View key={i} style={styles.itemContainer} wrap={false}>
                       {/* Work Experience */}
                       {(item.title || item.jobTitle) && item.company && (
                         <View>
-                          {/* Keep header + meta together, but allow the body to flow */}
-                          <View minPresenceAhead={24}>
-                            <View
-                              // wrap={false}
-                              style={{
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                                alignItems: "flex-start",
-                              }}
-                            >
-                              <Text style={styles.itemTitle}>
-                                {(item.title || item.jobTitle) as string} —{" "}
-                                <Text style={{ fontStyle: "italic" }}>
-                                  {item.company}
-                                </Text>
+                          {/* header + meta */}
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              justifyContent: "space-between",
+                              alignItems: "flex-start",
+                            }}
+                          >
+                            <Text style={styles.itemTitle}>
+                              {(item.title || item.jobTitle) as string} —{" "}
+                              <Text style={{ fontStyle: "italic" }}>
+                                {item.company}
                               </Text>
+                            </Text>
 
-                              {item.startDate ? (
-                                <Text style={styles.itemDate}>
-                                  {item.startDate} –{" "}
-                                  {item.endDate ||
-                                    (item.current ? "Present" : "")}
-                                </Text>
-                              ) : null}
-                            </View>
-
-                            {item.location && (
+                            {item.startDate ? (
                               <Text style={styles.itemDate}>
-                                {item.location}
+                                {item.startDate} –{" "}
+                                {item.endDate ||
+                                  (item.current ? "Present" : "")}
                               </Text>
-                            )}
+                            ) : null}
                           </View>
 
-                          {/* Let description/bullets flow onto the next page if needed */}
+                          {item.location && (
+                            <Text style={styles.itemDate}>{item.location}</Text>
+                          )}
+
+                          {/* description + bullets (all kept with this item because parent has wrap={false}) */}
                           {item.description ? (
                             <RichPdf
                               html={item.description}
@@ -523,8 +517,8 @@ export function ClassicTemplatePdfRenderer({
                             Array.isArray(item.bullets) &&
                             item.bullets.length > 0 && (
                               <View style={styles.bulletList}>
-                                {item.bullets.map((b: string, i: number) => (
-                                  <Text key={i} style={styles.bullet}>
+                                {item.bullets.map((b: string, k: number) => (
+                                  <Text key={k} style={styles.bullet}>
                                     • {b}
                                   </Text>
                                 ))}
