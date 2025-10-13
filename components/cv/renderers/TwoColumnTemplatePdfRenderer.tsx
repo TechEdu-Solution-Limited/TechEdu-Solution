@@ -687,7 +687,7 @@ export function TwoColumnTemplatePdfRenderer({
                           ) : null}
 
                           {/* Work Experience */}
-                          {item.title && item.company && (
+                          {(item.title || item.jobTitle) && item.company && (
                             <View>
                               <View
                                 style={{
@@ -702,15 +702,18 @@ export function TwoColumnTemplatePdfRenderer({
                                     { color: "#000000" },
                                   ]}
                                 >
-                                  {item.title}
+                                  {(item.title || item.jobTitle) as string}
                                 </Text>
-                                {item.startDate && (
+
+                                {item.startDate ? (
                                   <Text style={styles.itemDate}>
                                     {item.startDate} –{" "}
-                                    {item.endDate || "Present"}
+                                    {item.endDate ||
+                                      (item.current ? "Present" : "")}
                                   </Text>
-                                )}
+                                ) : null}
                               </View>
+
                               <View
                                 style={{
                                   flexDirection: "row",
@@ -729,7 +732,7 @@ export function TwoColumnTemplatePdfRenderer({
                                 )}
                               </View>
 
-                              {/* 🟦 Quill HTML (paragraphs, inline styles, lists…) */}
+                              {/* ✅ merged HTML */}
                               {item.description ? (
                                 <RichPdf
                                   html={item.description}
@@ -737,7 +740,7 @@ export function TwoColumnTemplatePdfRenderer({
                                 />
                               ) : null}
 
-                              {/* 🟩 Optional explicit bullets array (kept for backwards-compat) */}
+                              {/* Optional legacy bullets */}
                               {item.bullets?.length > 0 && (
                                 <View>
                                   {item.bullets.map(

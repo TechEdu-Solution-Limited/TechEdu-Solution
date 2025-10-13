@@ -529,7 +529,7 @@ export function TwoColumnTemplateHtmlRenderer({
                           )}
 
                         {/* Work Experience */}
-                        {item.title && item.company && (
+                        {(item.title || item.jobTitle) && item.company && (
                           <div className="mb-4">
                             <div className="flex justify-between items-start">
                               <h3
@@ -544,8 +544,9 @@ export function TwoColumnTemplateHtmlRenderer({
                                   }px`,
                                 }}
                               >
-                                {item.title}
+                                {(item.title || item.jobTitle) as string}
                               </h3>
+
                               {item.startDate && (
                                 <span
                                   className="text-sm font-medium"
@@ -559,10 +560,13 @@ export function TwoColumnTemplateHtmlRenderer({
                                     }px`,
                                   }}
                                 >
-                                  {item.startDate} – {item.endDate || "Present"}
+                                  {item.startDate} –{" "}
+                                  {item.endDate ||
+                                    (item.current ? "Present" : "")}
                                 </span>
                               )}
                             </div>
+
                             <div className="flex justify-between items-start mb-2">
                               <p
                                 className="text-lg italic font-medium"
@@ -576,6 +580,7 @@ export function TwoColumnTemplateHtmlRenderer({
                               >
                                 {item.company}
                               </p>
+
                               {item.location && (
                                 <p
                                   className="text-sm"
@@ -594,7 +599,7 @@ export function TwoColumnTemplateHtmlRenderer({
                               )}
                             </div>
 
-                            {/* 🟦 Quill HTML (paragraphs, inline styles, lists…) */}
+                            {/* ✅ description already includes <p> and possibly <ul><li> */}
                             {item.description && (
                               <RichHtml
                                 html={item.description}
@@ -603,7 +608,7 @@ export function TwoColumnTemplateHtmlRenderer({
                               />
                             )}
 
-                            {/* 🟩 Optional explicit bullets array (kept for backwards-compat) */}
+                            {/* Optional legacy bullets */}
                             {item.bullets?.length > 0 && (
                               <ul className="list-disc pl-6 mt-2 space-y-1">
                                 {item.bullets.map(

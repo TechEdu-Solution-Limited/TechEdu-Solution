@@ -1,20 +1,39 @@
-// ExperienceSection.tsx
+// components/cv/builder/sections/ExperienceSection.tsx
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Briefcase, Sparkles, Loader2 } from "lucide-react";
 import { Experience, PersonalInfo } from "@/types/cv/index";
 import AccordionSection from "./AccordionSection";
 import { Button } from "@/components/ui/button";
 import QuillTextEditor from "./QuillTextEditor";
 import { cvService } from "@/services/cv/cvServiceOptimized";
+import { ShowAIConsent } from "@/types/cv/consent";
 
-// --- helpers (unchanged) ---
+// -------------------- Types --------------------
+interface ExperienceSectionProps {
+  experiences: Experience[];
+  personalInfo: PersonalInfo;
+  onAdd: () => void;
+  onRemove: (id: string) => void;
+  onUpdate: (
+    id: string,
+    field: string | keyof Experience,
+    value: string | boolean | string[]
+  ) => void;
+
+  onShowAIConsent?: ShowAIConsent;
+  aiConsent?: { aiProcessing: boolean; aiTraining: boolean } | null;
+  cvId?: string;
+
+  onCheckExistingConsent?: (
+    cvId: string
+  ) => Promise<{ aiProcessing: boolean; aiTraining: boolean } | null>;
+}
+
+// -------------------- Helpers --------------------
 function normalizeHtml(s = "") {
   return s.replace(/\s+/g, " ").trim();
-}
-function escapeHtml(s = "") {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 const isHtml = (s?: string) => !!s && /<\/?[a-z][\s\S]*>/i.test(s);
 const esc = (s = "") =>
@@ -27,18 +46,24 @@ function arraysShallowEqual(a: string[] = [], b: string[] = []) {
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
   return true;
 }
+
+/** Build Quill-friendly HTML from description + achievements */
 function toEditorHtml(desc?: string, achievements?: string[]) {
   const blocks: string[] = [];
   const d = (desc || "").trim();
-  if (d) blocks.push(isHtml(d) ? d : `<p>${escapeHtml(d)}</p>`);
+  if (d) blocks.push(isHtml(d) ? d : `<p>${esc(d)}</p>`);
+
   const items = (achievements || [])
     .map((t) => String(t || "").trim())
     .filter(Boolean)
-    .map((t) => `<li>${escapeHtml(t)}</li>`)
+    .map((t) => `<li>${esc(t)}</li>`)
     .join("");
+
   if (items) blocks.push(`<ul>${items}</ul>`);
   return blocks.join("");
 }
+
+/** Parse Quill HTML back to { description(html), achievements[] } */
 function fromEditorHtml(html: string): {
   description: string;
   achievements: string[];
@@ -46,211 +71,24 @@ function fromEditorHtml(html: string): {
   try {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html || "", "text/html");
+
+    // achievements: grab text from list items
     const liNodes = Array.from(doc.querySelectorAll("ul li, ol li"));
     const achievements = liNodes
       .map((li) => (li.textContent || "").trim())
       .filter(Boolean);
+
+    // description: remove lists and keep remaining HTML
     doc.querySelectorAll("ul, ol").forEach((n) => n.remove());
     const description = (doc.body.innerHTML || "").trim();
+
     return { description, achievements };
   } catch {
     return { description: html || "", achievements: [] };
   }
 }
 
-// --- NEW: child component so hooks are legal here ---
-function ExperienceItem({
-  exp,
-  personalInfo,
-  onUpdate,
-  onGenerateAI,
-  isGenerating,
-  aiConsent,
-  cvId,
-}: {
-  exp: Experience;
-  personalInfo: PersonalInfo;
-  onUpdate: (
-    id: string,
-    field: keyof Experience | string,
-    value: string | boolean | string[]
-  ) => void;
-  onGenerateAI: (expId: string, jobTitle: string, company: string) => void;
-  isGenerating: boolean;
-  aiConsent?: { aiProcessing: boolean; aiTraining: boolean } | null;
-  cvId?: string;
-}) {
-  const editorValue = useMemo(
-    () => toEditorHtml(exp.description, exp.achievements),
-    [exp.description, exp.achievements]
-  );
-
-  return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Company */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Company
-          </label>
-          <input
-            type="text"
-            value={exp.company}
-            onChange={(e) => onUpdate(exp.id, "company", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-[10px] focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-            placeholder="Company name"
-          />
-        </div>
-
-        {/* Position */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Position
-          </label>
-          <input
-            type="text"
-            value={exp.position}
-            onChange={(e) => onUpdate(exp.id, "position", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-[10px] focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-            placeholder="Job title"
-          />
-        </div>
-
-        {/* Location */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Location
-          </label>
-          <input
-            type="text"
-            value={exp.location || ""}
-            onChange={(e) => onUpdate(exp.id, "location", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-[10px] focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-            placeholder="City, State"
-          />
-        </div>
-
-        {/* Start date */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Start Date
-          </label>
-          <input
-            type="month"
-            value={exp.startDate}
-            onChange={(e) => onUpdate(exp.id, "startDate", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-[10px] focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-          />
-        </div>
-
-        {/* End date */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            End Date
-          </label>
-          <input
-            type="month"
-            value={exp.endDate || ""}
-            onChange={(e) => onUpdate(exp.id, "endDate", e.target.value)}
-            disabled={exp.current}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-[10px] focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white disabled:opacity-50"
-          />
-        </div>
-
-        {/* Current checkbox */}
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            checked={exp.current}
-            onChange={(e) => onUpdate(exp.id, "current", e.target.checked)}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-          />
-          <label className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-            Currently working here
-          </label>
-        </div>
-      </div>
-
-      {/* Editor + AI */}
-      <div className="mt-4">
-        <div className="flex items-center justify-between mb-2">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Description
-          </label>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => onGenerateAI(exp.id, exp.position, exp.company)}
-            disabled={isGenerating || !exp.position.trim() || !cvId}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 disabled:opacity-50 rounded-[10px]"
-            title={
-              !exp.position.trim()
-                ? "Please enter a job position first"
-                : !cvId
-                ? "CV must be created first"
-                : !aiConsent?.aiProcessing
-                ? "AI processing consent required"
-                : "Generate AI-powered experience description"
-            }
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="h-8 w-8 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-8 w-8" />
-                AI Suggestions
-              </>
-            )}
-          </Button>
-        </div>
-
-        <QuillTextEditor
-          value={editorValue}
-          onChange={(value) => {
-            const next = fromEditorHtml(value);
-
-            const descChanged =
-              normalizeHtml(next.description) !==
-              normalizeHtml(exp.description || "");
-
-            const achChanged = !arraysShallowEqual(
-              (exp.achievements || []).map((s) => s.trim()),
-              (next.achievements || []).map((s) => s.trim())
-            );
-
-            if (!descChanged && !achChanged) return;
-
-            if (descChanged) onUpdate(exp.id, "description", next.description);
-            if (achChanged) onUpdate(exp.id, "achievements", next.achievements);
-          }}
-          placeholder="Describe your key responsibilities and achievements…"
-        />
-      </div>
-    </>
-  );
-}
-
-// --- main component ---
-interface ExperienceSectionProps {
-  experiences: Experience[];
-  personalInfo: PersonalInfo;
-  onAdd: () => void;
-  onRemove: (id: string) => void;
-  onUpdate: (
-    id: string,
-    field: string | keyof Experience,
-    value: string | boolean | string[]
-  ) => void;
-  onShowAIConsent?: () => void;
-  aiConsent?: { aiProcessing: boolean; aiTraining: boolean } | null;
-  cvId?: string;
-}
-
+// -------------------- Component --------------------
 export default function ExperienceSection({
   experiences,
   personalInfo,
@@ -260,37 +98,47 @@ export default function ExperienceSection({
   onShowAIConsent,
   aiConsent,
   cvId,
+  onCheckExistingConsent,
 }: ExperienceSectionProps) {
   const [isGeneratingAI, setIsGeneratingAI] = useState<string | null>(null);
+
+  const getExperienceTitle = (exp: Experience) => {
+    if (exp.position && exp.company) return `${exp.position} at ${exp.company}`;
+    return exp.position || exp.company || "";
+  };
 
   const generateAISuggestion = async (
     expId: string,
     jobTitle: string,
     company: string
   ) => {
-    if (!cvId) {
-      alert("CV must be created first.");
-      return;
-    }
     if (!personalInfo?.industry) {
       alert(
         "Please select your industry in the Personal Information section first."
       );
       return;
     }
+    if (!cvId) {
+      alert("CV must be created first.");
+      return;
+    }
 
-    // fetch latest consent (best-effort)
+    // Fetch latest consent (prefer injected checker)
     let currentConsent = aiConsent || null;
     try {
-      const cv = await cvService.getCV(String(cvId));
-      const c = cv?.consent;
-      if (c)
-        currentConsent = {
-          aiProcessing: !!c.aiProcessing,
-          aiTraining: !!c.aiTraining,
-        };
+      if (onCheckExistingConsent) {
+        currentConsent = await onCheckExistingConsent(String(cvId));
+      } else {
+        const cv = await cvService.getCV(String(cvId));
+        const c = cv?.consent;
+        if (c)
+          currentConsent = {
+            aiProcessing: !!c.aiProcessing,
+            aiTraining: !!c.aiTraining,
+          };
+      }
     } catch {
-      // ignore; use local aiConsent
+      /* ignore; fall back to local aiConsent */
     }
 
     if (!currentConsent?.aiProcessing || !currentConsent?.aiTraining) {
@@ -314,22 +162,18 @@ export default function ExperienceSection({
         { jobTitle, company, preferCurrent: !!exp?.current }
       );
 
-      const desc = (data?.description || "").trim();
-      const ach = Array.isArray(data?.achievements) ? data!.achievements! : [];
+      const hasDesc = !!data?.description && data.description.trim().length > 0;
+      const hasAch =
+        Array.isArray(data?.achievements) && data.achievements.length > 0;
 
-      if (!desc && ach.length === 0) {
+      if (!hasDesc && !hasAch) {
         alert("AI did not return any content for this experience.");
         return;
       }
 
-      // ✅ persist both: description as proper HTML and achievements as string[]
-      if (desc) onUpdate(expId, "description", ensureHtml(desc));
-      if (ach.length)
-        onUpdate(
-          expId,
-          "achievements",
-          ach.map((s: any) => String(s))
-        );
+      if (hasDesc)
+        onUpdate(expId, "description", ensureHtml(data!.description!));
+      if (hasAch) onUpdate(expId, "achievements", data!.achievements!);
     } catch (error) {
       console.error("Error generating AI suggestions:", error);
       alert(
@@ -340,11 +184,6 @@ export default function ExperienceSection({
       setIsGeneratingAI(null);
     }
   };
-
-  const getExperienceTitle = (exp: Experience) =>
-    exp.position && exp.company
-      ? `${exp.position} at ${exp.company}`
-      : exp.position || exp.company || "";
 
   return (
     <AccordionSection
@@ -359,16 +198,146 @@ export default function ExperienceSection({
       getItemTitle={getExperienceTitle}
     >
       {(exp: Experience) => (
-        <ExperienceItem
-          key={exp.id}
-          exp={exp}
-          personalInfo={personalInfo}
-          onUpdate={onUpdate}
-          onGenerateAI={generateAISuggestion}
-          isGenerating={isGeneratingAI === exp.id}
-          aiConsent={aiConsent}
-          cvId={cvId}
-        />
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Company
+              </label>
+              <input
+                type="text"
+                value={exp.company}
+                onChange={(e) => onUpdate(exp.id, "company", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-[10px] focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                placeholder="Company name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Position
+              </label>
+              <input
+                type="text"
+                value={exp.position}
+                onChange={(e) => onUpdate(exp.id, "position", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-[10px] focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                placeholder="Job title"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Location
+              </label>
+              <input
+                type="text"
+                value={exp.location || ""}
+                onChange={(e) => onUpdate(exp.id, "location", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-[10px] focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                placeholder="City, State"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Start Date
+              </label>
+              <input
+                type="month"
+                value={exp.startDate}
+                onChange={(e) => onUpdate(exp.id, "startDate", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-[10px] focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                End Date
+              </label>
+              <input
+                type="month"
+                value={exp.endDate || ""}
+                onChange={(e) => onUpdate(exp.id, "endDate", e.target.value)}
+                disabled={!!exp.current}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-[10px] focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white disabled:opacity-50"
+              />
+            </div>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={!!exp.current}
+                onChange={(e) => onUpdate(exp.id, "current", e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                Currently working here
+              </label>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Description & Achievements
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  generateAISuggestion(exp.id, exp.position, exp.company)
+                }
+                disabled={
+                  isGeneratingAI === exp.id || !exp.position.trim() || !cvId
+                }
+                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 disabled:opacity-50 rounded-[10px]"
+                title={
+                  !exp.position.trim()
+                    ? "Please enter a job position first"
+                    : !cvId
+                    ? "CV must be created first"
+                    : !aiConsent?.aiProcessing
+                    ? "AI processing consent required"
+                    : "Generate AI-powered experience content"
+                }
+              >
+                {isGeneratingAI === exp.id ? (
+                  <>
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-8 w-8" />
+                    AI Suggestions
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Quill Text Editor (controlled) */}
+            <QuillTextEditor
+              value={toEditorHtml(exp.description, exp.achievements)}
+              onChange={(value) => {
+                const next = fromEditorHtml(value);
+
+                const descChanged =
+                  normalizeHtml(next.description) !==
+                  normalizeHtml(exp.description || "");
+
+                const achChanged = !arraysShallowEqual(
+                  (exp.achievements || []).map((s: string) => s.trim()),
+                  (next.achievements || []).map((s: string) => s.trim())
+                );
+
+                if (!descChanged && !achChanged) return;
+
+                if (descChanged)
+                  onUpdate(exp.id, "description", ensureHtml(next.description));
+                if (achChanged)
+                  onUpdate(exp.id, "achievements", next.achievements);
+              }}
+              placeholder="Describe your key responsibilities and achievements…"
+            />
+          </div>
+        </>
       )}
     </AccordionSection>
   );
