@@ -347,13 +347,21 @@ export function ClassicTemplateHtmlRenderer({
                           </p>
                         )}
 
-                        {/* ✅ description already contains <p> + <ul><li> */}
-                        {item.description && (
+                        {item.description ? (
                           <RichHtml
                             html={item.description}
                             template={template}
                             sizeOffset={-1}
                           />
+                        ) : (
+                          Array.isArray(item.bullets) &&
+                          item.bullets.length > 0 && (
+                            <ul className="list-disc pl-6 mt-2">
+                              {item.bullets.map((b: string, i: number) => (
+                                <li key={i}>{b}</li>
+                              ))}
+                            </ul>
+                          )
                         )}
 
                         {Array.isArray(item.technologies) &&

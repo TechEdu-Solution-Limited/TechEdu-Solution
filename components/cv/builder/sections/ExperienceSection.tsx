@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import QuillTextEditor from "./QuillTextEditor";
 import { cvService } from "@/services/cv/cvServiceOptimized";
 import { ShowAIConsent } from "@/types/cv/consent";
+import { ensureHtml, esc, isHtml } from "@/utils/cv/sectionHelpers";
 
 // -------------------- Types --------------------
 interface ExperienceSectionProps {
@@ -35,11 +36,6 @@ interface ExperienceSectionProps {
 function normalizeHtml(s = "") {
   return s.replace(/\s+/g, " ").trim();
 }
-const isHtml = (s?: string) => !!s && /<\/?[a-z][\s\S]*>/i.test(s);
-const esc = (s = "") =>
-  s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-const ensureHtml = (s?: string) =>
-  !s ? "" : isHtml(s) ? s : `<p>${esc(s)}</p>`;
 
 function arraysShallowEqual(a: string[] = [], b: string[] = []) {
   if (a.length !== b.length) return false;

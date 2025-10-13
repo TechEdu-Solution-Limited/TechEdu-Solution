@@ -1,52 +1,63 @@
 // utils/cv/sectionHelpers.ts
+// utils/cv/sectionHelpers.ts
 import { ResumeSection } from "@/types/cv/index";
 
-// helpers near top
-const isHtml = (s?: string) => !!s && /<\/?[a-z][\s\S]*>/i.test(s);
-const esc = (s = "") =>
+export const isHtml = (s?: string) => !!s && /<\/?[a-z][\s\S]*>/i.test(s);
+export const esc = (s = "") =>
   s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-const ensureHtml = (s?: string) =>
+export const ensureHtml = (s?: string) =>
   !s ? "" : isHtml(s) ? s : `<p>${esc(s)}</p>`;
+
+function linesFromString(s?: string) {
+  if (!s) return [];
+  return s
+    .split(/\r?\n/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
 
 export function toExperienceHtml(
   description?: string,
   achievements?: string[] | string
 ) {
+  const blocks: string[] = [];
+  const descHtml = ensureHtml(description);
+  if (descHtml) blocks.push(descHtml);
+
   const ach = Array.isArray(achievements)
     ? achievements
-    : typeof achievements === "string"
-    ? achievements
-        .split(/\r?\n/)
-        .map((x) => x.trim())
-        .filter(Boolean)
-    : [];
+    : linesFromString(achievements);
+  if (ach.length)
+    blocks.push(`<ul>${ach.map((li) => `<li>${esc(li)}</li>`).join("")}</ul>`);
 
-  const descHtml = description ? ensureHtml(description) : "";
-  const ulHtml = ach.length
-    ? `<ul>${ach.map((li) => `<li>${esc(li)}</li>`).join("")}</ul>`
-    : "";
-
-  return `${descHtml}${ulHtml}`;
+  return blocks.join("");
 }
 
 export function formatSectionContent(section: ResumeSection) {
   switch (section.type) {
     case "work-experience": {
       const data = Array.isArray(section.data) ? section.data : [];
-      return data.map((e: any) => ({
-        id: e.id,
-        title: e.position || e.title || e.jobTitle, // supports backend jobTitle
-        company: e.company,
-        startDate: e.startDate,
-        endDate: e.current ? "Present" : e.endDate,
-        current: !!e.current,
-        location: e.location,
-        description: toExperienceHtml(
-          e.description,
-          e.achievements ?? e.bullets
-        ),
-        technologies: e.technologies ?? [],
-      }));
+      return data.map((e: any) => {
+        const bullets: string[] = Array.isArray(e.achievements)
+          ? e.achievements
+          : Array.isArray(e.bullets)
+          ? e.bullets
+          : linesFromString(e.achievements);
+
+        return {
+          id: e.id,
+          title: e.position || e.title || e.jobTitle,
+          jobTitle: e.jobTitle || e.position || e.title,
+          company: e.company,
+          startDate: e.startDate,
+          endDate: e.current ? "Present" : e.endDate,
+          location: e.location,
+          description: toExperienceHtml(e.description, bullets), // 👈 merged HTML
+          bullets, // legacy (optional)
+          technologies: Array.isArray(e.technologies) ? e.technologies : [],
+          current: !!e.current,
+        };
+      });
     }
 
     case "education": {
@@ -131,7 +142,7 @@ export function formatSectionContent(section: ResumeSection) {
         : [];
 
     case "professional-summary":
-      return [{ summary: ensureHtml(section.data.summary) }];
+      return [{ summary: ensureHtml(section.data?.summary) }];
 
     case "personal-info":
       return [

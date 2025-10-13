@@ -513,7 +513,18 @@ export function ClassicTemplatePdfRenderer({
                               html={item.description}
                               template={template}
                             />
-                          ) : null}
+                          ) : (
+                            Array.isArray(item.bullets) &&
+                            item.bullets.length > 0 && (
+                              <View style={styles.bulletList}>
+                                {item.bullets.map((b: string, i: number) => (
+                                  <Text key={i} style={styles.bullet}>
+                                    • {b}
+                                  </Text>
+                                ))}
+                              </View>
+                            )
+                          )}
 
                           {/* Optional: technologies */}
                           {Array.isArray(item.technologies) &&
