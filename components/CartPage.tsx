@@ -192,7 +192,7 @@ export default function CartPage() {
       productType === "Training & Certification" ||
       productType === "Career Development & Mentorship"
     ) {
-      return "Only tech professionals can purchase Training & Certification";
+      return "Only tech professionals can purchase";
     }
     return "";
   };
