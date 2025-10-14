@@ -474,12 +474,12 @@ export function ClassicTemplatePdfRenderer({
                   (section.type as string) !== "languages" &&
                   items.map((item: any, i: number) => (
                     // ⬇️ make the whole item a non-splittable block
-                    <View key={i} style={styles.itemContainer} wrap={false}>
+                    <View key={i} style={styles.itemContainer}>
                       {/* Work Experience */}
                       {(item.title || item.jobTitle) && item.company && (
                         <View>
                           {/* Keep just the header/meta together on one page */}
-                          <View wrap={false}>
+                          <View>
                             <View
                               style={{
                                 flexDirection: "row",
