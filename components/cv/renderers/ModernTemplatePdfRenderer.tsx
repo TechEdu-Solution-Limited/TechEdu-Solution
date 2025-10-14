@@ -208,7 +208,7 @@ export function ModernTemplatePdfRenderer({
       gap: 4,
     },
     contactItem: {
-      fontSize: 9, // Reduced from 14 for PDF
+      fontSize: 10,
       color: "#ffffff",
       fontFamily: mapFontFamily(template.styles.typography.fontFamily),
       width: "45%",
