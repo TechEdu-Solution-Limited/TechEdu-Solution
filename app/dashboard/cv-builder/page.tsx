@@ -1,6 +1,7 @@
+// app/dashboard/cv-builder/page.tsx (or wherever your ResumeBuilder lives)
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, Upload, Sparkles, Download, Eye } from "lucide-react";
 import Link from "next/link";
@@ -10,72 +11,145 @@ import { CVBuilderState } from "@/types/cv/cv-builder";
 import { useFirebaseStorage } from "@/hooks/useFirebaseStorage";
 import { STORAGE_FOLDERS } from "@/lib/firebase";
 import safeConsole from "@/lib/console";
+import TemplateSelectorModal from "@/components/cv/TemplateSelectorModal";
+import { getTokenFromCookies } from "@/lib/cookies";
+
+// ---- Config ----
+type UploadStatus = "idle" | "uploading" | "success" | "error";
+
+const MAX_BYTES = 10 * 1024 * 1024; // 10MB
+const ALLOWED_MIME = new Set<string>([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
+function hasAllowedExtension(name: string) {
+  return /\.(pdf|doc|docx)$/i.test(name || "");
+}
+
+function validateFile(file: File) {
+  const mimeOk = file.type
+    ? ALLOWED_MIME.has(file.type)
+    : hasAllowedExtension(file.name);
+  if (!mimeOk)
+    throw new Error("Please upload a PDF or Word file (.pdf, .doc, .docx).");
+  if (file.size > MAX_BYTES)
+    throw new Error("File too large (max 10MB). Please compress or trim it.");
+}
+
+function formatFileSize(bytes: number) {
+  if (!bytes) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+}
 
 export default function ResumeBuilder() {
   const [dragActive, setDragActive] = useState(false);
   const [showBuilder, setShowBuilder] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<
-    "idle" | "uploading" | "success" | "error"
-  >("idle");
+
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus>("idle");
   const [uploadedFile, setUploadedFile] = useState<{
     name: string;
     url: string;
     size: number;
   } | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const [templateOpen, setTemplateOpen] = useState(false);
+  const [ingesting, setIngesting] = useState(false);
+
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const pendingFileRef = useRef<File | null>(null);
+
+  const [localProgress, setLocalProgress] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const { uploadFile, uploading, files, deleteFile, loadFiles, clearFiles } =
-    useFirebaseStorage({
-      folder: STORAGE_FOLDERS.ATTACHMENTS,
-      subfolder: "cv-uploads",
-    });
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-  };
+  // Accept enhanced or basic storage hook
+  const storage = useFirebaseStorage({
+    folder: STORAGE_FOLDERS.ATTACHMENTS,
+    subfolder: "cv-uploads",
+  }) as any;
 
-  const uploadAndLog = async (file: File) => {
-    setUploadStatus("uploading");
-    setUploadError(null);
+  const {
+    uploadFile,
+    uploading, // boolean (legacy)
+    uploadFileWithProgress, // optional (file, onProgress) => Promise<string>
+    progress: hookProgress, // optional numeric 0..100
+  } = storage;
 
-    try {
-      const result = await uploadFile(file);
+  const effectiveProgress =
+    typeof hookProgress === "number" ? hookProgress : localProgress;
 
-      safeConsole.log("✅ Uploaded file URL:", result);
-      safeConsole.log("ℹ️ Uploaded path:", result);
-
-      // Store upload success data
-      setUploadedFile({
-        name: file.name,
-        url: result,
-        size: file.size,
-      });
-      setUploadStatus("success");
-
-      // Auto-hide success message after 5 seconds
-      setTimeout(() => {
-        setUploadStatus("idle");
-      }, 5000);
-    } catch (e) {
-      safeConsole.error("❌ Upload failed:", e);
-      setUploadError(
-        e instanceof Error ? e.message : "Upload failed. Please try again."
-      );
-      setUploadStatus("error");
-    }
+  const requestOverride = (file: File) => {
+    pendingFileRef.current = file;
+    setOverrideOpen(true);
   };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
+    if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
+    else if (e.type === "dragleave") setDragActive(false);
+  };
+
+  // Centralized intake: validates, enforces single CV, prompts override if needed
+  async function handleIncomingFile(file: File) {
+    if (uploadStatus === "uploading") {
+      setUploadError(
+        "An upload is already in progress. Please wait for it to finish."
+      );
+      setUploadStatus("error");
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
+
+    try {
+      validateFile(file);
+    } catch (err: any) {
+      setUploadError(err?.message || "Invalid file.");
+      setUploadStatus("error");
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
+
+    if (uploadedFile && uploadStatus === "success") {
+      requestOverride(file);
+      return;
+    }
+
+    await handleFilePicked(file);
+  }
+
+  const handleFilePicked = async (file: File) => {
+    setUploadError(null);
+    try {
+      setUploadStatus("uploading");
+      setLocalProgress(0);
+
+      let url: string;
+      if (typeof uploadFileWithProgress === "function") {
+        url = await uploadFileWithProgress(file, (p: number) =>
+          setLocalProgress(p)
+        );
+      } else {
+        url = await uploadFile(file);
+        setLocalProgress(100);
+      }
+
+      safeConsole.log("✅ Uploaded file URL:", url);
+      setUploadedFile({ name: file.name, url, size: file.size });
+      setUploadStatus("success");
+    } catch (e: any) {
+      safeConsole.error("❌ Upload failed:", e);
+      setUploadError(e?.message || "Upload failed. Please try again.");
+      setUploadStatus("error");
+    } finally {
       setDragActive(false);
+      if (inputRef.current) inputRef.current.value = ""; // allow reselecting same file later
     }
   };
 
@@ -84,70 +158,105 @@ export default function ResumeBuilder() {
     e.stopPropagation();
     setDragActive(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      uploadAndLog(file);
+    const dt = e.dataTransfer;
+    if (dt.files && dt.files.length > 1) {
+      setUploadError("You can only upload one CV at a time.");
+      setUploadStatus("error");
+      return;
     }
+
+    const file = dt.files?.[0];
+    if (file) void handleIncomingFile(file);
   };
 
   const handleStartFromScratch = () => {
-    // Route to template selection page
     router.push(`/dashboard/cv-builder/template-selection`);
   };
 
-  // If user has chosen to start building, show the CVBuilderMain
+  async function ingestCvFromUrl(fileUrl: string, templateId: string) {
+    const token = getTokenFromCookies();
+    setIngesting(true);
+
+    const API = process.env.NEXT_PUBLIC_API_URL;
+
+    try {
+      const res = await fetch(`${API}/api/cv/ingest-from-url`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          url: fileUrl,
+          template: templateId,
+          aiSegment: true,
+          createDraft: true,
+          redact: false,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(
+          err?.message || `Failed to ingest CV (status ${res.status}).`
+        );
+      }
+
+      const payload = await res.json();
+      // Supports both:
+      // { success, data: { cvId, ... } }  and  { cvId, ... }
+      const cvId: string | undefined = payload?.data?.cvId ?? payload?.cvId;
+
+      if (!cvId) {
+        throw new Error(
+          "Ingestion succeeded but cvId is missing in the response."
+        );
+      }
+
+      // Navigate to the dynamic template builder with the CV data and correct template
+      router.push(
+        `/dashboard/cv-builder/${templateId}?cvId=${encodeURIComponent(cvId)}`
+      );
+    } catch (e: any) {
+      setUploadError(e?.message || "Ingestion failed. Please try again.");
+      setUploadStatus("error");
+    } finally {
+      setIngesting(false);
+    }
+  }
+
+  // If user has chosen to start building, show the CVBuilderMain (kept for parity)
   if (showBuilder) {
     return (
       <ErrorBoundary>
         <CVBuilderMain
           autoSaveConfig={{
-            enabled: false, // Disabled - no more auto-save
-            interval: 20000, // 20 seconds
-            debounceDelay: 500, // 0.5 seconds
+            enabled: false,
+            interval: 20000,
+            debounceDelay: 500,
             onSave: async (state: CVBuilderState) => {
               try {
                 safeConsole.log("Auto-saving state:", state);
-                // TODO: Implement secure auto-save to CV and draft endpoints
-                safeConsole.log("Auto-save successful");
               } catch (error) {
                 safeConsole.error("Auto-save failed:", error);
                 throw error;
               }
             },
           }}
-          onStateChange={(state: CVBuilderState) => {
-            // Handle state changes if needed
-            safeConsole.log("State changed:", state);
+          onStateChange={(state: CVBuilderState) =>
+            safeConsole.log("State changed:", state)
+          }
+          onSave={async (state: CVBuilderState) =>
+            safeConsole.log("Manual save successful:", state)
+          }
+          onLoad={async () => {
+            safeConsole.log("No saved state found, using defaults");
+            return {};
           }}
-          onSave={async (state: CVBuilderState) => {
-            try {
-              safeConsole.log("Manual save successful:", state);
-            } catch (error) {
-              safeConsole.error("Manual save failed:", error);
-              throw error;
-            }
-          }}
-          onLoad={async (id: string) => {
-            try {
-              safeConsole.log("onLoad called with id:", id);
-              // TODO: Load from secure CV endpoint
-              safeConsole.log("No saved state found, using defaults");
-              return {};
-            } catch (error) {
-              safeConsole.error("Load failed:", error);
-              return {};
-            }
-          }}
-          onExport={async (state: CVBuilderState) => {
-            try {
-              safeConsole.log("Exporting CV:", state);
-              // TODO: Implement PDF/DOCX export
-              safeConsole.log("Export successful");
-            } catch (error) {
-              safeConsole.error("Export failed:", error);
-              throw error;
-            }
-          }}
+          onExport={async (state: CVBuilderState) =>
+            safeConsole.log("Exporting CV:", state)
+          }
         />
       </ErrorBoundary>
     );
@@ -169,27 +278,35 @@ export default function ResumeBuilder() {
 
         {/* Main Content */}
         <div className="max-w-4xl mx-auto">
-          {/* Divider */}
-          {/* <div className="flex items-center my-8">
-            <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
-            <span className="px-4 text-gray-500 dark:text-gray-400">OR</span>
-            <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
-          </div> */}
-
-          {/* Action Buttons */}
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Drag and Drop Area */}
+            {/* Dropzone */}
             <div
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (
+                  (e.key === "Enter" || e.key === " ") &&
+                  (uploadStatus === "idle" || uploadStatus === "error")
+                ) {
+                  e.preventDefault();
+                  inputRef.current?.click();
+                }
+              }}
+              onClick={() => {
+                if (uploadStatus === "idle" || uploadStatus === "error") {
+                  inputRef.current?.click();
+                }
+              }}
               className={`border-2 border-dashed rounded-[10px] p-12 text-center mb-8 transition-colors ${
                 uploadStatus === "uploading"
-                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 cursor-default"
                   : uploadStatus === "success"
-                  ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                  ? "border-green-500 bg-green-50 dark:bg-green-900/20 cursor-default"
                   : uploadStatus === "error"
-                  ? "border-red-500 bg-red-50 dark:bg-red-900/20"
+                  ? "border-red-500 bg-red-50 dark:bg-red-900/20 cursor-pointer"
                   : dragActive
-                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                  : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
+                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 cursor-pointer"
+                  : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 cursor-pointer"
               }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
@@ -205,14 +322,14 @@ export default function ResumeBuilder() {
                   <p className="text-gray-600 dark:text-gray-300 mb-4">
                     Please wait while we upload your file
                   </p>
-                  {uploading && (
-                    <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                      <div
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${uploading ? 100 : 0}%` }}
-                      ></div>
-                    </div>
-                  )}
+                  <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-200"
+                      style={{
+                        width: `${effectiveProgress || (uploading ? 100 : 0)}%`,
+                      }}
+                    />
+                  </div>
                 </>
               ) : uploadStatus === "success" && uploadedFile ? (
                 <>
@@ -239,23 +356,26 @@ export default function ResumeBuilder() {
                     {formatFileSize(uploadedFile.size)})
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    Your CV has been uploaded and is ready for processing
+                    Your CV has been uploaded and is ready for processing.
                   </p>
                   <div className="flex gap-3 justify-center">
                     <button
-                      onClick={() => setUploadStatus("idle")}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setUploadedFile(null);
+                        setUploadStatus("idle");
+                        setLocalProgress(0);
+                        if (inputRef.current) inputRef.current.value = "";
+                      }}
                       className="px-4 py-2 bg-gray-600 text-white rounded-[10px] hover:bg-gray-700 transition-colors"
                     >
                       Upload Another
                     </button>
                     <button
-                      onClick={() => {
-                        // TODO: Process the uploaded CV and navigate to template selection
-                        safeConsole.log(
-                          "Process CV with URL:",
-                          uploadedFile.url
-                        );
-                        router.push(`/dashboard/cv-builder/template-selection`);
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!uploadedFile?.url) return;
+                        setTemplateOpen(true);
                       }}
                       className="px-4 py-2 bg-green-600 text-white rounded-[10px] hover:bg-green-700 transition-colors"
                     >
@@ -287,7 +407,13 @@ export default function ResumeBuilder() {
                     {uploadError || "Something went wrong. Please try again."}
                   </p>
                   <button
-                    onClick={() => setUploadStatus("idle")}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setUploadStatus("idle");
+                      setUploadError(null);
+                      setLocalProgress(0);
+                      if (inputRef.current) inputRef.current.value = "";
+                    }}
                     className="px-6 py-2 bg-red-600 text-white rounded-[10px] hover:bg-red-700 transition-colors"
                   >
                     Try Again
@@ -300,12 +426,13 @@ export default function ResumeBuilder() {
                     Upload Your Existing CV
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300 mb-4">
-                    Drag and drop your CV file here, or click to browse
+                    Drag and drop your PDF/Word file here, or click to browse
                   </p>
                   <button
-                    onClick={() =>
-                      document.getElementById("cv-upload")?.click()
-                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      inputRef.current?.click();
+                    }}
                     className="px-6 py-2 bg-blue-600 text-white rounded-[10px] hover:bg-blue-700 transition-colors"
                   >
                     Browse Files
@@ -314,15 +441,15 @@ export default function ResumeBuilder() {
               )}
 
               <input
+                ref={inputRef}
                 id="cv-upload"
                 type="file"
                 accept=".pdf,.doc,.docx"
+                multiple={false}
                 className="hidden"
                 onChange={(e) => {
-                  if (e.target.files?.[0]) {
-                    const file = e.target.files[0];
-                    uploadAndLog(file);
-                  }
+                  const file = e.target.files?.[0];
+                  if (file) void handleIncomingFile(file);
                 }}
               />
             </div>
@@ -345,25 +472,6 @@ export default function ResumeBuilder() {
                 </button>
               </div>
             </div>
-
-            {/* AI-Powered Builder */}
-            {/* <div className="bg-white dark:bg-gray-800 rounded-[10px] p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="text-center">
-                <Sparkles className="h-12 w-12 text-purple-600 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                  AI-Powered Builder
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  Let AI help you create the perfect CV
-                </p>
-                <button
-                  onClick={() => setShowBuilder(true)}
-                  className="w-full px-4 py-2 bg-purple-600 text-white rounded-[10px] hover:bg-purple-700 transition-colors"
-                >
-                  Start with AI
-                </button>
-              </div>
-            </div> */}
           </div>
 
           {/* Features */}
@@ -408,6 +516,74 @@ export default function ResumeBuilder() {
           </div>
         </div>
       </div>
+
+      {/* Template Modal */}
+      <TemplateSelectorModal
+        isOpen={templateOpen}
+        onClose={() => setTemplateOpen(false)}
+        onTemplateSelect={async (templateId: string) => {
+          if (!uploadedFile?.url) return;
+          await ingestCvFromUrl(uploadedFile.url, templateId);
+        }}
+      />
+
+      {/* Override Confirmation */}
+      {overrideOpen && (
+        <div className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow max-w-md w-full">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Replace existing CV?
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+              You’ve already uploaded a CV. Uploading another will override the
+              current one.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  pendingFileRef.current = null;
+                  setOverrideOpen(false);
+                  if (inputRef.current) inputRef.current.value = "";
+                }}
+                className="px-4 py-2 rounded-[10px] border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  const file = pendingFileRef.current;
+                  pendingFileRef.current = null;
+                  setOverrideOpen(false);
+
+                  // reset state before replacing
+                  setUploadedFile(null);
+                  setUploadError(null);
+                  setUploadStatus("idle");
+                  setLocalProgress(0);
+                  if (inputRef.current) inputRef.current.value = "";
+
+                  if (file) await handleFilePicked(file);
+                }}
+                className="px-4 py-2 rounded-[10px] bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Replace CV
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ingesting overlay */}
+      {ingesting && (
+        <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow">
+            <div className="animate-spin h-6 w-6 border-2 border-gray-300 border-t-transparent rounded-full mx-auto mb-3" />
+            <p className="text-sm text-gray-700 dark:text-gray-200">
+              Preparing your editable draft…
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

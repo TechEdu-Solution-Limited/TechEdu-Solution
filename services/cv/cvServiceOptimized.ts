@@ -218,7 +218,7 @@ function normalizeExperienceV2(
   if (Array.isArray(payload?.items) && payload.items.length) {
     const chosen = pickBestItem(payload.items, sel) || payload.items[0];
     return {
-      description: String(chosen?.description ?? "").trim(),
+      description: String(chosen?.description).trim(),
       achievements: Array.isArray(chosen?.achievements)
         ? chosen.achievements.map((s: any) => String(s).trim()).filter(Boolean)
         : [],

@@ -23,6 +23,7 @@ import {
   LAYOUT,
   SECTION_ORDER,
   FONTS,
+  // ... (imports remain the same)
 } from "@/utils/cv/templateConstants";
 import RichPdf from "../RichPdf";
 
@@ -160,7 +161,7 @@ export function ModernTemplatePdfRenderer({
 
   const styles = StyleSheet.create({
     page: {
-      padding: 0,
+      padding: 24,
       fontSize: 10, // Reduced from 12 for PDF
       fontFamily: FONTS.pdf.default,
       lineHeight: 1.3,
@@ -279,6 +280,11 @@ export function ModernTemplatePdfRenderer({
       color: template.styles.colors.text,
       // marginBottom: 3,
       fontFamily: mapFontFamily(template.styles.typography.fontFamily),
+    },
+    itemHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginBottom: 2,
     },
     itemSubtitle: {
       fontSize: 9, // Reduced from 12 for PDF
@@ -552,7 +558,7 @@ export function ModernTemplatePdfRenderer({
         {/* Main Content - Two Column Layout */}
         <View style={styles.mainContent}>
           <View style={styles.twoColumnLayout}>
-            {/* Left Column - 33% (Summary, Skills, Languages, Awards, Certificates) */}
+            {/* Left Column - 35% (Skills, Languages, Awards, Certificates) */}
             <View style={styles.leftColumn}>
               {otherSections
                 .filter((section) => leftColumnSections.includes(section.type))
@@ -601,13 +607,13 @@ export function ModernTemplatePdfRenderer({
                         </View>
                       )}
 
-                      {/* Other left column sections - Individual items */}
+                      {/* Other left column sections - Individual items (Awards, Certifications) */}
                       {Array.isArray(items) &&
                         (section.type as string) !== "skills" &&
                         (section.type as string) !== "languages" &&
                         items.map((item: any, i: number) => (
                           <View key={i} style={styles.itemContainer}>
-                            {/* Professional Summary */}
+                            {/* Professional Summary (should ideally be in the right column/main content, but checking for it here just in case based on the original code's structure) */}
                             {item.summary &&
                               section.type === "professional-summary" && (
                                 <View style={styles.summaryBox}>
@@ -619,22 +625,30 @@ export function ModernTemplatePdfRenderer({
                               )}
 
                             {/* Certifications */}
-                            {item.name &&
-                              item.issuer &&
-                              section.type === "certifications" && (
-                                <View style={styles.borderedItem}>
+                            {item.name && section.type === "certifications" && (
+                              <View style={styles.borderedItem}>
+                                <View style={styles.itemHeader}>
                                   <Text style={styles.itemTitle}>
-                                    {item.name} — {item.issuer}
+                                    {item.name}
                                   </Text>
-                                  {item.date && (
-                                    <Text style={styles.itemDate}>
-                                      {item.date}
-                                      {item.credentialId &&
-                                        ` • ID: ${item.credentialId}`}
-                                    </Text>
-                                  )}
+                                  <Text style={styles.itemDate}>
+                                    {item.date}
+                                  </Text>
                                 </View>
-                              )}
+                                {item.issuer && (
+                                  <Text style={styles.itemSubtitle}>
+                                    Issued by: {item.issuer}
+                                  </Text>
+                                )}
+                                {item.url && (
+                                  <Text style={styles.itemDescription}>
+                                    <Text style={{ color: "#2563eb" }}>
+                                      Link: {item.url}
+                                    </Text>
+                                  </Text>
+                                )}
+                              </View>
+                            )}
 
                             {/* Awards */}
                             {item.title &&
@@ -664,7 +678,7 @@ export function ModernTemplatePdfRenderer({
                 })}
             </View>
 
-            {/* Right Column - 67% (Other sections) */}
+            {/* Right Column - 65% (Summary, Work Experience, Education, Projects) */}
             <View style={styles.rightColumn}>
               {otherSections
                 .filter((section) => !leftColumnSections.includes(section.type))

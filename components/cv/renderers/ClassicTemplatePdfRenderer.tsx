@@ -164,7 +164,7 @@ export function ClassicTemplatePdfRenderer({
 
   const styles = StyleSheet.create({
     page: {
-      padding: 20,
+      padding: 24,
       fontSize: 10,
       fontFamily: mapFontFamily(template.styles.typography.fontFamily),
       lineHeight: 1.4,
