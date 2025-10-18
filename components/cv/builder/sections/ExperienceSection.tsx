@@ -36,7 +36,6 @@ interface ExperienceSectionProps {
 function normalizeHtml(s = "") {
   return s.replace(/\s+/g, " ").trim();
 }
-
 function arraysShallowEqual(a: string[] = [], b: string[] = []) {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
@@ -68,7 +67,7 @@ function fromEditorHtml(html: string): {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html || "", "text/html");
 
-    // achievements: grab text from list items
+    // achievements: text from list items
     const liNodes = Array.from(doc.querySelectorAll("ul li, ol li"));
     const achievements = liNodes
       .map((li) => (li.textContent || "").trim())
@@ -82,6 +81,13 @@ function fromEditorHtml(html: string): {
   } catch {
     return { description: html || "", achievements: [] };
   }
+}
+
+/** Convert <input type="month"> value to ISO date (YYYY-MM-01) */
+function toISODateFromMonth(m?: string): string | undefined {
+  if (!m) return undefined;
+  if (/^\d{4}-\d{2}$/.test(m)) return `${m}-01`;
+  return m; // if already YYYY-MM-DD or something else, pass through
 }
 
 // -------------------- Component --------------------
@@ -103,6 +109,7 @@ export default function ExperienceSection({
     return exp.position || exp.company || "";
   };
 
+  /** Generate AI content using NEW API shape and apply description + achievements */
   const generateAISuggestion = async (
     expId: string,
     jobTitle: string,
@@ -119,7 +126,7 @@ export default function ExperienceSection({
       return;
     }
 
-    // Fetch latest consent (prefer injected checker)
+    // Check consent (prefer injected checker)
     let currentConsent = aiConsent || null;
     try {
       if (onCheckExistingConsent) {
@@ -127,11 +134,12 @@ export default function ExperienceSection({
       } else {
         const cv = await cvService.getCV(String(cvId));
         const c = cv?.consent;
-        if (c)
+        if (c) {
           currentConsent = {
             aiProcessing: !!c.aiProcessing,
             aiTraining: !!c.aiTraining,
           };
+        }
       }
     } catch {
       /* ignore; fall back to local aiConsent */
@@ -145,18 +153,26 @@ export default function ExperienceSection({
     setIsGeneratingAI(expId);
     try {
       const exp = experiences.find((e) => e.id === expId);
-      const targetRole = (
-        jobTitle ||
-        personalInfo?.targetedJobTitle ||
-        ""
-      ).trim();
-      const industry = (personalInfo?.industry || "").trim();
 
-      const data = await cvService.generateExperience(
-        String(cvId),
-        { targetRole, industry },
-        { jobTitle, company, preferCurrent: !!exp?.current }
-      );
+      // Build NEW request body (omit endDate if current)
+      const startDateIso = toISODateFromMonth(exp?.startDate);
+      const endDateIso = exp?.current
+        ? undefined
+        : toISODateFromMonth(exp?.endDate);
+
+      const payload = {
+        startDate: startDateIso,
+        endDate: endDateIso,
+        targetJobTitle: (
+          jobTitle ||
+          personalInfo?.targetedJobTitle ||
+          ""
+        ).trim(),
+        targetCompany: (company || "").trim(),
+        targetIndustry: (personalInfo?.industry || "").trim(),
+      };
+
+      const data = await cvService.generateExperience(String(cvId), payload);
 
       const hasDesc = !!data?.description && data.description.trim().length > 0;
       const hasAch =
@@ -278,14 +294,20 @@ export default function ExperienceSection({
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  generateAISuggestion(exp.id, exp.position, exp.company)
+                  generateAISuggestion(
+                    exp.id,
+                    exp.position || "",
+                    exp.company || ""
+                  )
                 }
                 disabled={
-                  isGeneratingAI === exp.id || !exp.position.trim() || !cvId
+                  isGeneratingAI === exp.id ||
+                  !(exp.position || "").trim() ||
+                  !cvId
                 }
                 className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 disabled:opacity-50 rounded-[10px]"
                 title={
-                  !exp.position.trim()
+                  !(exp.position || "").trim()
                     ? "Please enter a job position first"
                     : !cvId
                     ? "CV must be created first"

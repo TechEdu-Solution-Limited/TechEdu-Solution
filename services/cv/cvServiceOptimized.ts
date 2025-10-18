@@ -140,6 +140,24 @@ interface DraftResponse {
   message?: string;
 }
 
+export type ExperienceAIResult = {
+  description?: string;
+  achievements?: string[];
+  // legacy / optional extras
+  seniority?: "junior" | "mid" | "senior" | "lead";
+  minYears?: number;
+  topSkills?: string[];
+  rationale?: string;
+};
+
+type ExperienceAIRequest = {
+  startDate?: string; // "YYYY-MM-DD" or "YYYY-MM"
+  endDate?: string; // omit if "current"
+  targetJobTitle?: string;
+  targetCompany?: string;
+  targetIndustry?: string;
+};
+
 // Normalized shapes the UI can rely on
 export type ExperienceAssessment = {
   seniority: "junior" | "mid" | "senior" | "lead";
@@ -164,17 +182,6 @@ export type SkillsAssessment = {
 /*===============================AI NORMALIZER===============================*/
 /*===========================================================================*/
 /*===========================================================================*/
-
-// Add near other types
-export type ExperienceAIResult = {
-  description?: string;
-  achievements?: string[];
-  // keep legacy fields in case you still surface them somewhere
-  seniority?: "junior" | "mid" | "senior" | "lead";
-  minYears?: number;
-  topSkills?: string[];
-  rationale?: string;
-};
 
 // helper: pick the best item based on jobTitle/company/current
 function pickBestItem(
@@ -236,6 +243,49 @@ function normalizeExperienceV2(
       minYears: payload?.minYears,
       topSkills: payload?.topSkills,
       rationale: payload?.rationale,
+    };
+  }
+
+  return {};
+}
+
+function normalizeExperienceV3(raw: any): ExperienceAIResult {
+  // new shape:
+  // { ok: true, workExperience: { description, achievements, ... } }
+  const p = raw?.data ?? raw;
+  const w = p?.workExperience ?? p?.data?.workExperience;
+  if (w) {
+    return {
+      description: String(w?.description ?? "").trim(),
+      achievements: Array.isArray(w?.achievements)
+        ? w.achievements.map((s: any) => String(s).trim()).filter(Boolean)
+        : [],
+    };
+  }
+
+  // v2 fallback: { ok, items: [ { description, achievements } ] }
+  const items = p?.items ?? p?.data?.items;
+  if (Array.isArray(items) && items.length) {
+    const chosen = items[0];
+    return {
+      description: String(chosen?.description ?? "").trim(),
+      achievements: Array.isArray(chosen?.achievements)
+        ? chosen.achievements.map((s: any) => String(s).trim()).filter(Boolean)
+        : [],
+    };
+  }
+
+  // legacy fallback: { rationale, topSkills, ... }
+  if (p?.rationale || p?.topSkills) {
+    return {
+      description: String(p?.rationale ?? "").trim(),
+      achievements: Array.isArray(p?.topSkills)
+        ? p.topSkills.map((s: any) => String(s).trim()).filter(Boolean)
+        : [],
+      seniority: p?.seniority,
+      minYears: p?.minYears,
+      topSkills: p?.topSkills,
+      rationale: p?.rationale,
     };
   }
 
@@ -674,32 +724,33 @@ class OptimizedCVService {
   // EXPERIENCE: returns normalized { description, achievements } (and legacy fields if present)
   async generateExperience(
     cvId: string,
-    context: { targetRole?: string; industry?: string },
-    extra?: { jobTitle?: string; company?: string; preferCurrent?: boolean }
+    payload: ExperienceAIRequest
   ): Promise<ExperienceAIResult> {
     if (!cvId) throw new Error("CV must be created first");
 
     const res = await this.apiRequest<any>(
-      `/api/cv/ai/experience?cvId=${encodeURIComponent(cvId)}`,
+      `/api/cv/ai/work-entry-generate?cvId=${encodeURIComponent(cvId)}`,
       "POST",
       {
-        cvId,
-        context,
-        ...(extra || {}),
+        // new API expects these keys directly in the body
+        ...payload,
       }
     );
 
-    // Surface server-side failure reasons
     if (res?.data?.ok === false) {
       const reason =
         res?.error?.details?.[0] ||
         res?.data?.reason ||
         res?.message ||
         "AI experience generation failed";
-      throw new Error(reason);
+      throw new Error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : reason
+      );
     }
 
-    return normalizeExperienceV2(res, extra);
+    return normalizeExperienceV3(res);
   }
 
   /**
