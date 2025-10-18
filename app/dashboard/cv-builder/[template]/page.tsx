@@ -30,6 +30,7 @@ import { pdf } from "@react-pdf/renderer";
 // Initialize dynamic sections
 import "@/lib/cv/sections/initializeSections";
 import { ProfessionalSummary } from "@/types/cv/index";
+import safeConsole from "@/lib/console";
 
 interface TemplateBuilderPageProps {
   params: Promise<{
@@ -159,9 +160,9 @@ export default function TemplateBuilderPage({
         ...(prev || { aiTraining: false }),
         aiProcessing: true,
       }));
-      console.log("✅ AI processing consent accepted");
+      safeConsole.log("✅ AI processing consent accepted");
     } catch (err) {
-      console.error("❌ Unable to accept AI processing consent:", err);
+      safeConsole.error("❌ Unable to accept AI processing consent:", err);
     }
   };
 
@@ -176,22 +177,22 @@ export default function TemplateBuilderPage({
     // Update CV with consent if we have a cvId
     if (currentCvId) {
       try {
-        console.log("🔄 Updating CV with AI consent:", consent);
+        safeConsole.log("🔄 Updating CV with AI consent:", consent);
         await cvOperations.updateCV(
           templateBuilder.personalInfo,
           templateBuilder.resumeData,
           consent
         );
-        console.log("✅ CV updated with AI consent successfully");
+        safeConsole.log("✅ CV updated with AI consent successfully");
       } catch (error) {
-        console.error("❌ Failed to update CV with consent:", error);
+        safeConsole.error("❌ Failed to update CV with consent:", error);
         alert("Failed to save consent. Please try again.");
       }
     } else {
-      console.log("⚠️ No cvId available to update consent");
+      safeConsole.log("⚠️ No cvId available to update consent");
     }
 
-    console.log("AI consent received:", consent);
+    safeConsole.log("AI consent received:", consent);
   };
 
   // Accepts only aiTraining (optional), closes modal, and persists just aiTraining
@@ -220,7 +221,7 @@ export default function TemplateBuilderPage({
         );
       }
     } catch (error) {
-      console.error("Failed to persist AI training consent:", error);
+      safeConsole.error("Failed to persist AI training consent:", error);
     }
   };
 
@@ -232,7 +233,7 @@ export default function TemplateBuilderPage({
   // Set cvId in cvOperations when in view/edit mode
   useEffect(() => {
     if (cvId && (mode === "view" || mode === "edit")) {
-      console.log("🔧 Setting cvId in cvOperations:", cvId);
+      safeConsole.log("🔧 Setting cvId in cvOperations:", cvId);
       cvOperations.setCvId(cvId);
     }
   }, [cvId, mode, cvOperations]);
@@ -262,9 +263,9 @@ export default function TemplateBuilderPage({
 
   // CV Management handlers
   const handleCreateCV = async (): Promise<string | null> => {
-    console.log("handleCreateCV called with:");
-    console.log("- personalInfo:", templateBuilder.personalInfo);
-    console.log("- aiConsent:", aiConsent);
+    safeConsole.log("handleCreateCV called with:");
+    safeConsole.log("- personalInfo:", templateBuilder.personalInfo);
+    safeConsole.log("- aiConsent:", aiConsent);
 
     const newCvId = await cvOperations.handleCreateCV(
       templateBuilder.personalInfo,
@@ -273,13 +274,13 @@ export default function TemplateBuilderPage({
       templateId // Pass template name
     );
 
-    console.log("cvOperations.handleCreateCV returned:", newCvId);
+    safeConsole.log("cvOperations.handleCreateCV returned:", newCvId);
 
     if (newCvId) {
       setCurrentCvId(newCvId);
       // Also save to localStorage for persistence
       localStorage.setItem("cvId", newCvId);
-      console.log("setCurrentCvId called with:", newCvId);
+      safeConsole.log("setCurrentCvId called with:", newCvId);
     }
     return newCvId;
   };
@@ -296,13 +297,13 @@ export default function TemplateBuilderPage({
     const currentCvId = providedCvId || cvId;
 
     if (!currentCvId) {
-      console.warn("⚠️ No cvId available for draft save");
+      safeConsole.warn("⚠️ No cvId available for draft save");
       throw new Error("CV must be created before saving draft");
     }
 
     // Check if we have an existing draftId for PATCH update
     const currentDraftId = cvOperations.draftId;
-    console.log(
+    safeConsole.log(
       "💾 Manual Save Draft - cvId:",
       currentCvId,
       "draftId:",
@@ -324,9 +325,9 @@ export default function TemplateBuilderPage({
 
   // Wrapper for ResumeNav onSaveDraft (no parameters)
   const handleSaveDraftWrapper = async () => {
-    console.log("🔧 handleSaveDraftWrapper called with cvId:", currentCvId);
-    console.log("🔧 cvOperations.cvId:", cvOperations.cvId);
-    console.log("🔧 cvOperations.draftId:", cvOperations.draftId);
+    safeConsole.log("🔧 handleSaveDraftWrapper called with cvId:", currentCvId);
+    safeConsole.log("🔧 cvOperations.cvId:", cvOperations.cvId);
+    safeConsole.log("🔧 cvOperations.draftId:", cvOperations.draftId);
     await handleSaveDraft();
   };
 
@@ -335,7 +336,7 @@ export default function TemplateBuilderPage({
       // Use the current draftId from cvOperations
       const currentDraftId = cvOperations.draftId;
       if (!currentDraftId) {
-        console.warn("⚠️ No draftId available for publishing");
+        safeConsole.warn("⚠️ No draftId available for publishing");
         alert("No draft available to publish. Please save a draft first.");
         return;
       }
@@ -350,14 +351,14 @@ export default function TemplateBuilderPage({
       setShowSaveNotification(true);
       setTimeout(() => setShowSaveNotification(false), 2000); // Show longer for publish
     } catch (error) {
-      console.error("❌ Error publishing CV:", error);
+      safeConsole.error("❌ Error publishing CV:", error);
       // Could add error notification here
     }
   };
 
   // AI suggestion handler
   const handleAISuggestion = (sectionType: string, suggestion: any) => {
-    console.log(`AI suggestion for ${sectionType}:`, suggestion);
+    safeConsole.log(`AI suggestion for ${sectionType}:`, suggestion);
 
     // Apply AI suggestions based on section type
     switch (sectionType) {
@@ -373,16 +374,16 @@ export default function TemplateBuilderPage({
         break;
       case "work-experience":
         if (suggestion.enhanced) {
-          console.log("Enhanced work experience:", suggestion.enhanced);
+          safeConsole.log("Enhanced work experience:", suggestion.enhanced);
         }
         break;
       case "skills":
         if (suggestion.skills) {
-          console.log("Prioritized skills:", suggestion.skills);
+          safeConsole.log("Prioritized skills:", suggestion.skills);
         }
         break;
       default:
-        console.log("AI suggestion received:", suggestion);
+        safeConsole.log("AI suggestion received:", suggestion);
     }
   };
 
@@ -391,7 +392,7 @@ export default function TemplateBuilderPage({
     setIsExporting(true);
     try {
       // First, create a final draft and publish it
-      console.log("Creating final draft before PDF export...");
+      safeConsole.log("Creating final draft before PDF export...");
       await cvOperations.handleSaveDraft(
         templateBuilder.personalInfo,
         templateBuilder.resumeData,
@@ -418,23 +419,23 @@ export default function TemplateBuilderPage({
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `resume-${templateBuilder.personalInfo.firstName}-${templateBuilder.personalInfo.lastName}.pdf`;
+      a.download = `resume-${templateId}-${templateBuilder.personalInfo.firstName}-${templateBuilder.personalInfo.lastName}.pdf`;
       a.style.display = "none";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      console.log("PDF exported successfully");
+      safeConsole.log("PDF exported successfully");
     } catch (error: any) {
-      console.error("Export failed:", error);
+      safeConsole.error("Export failed:", error);
       alert(`PDF export failed: ${error.message || error}`);
     } finally {
       setIsExporting(false);
     }
   };
 
-  console.log(
+  safeConsole.log(
     "CV Builder Page - cvId being passed to BuilderLayout:",
     currentCvId
   );
@@ -465,7 +466,7 @@ export default function TemplateBuilderPage({
       const data = await response.json();
       const cv = data.data;
 
-      console.log("📄 Loading existing CV data:", cv);
+      safeConsole.log("📄 Loading existing CV data:", cv);
 
       // Extract personal info from sections
       const personalInfoSection = cv.sections.find(
@@ -524,16 +525,16 @@ export default function TemplateBuilderPage({
 
       // Set AI consent from CV data
       setAiConsent(cv.consent);
-      console.log("✅ AI consent loaded from CV:", cv.consent);
+      safeConsole.log("✅ AI consent loaded from CV:", cv.consent);
 
-      console.log("✅ CV data loaded into template builder:", {
+      safeConsole.log("✅ CV data loaded into template builder:", {
         personalInfo: Object.keys(personalInfo),
         resumeDataCount: resumeData.length,
         template: cv.template,
         consent: cv.consent,
       });
     } catch (err) {
-      console.error("Error loading existing CV:", err);
+      safeConsole.error("Error loading existing CV:", err);
     } finally {
       setLoadingExistingCV(false);
     }
@@ -565,7 +566,7 @@ export default function TemplateBuilderPage({
       const data = await response.json();
       const draft = data.data;
 
-      console.log("📄 Loading existing Draft data:", draft);
+      safeConsole.log("📄 Loading existing Draft data:", draft);
 
       const sections = draft.working || [];
       const personalInfoSection = sections.find(
@@ -631,7 +632,7 @@ export default function TemplateBuilderPage({
         localStorage.setItem("cvDraftId", draft._id);
       }
     } catch (err) {
-      console.error("Error loading existing Draft:", err);
+      safeConsole.error("Error loading existing Draft:", err);
     } finally {
       setLoadingExistingCV(false);
     }
@@ -681,7 +682,7 @@ export default function TemplateBuilderPage({
 
   // Monitor cvId changes
   useEffect(() => {
-    console.log("cvId state changed to:", currentCvId);
+    safeConsole.log("cvId state changed to:", currentCvId);
   }, [currentCvId]);
 
   // Auto-save draft when CV exists and data changes
@@ -695,7 +696,7 @@ export default function TemplateBuilderPage({
           !cvOperations.isCreating &&
           !cvOperations.isUpdating
         ) {
-          console.log("🤖 Auto-saving draft for cvId:", currentCvId);
+          safeConsole.log("🤖 Auto-saving draft for cvId:", currentCvId);
           cvOperations.handleSaveDraft(
             templateBuilder.personalInfo,
             templateBuilder.resumeData,
@@ -707,7 +708,7 @@ export default function TemplateBuilderPage({
           setShowSaveNotification(true);
           setTimeout(() => setShowSaveNotification(false), 2000);
         } else {
-          console.log(
+          safeConsole.log(
             "⏭️ Auto-save skipped - personal info not ready or already saving"
           );
         }
@@ -727,25 +728,25 @@ export default function TemplateBuilderPage({
   // Function to check existing consent from CV
   const checkExistingConsent = async (cvId: string) => {
     try {
-      console.log("Checking existing consent for CV:", cvId);
+      safeConsole.log("Checking existing consent for CV:", cvId);
 
       // First check if we already have consent loaded from the current CV
       if (aiConsent && cvId === currentCvId) {
-        console.log("Using already loaded consent:", aiConsent);
+        safeConsole.log("Using already loaded consent:", aiConsent);
         return aiConsent;
       }
 
       // Fallback to API call if consent not loaded yet
       const cvData = await cvOperations.handleLoadCV(cvId);
       if (cvData && cvData.consent) {
-        console.log("Found existing consent via API:", cvData.consent);
+        safeConsole.log("Found existing consent via API:", cvData.consent);
         // Update the local consent state
         setAiConsent(cvData.consent);
         return cvData.consent;
       }
       return null;
     } catch (error) {
-      console.error("Failed to check existing consent:", error);
+      safeConsole.error("Failed to check existing consent:", error);
       return null;
     }
   };
@@ -772,7 +773,7 @@ export default function TemplateBuilderPage({
         onTemplateConfigSave={templateBuilder.handleTemplateConfigSave}
         onAddSection={() => setShowAddSectionModal(true)}
         onRemoveSection={(sectionId) => {
-          console.log("Remove section clicked:", sectionId);
+          safeConsole.log("Remove section clicked:", sectionId);
 
           // Handle different section types
           switch (sectionId) {
@@ -807,7 +808,7 @@ export default function TemplateBuilderPage({
               templateBuilder.setDeclarations([]);
               break;
             default:
-              console.log("Cannot remove core section:", sectionId);
+              safeConsole.log("Cannot remove core section:", sectionId);
               break;
           }
         }}
@@ -1061,7 +1062,7 @@ export default function TemplateBuilderPage({
           if (!aiConsent?.aiProcessing) {
             setShowAIConsentModal(true);
           } else {
-            console.log("AI processing consent already given:", aiConsent);
+            safeConsole.log("AI processing consent already given:", aiConsent);
           }
         }}
         aiConsent={aiConsent}
@@ -1217,7 +1218,7 @@ export default function TemplateBuilderPage({
               // Professional summary is already handled by the data
               break;
             default:
-              console.log("Unknown section type:", sectionType);
+              safeConsole.log("Unknown section type:", sectionType);
           }
           setShowAddSectionModal(false);
         }}

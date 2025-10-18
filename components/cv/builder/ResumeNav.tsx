@@ -103,7 +103,7 @@ export default function ResumeNav({
   // const exportingHtml = Boolean(isExportingHtml ?? isExporting);
 
   return (
-    <nav className="w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-md shadow-lg border-b border-gray-200/50 dark:border-gray-700/50">
+    <nav className="fixed z-50 w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-md shadow-lg border-b border-gray-200/50 dark:border-gray-700/50">
       <div className="mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center space-x-2">
           {/* Template Button */}

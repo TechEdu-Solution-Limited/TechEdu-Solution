@@ -216,7 +216,9 @@ export default function ResumeBuilder() {
 
       // Navigate to the dynamic template builder with the CV data and correct template
       router.push(
-        `/dashboard/cv-builder/${templateId}?cvId=${encodeURIComponent(cvId)}`
+        `/dashboard/cv-builder/${templateId}?cvId=${encodeURIComponent(
+          cvId
+        )}&mode=view`
       );
     } catch (e: any) {
       setUploadError(e?.message || "Ingestion failed. Please try again.");
