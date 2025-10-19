@@ -114,9 +114,7 @@ export function MinimalTemplatePdfRenderer({
 
   const styles = StyleSheet.create({
     page: {
-      paddingHorizontal: PAD_X, // keep left/right padding on the Page
-      paddingTop: 0, // header should sit flush with the top
-      paddingBottom: 0, // bottom handled by mainContent
+      padding: 24,
       fontSize: 10,
       fontFamily: mapFontFamily(template.styles.typography.fontFamily),
       lineHeight: 1.4,
