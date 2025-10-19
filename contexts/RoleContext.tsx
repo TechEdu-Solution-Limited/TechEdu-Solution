@@ -1,5 +1,3 @@
-// contexts/RoleContext.tsx
-
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
@@ -7,21 +5,14 @@ import { UserRole } from "@/lib/dashboardData";
 import {
   getTokenFromCookies,
   saveTokenToCookies,
-  deleteTokenFromCookies,
   clearAllCookies,
-  saveTokensToCookies,
   saveUserDataToCookies,
+  getUserDataFromCookies,
 } from "@/lib/cookies";
-import {
-  loginUser,
-  logoutUser,
-  getActiveRole,
-  switchUserRole,
-} from "@/lib/apiFetch";
-import { useRouter } from "next/navigation";
+import { logoutUser, getActiveRole, switchUserRole } from "@/lib/apiFetch";
 import { isValidUserData } from "@/lib/utils";
-
 import { safeConsole } from "@/lib/console";
+
 interface RoleContextType {
   userRole: UserRole;
   setUserRole: (role: UserRole) => void;
@@ -59,34 +50,21 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   // Load user data from cookies on mount
   useEffect(() => {
     const checkAuthCookies = () => {
-      const cookies = document.cookie.split(";");
-      const authToken = cookies.find((cookie) =>
-        cookie.trim().startsWith("token=")
-      );
-      const userDataCookie = cookies.find((cookie) =>
-        cookie.trim().startsWith("userData=")
-      );
+      const token = getTokenFromCookies();
+      const parsed = getUserDataFromCookies<typeof userData>();
 
-      if (authToken && userDataCookie) {
-        try {
-          const userDataValue = userDataCookie.split("=")[1];
-          const userData = JSON.parse(decodeURIComponent(userDataValue));
-
-          // Set user data from cookies
-          setUserData(userData);
-          setUserRole(userData.role || "student");
-          setIsAuthenticated(true);
-          setLoading(false);
-          return true;
-        } catch (error) {
-          safeConsole.error("Error parsing user data from cookies:", error);
-        }
+      if (token && parsed) {
+        setUserData(parsed);
+        setUserRole((parsed.role as UserRole) || "student");
+        setIsAuthenticated(true);
+        setLoading(false);
+        return true;
       }
+
       setLoading(false);
       return false;
     };
 
-    // Check for authentication cookies
     checkAuthCookies();
   }, []);
 
@@ -111,22 +89,21 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const loginWithOAuth = (userData: any) => {
-    const role = userData.role || "student";
+  const loginWithOAuth = (incoming: any) => {
+    const role = incoming.role || "student";
     setUserRole(role);
-    setUserData(userData);
+    setUserData(incoming);
     setIsAuthenticated(true);
 
     // Save to cookies
     const token = "oauth-token-" + Date.now();
     saveTokenToCookies(token);
-    if (isValidUserData(userData)) {
-      saveUserDataToCookies(userData);
+    if (isValidUserData(incoming)) {
+      saveUserDataToCookies(incoming); // encodes + JSON.stringify
     } else {
       safeConsole.warn("Invalid user data, skipping cookie save.");
     }
 
-    // Redirect to appropriate dashboard
     redirectToRoleDashboard(role);
   };
 
@@ -139,24 +116,12 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
 
-      // Check if token is still valid
-      const cookies = document.cookie.split(";");
-      const userDataCookie = cookies.find((cookie) =>
-        cookie.trim().startsWith("userData=")
-      );
-
-      if (userDataCookie) {
-        try {
-          const userDataValue = userDataCookie.split("=")[1];
-          const userData = JSON.parse(decodeURIComponent(userDataValue));
-
-          setUserData(userData);
-          setUserRole(userData.role || "student");
-          setIsAuthenticated(true);
-          return true;
-        } catch (error) {
-          safeConsole.error("Error parsing user data:", error);
-        }
+      const parsed = getUserDataFromCookies<typeof userData>();
+      if (parsed) {
+        setUserData(parsed);
+        setUserRole((parsed.role as UserRole) || "student");
+        setIsAuthenticated(true);
+        return true;
       }
 
       setIsAuthenticated(false);
@@ -170,24 +135,19 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      // Call logout API endpoint using the apiFetch function
       const response = await logoutUser();
-
       if (response.status >= 400) {
         safeConsole.error("Logout API call failed");
       }
     } catch (error) {
       safeConsole.error("Error calling logout API:", error);
     } finally {
-      // Clear local state regardless of API call result
       setUserRole("student");
       setUserData({ fullName: "", email: "", avatar: "", role: "student" });
       setIsAuthenticated(false);
 
-      // Clear ALL cookies using the new comprehensive function
       clearAllCookies();
 
-      // Redirect to home page
       if (typeof window !== "undefined") {
         window.location.href = "/";
       }
@@ -204,15 +164,11 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       }
 
       const response = await getActiveRole(token);
+      const activeRole = response?.data?.data?.role as UserRole | undefined;
 
-      if (response.data && response.data.data) {
-        const activeRole = response.data.data.role;
-
-        // Update local state if role has changed
-        if (activeRole && activeRole !== userRole) {
-          setUserRole(activeRole);
-          setUserData((prev) => ({ ...prev, role: activeRole }));
-        }
+      if (activeRole && activeRole !== userRole) {
+        setUserRole(activeRole);
+        setUserData((prev) => ({ ...prev, role: activeRole }));
       }
     } catch (error) {
       safeConsole.error("[RoleContext] Error getting active role:", error);
@@ -229,19 +185,17 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       }
 
       const response = await switchUserRole(token);
+      const newRole = response?.data?.data?.role as UserRole | undefined;
 
-      if (response.data && response.data.data) {
-        const newRole = response.data.data.role;
-
-        // Update local state
+      if (newRole) {
         setUserRole(newRole);
-        setUserData((prev) => ({ ...prev, role: newRole }));
+        setUserData((prev) => {
+          const updated = { ...prev, role: newRole };
+          // Persist updated role to cookie (encoded JSON)
+          saveUserDataToCookies(updated);
+          return updated;
+        });
 
-        // Update cookies
-        const updatedUserData = { ...userData, role: newRole };
-        saveUserDataToCookies(updatedUserData);
-
-        // Redirect to appropriate dashboard
         redirectToRoleDashboard(newRole);
       }
     } catch (error) {
