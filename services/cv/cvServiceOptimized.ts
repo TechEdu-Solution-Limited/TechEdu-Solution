@@ -596,8 +596,6 @@ class OptimizedCVService {
 
     const endpoints = [
       `/api/cv/ai/work-entry-generate?cvId=${encodeURIComponent(cvId)}`,
-      `/api/cv/ai/experience?cvId=${encodeURIComponent(cvId)}`,
-      `/api/cv/ai/work-experience?cvId=${encodeURIComponent(cvId)}`,
     ];
 
     // ✅ build body explicitly so startDate/endDate are always considered
