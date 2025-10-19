@@ -758,9 +758,14 @@ class OptimizedCVService {
    * POST /api/auth/ai/consent/accept  -> { ok: true }
    */
   async acceptAIProcessing() {
+    const token = getTokenFromCookies();
+    if (!token) {
+      throw new Error("Authentication token not found");
+    }
     const json = await this.apiRequest<any>(
       `/api/auth/ai/consent/accept`,
-      "POST"
+      "POST",
+      {}
     );
     if (!json?.ok) throw new Error("Failed to accept AI processing consent");
     return true;
