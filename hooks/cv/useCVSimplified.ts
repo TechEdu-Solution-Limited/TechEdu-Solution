@@ -3,12 +3,19 @@
 import { useState, useCallback, useEffect } from "react";
 import {
   cvService,
-  CreateCVRequest,
   AiSummary,
   SkillsAssessment,
-  ExperienceAssessment,
   ExperienceAIResult,
 } from "@/services/cv/cvServiceOptimized";
+
+// Optional: define a UI-facing context type
+type ExperienceGenContext = {
+  targetRole: string;
+  industry: string;
+  startDate?: string; // "YYYY-MM" or "YYYY-MM-DD"
+  endDate?: string; // omit if still current
+  targetCompany?: string;
+};
 
 export function useCVSimplified() {
   const [cvId, setCvId] = useState<string | undefined>(undefined);
@@ -233,17 +240,27 @@ export function useCVSimplified() {
   );
 
   // Generate AI Experience
+  // Generate AI Experience
   const generateExperience = useCallback(
-    async (context: {
-      targetRole: string;
-      industry: string;
-    }): Promise<ExperienceAIResult | null> => {
+    async (
+      context: ExperienceGenContext
+    ): Promise<ExperienceAIResult | null> => {
       if (!cvId) {
         console.warn("⚠️ No cvId available for AI experience generation");
         return null;
       }
+
       try {
-        const res = await cvService.generateExperience(cvId, context);
+        // Map UI shape -> service API shape
+        const payload = {
+          targetJobTitle: context.targetRole,
+          targetIndustry: context.industry,
+          startDate: context.startDate,
+          endDate: context.endDate,
+          targetCompany: context.targetCompany,
+        };
+
+        const res = await cvService.generateExperience(cvId, payload);
         return res; // { description, achievements }
       } catch (error) {
         console.error("Failed to generate experience:", error);

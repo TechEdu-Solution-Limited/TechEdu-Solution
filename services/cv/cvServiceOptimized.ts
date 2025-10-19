@@ -171,6 +171,33 @@ export type SkillsAssessment = {
   top: string[];
 };
 
+// ---- CV rating result types ----
+export type CVRatingResult = {
+  ok: boolean;
+  reviewId: string;
+  rating: {
+    overall: number;
+    sections: Record<string, number>;
+    strengths: string[];
+    gaps: string[];
+    atsFriendly: boolean;
+    keywordCoverage: number;
+    seniority: string; // e.g. "junior" | "mid" | "senior" | "lead"
+    notes?: string;
+    match?: {
+      score: number;
+      missingSkills?: string[];
+      reasons?: string[];
+    };
+  };
+  fileMeta?: {
+    bytes?: number;
+    mime?: string;
+    pages?: number;
+    ext?: string;
+  };
+};
+
 /* ----------------------------------------------------------------------------- */
 /* AI NORMALIZERS                                                                */
 /* ----------------------------------------------------------------------------- */
@@ -724,6 +751,31 @@ class OptimizedCVService {
       }
     );
     return response;
+  }
+
+  /** Rate a CV directly from a file URL. Returns the plain rating payload. */
+  async rateFromUrl(fileUrl: string, redact = false): Promise<CVRatingResult> {
+    // POST /api/cv/rate-from-url { url, redact }
+    const res = await this.apiRequest<any>("/api/cv/rate-from-url", "POST", {
+      url: fileUrl,
+      redact,
+    });
+
+    // tolerate both plain and wrapped shapes
+    const data: any =
+      res?.data &&
+      (res.success || res?.data?.ok !== undefined || res?.data?.rating)
+        ? res.data
+        : res;
+
+    if (!data?.ok) {
+      const msg =
+        data?.message ||
+        res?.message ||
+        "Rating failed: backend returned an unsuccessful response.";
+      throw new Error(msg);
+    }
+    return data as CVRatingResult;
   }
 
   // Helpers

@@ -1,4 +1,4 @@
-// app/dashboard/cv-builder/page.tsx (or wherever your ResumeBuilder lives)
+// app/dashboard/cv-builder/page.tsx
 "use client";
 
 import { useRef, useState } from "react";
@@ -13,6 +13,9 @@ import { STORAGE_FOLDERS } from "@/lib/firebase";
 import safeConsole from "@/lib/console";
 import TemplateSelectorModal from "@/components/cv/TemplateSelectorModal";
 import { getTokenFromCookies } from "@/lib/cookies";
+import { cvService } from "@/services/cv/cvServiceOptimized";
+import type { CVRatingResult } from "@/services/cv/cvServiceOptimized";
+import RatingModal from "@/components/cv/builder/modals/CVReatingModal";
 
 // ---- Config ----
 type UploadStatus = "idle" | "uploading" | "success" | "error";
@@ -46,6 +49,8 @@ function formatFileSize(bytes: number) {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+
 export default function ResumeBuilder() {
   const [dragActive, setDragActive] = useState(false);
   const [showBuilder, setShowBuilder] = useState(false);
@@ -67,6 +72,13 @@ export default function ResumeBuilder() {
   const [localProgress, setLocalProgress] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  // Rating flow state
+  const [ratingOpen, setRatingOpen] = useState(false);
+  const [ratingBusy, setRatingBusy] = useState(false);
+  const [ratingError, setRatingError] = useState<string | null>(null);
+  const [ratingData, setRatingData] = useState<CVRatingResult | null>(null);
+  const [redactForRating, setRedactForRating] = useState(false);
 
   // Accept enhanced or basic storage hook
   const storage = useFirebaseStorage({
@@ -177,10 +189,8 @@ export default function ResumeBuilder() {
     const token = getTokenFromCookies();
     setIngesting(true);
 
-    const API = process.env.NEXT_PUBLIC_API_URL;
-
     try {
-      const res = await fetch(`${API}/api/cv/ingest-from-url`, {
+      const res = await fetch(`${API_BASE}/api/cv/ingest-from-url`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -225,6 +235,24 @@ export default function ResumeBuilder() {
       setUploadStatus("error");
     } finally {
       setIngesting(false);
+    }
+  }
+
+  async function rateCurrentUpload() {
+    if (!uploadedFile?.url) return;
+    setRatingBusy(true);
+    setRatingError(null);
+    try {
+      const data = await cvService.rateFromUrl(
+        uploadedFile.url,
+        redactForRating
+      );
+      setRatingData(data);
+      setRatingOpen(true);
+    } catch (e: any) {
+      setRatingError(e?.message || "Rating failed. Please try again.");
+    } finally {
+      setRatingBusy(false);
     }
   }
 
@@ -360,29 +388,60 @@ export default function ResumeBuilder() {
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                     Your CV has been uploaded and is ready for processing.
                   </p>
-                  <div className="flex gap-3 justify-center">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setUploadedFile(null);
-                        setUploadStatus("idle");
-                        setLocalProgress(0);
-                        if (inputRef.current) inputRef.current.value = "";
-                      }}
-                      className="px-4 py-2 bg-gray-600 text-white rounded-[10px] hover:bg-gray-700 transition-colors"
-                    >
-                      Upload Another
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (!uploadedFile?.url) return;
-                        setTemplateOpen(true);
-                      }}
-                      className="px-4 py-2 bg-green-600 text-white rounded-[10px] hover:bg-green-700 transition-colors"
-                    >
-                      Continue to Template Selection
-                    </button>
+
+                  {/* Actions after upload */}
+                  <div className="flex flex-col gap-3 justify-center">
+                    <div className="flex gap-3 justify-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setUploadedFile(null);
+                          setUploadStatus("idle");
+                          setLocalProgress(0);
+                          if (inputRef.current) inputRef.current.value = "";
+                        }}
+                        className="px-4 py-2 bg-gray-600 text-white rounded-[10px] hover:bg-gray-700 transition-colors"
+                      >
+                        Upload Another
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!uploadedFile?.url) return;
+                          setTemplateOpen(true);
+                        }}
+                        className="px-4 py-2 bg-green-600 text-white rounded-[10px] hover:bg-green-700 transition-colors"
+                      >
+                        Continue to Template Selection
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void rateCurrentUpload();
+                        }}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-[10px] hover:bg-purple-700 transition-colors disabled:opacity-50"
+                        disabled={ratingBusy}
+                        title="Get an AI rating and feedback for this CV"
+                      >
+                        {ratingBusy ? "Rating..." : "Rate My CV"}
+                      </button>
+                    </div>
+
+                    <label className="flex items-center gap-2 justify-center text-sm text-gray-600 dark:text-gray-300">
+                      <input
+                        type="checkbox"
+                        checked={redactForRating}
+                        onChange={(e) => setRedactForRating(e.target.checked)}
+                        className="accent-purple-600"
+                      />
+                      Redact personal info before analysis
+                    </label>
+
+                    {ratingError && (
+                      <p className="text-center text-sm text-red-600">
+                        {ratingError}
+                      </p>
+                    )}
                   </div>
                 </>
               ) : uploadStatus === "error" ? (
@@ -582,6 +641,29 @@ export default function ResumeBuilder() {
             <div className="animate-spin h-6 w-6 border-2 border-gray-300 border-t-transparent rounded-full mx-auto mb-3" />
             <p className="text-sm text-gray-700 dark:text-gray-200">
               Preparing your editable draft…
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Rating Modal */}
+      <RatingModal
+        open={ratingOpen && !!ratingData}
+        data={ratingData}
+        onClose={() => setRatingOpen(false)}
+        onStartEditing={() => {
+          setRatingOpen(false);
+          setTemplateOpen(true);
+        }}
+      />
+
+      {/* Rating overlay */}
+      {ratingBusy && (
+        <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow">
+            <div className="animate-spin h-6 w-6 border-2 border-gray-300 border-t-transparent rounded-full mx-auto mb-3" />
+            <p className="text-sm text-gray-700 dark:text-gray-200">
+              Analyzing your CV…
             </p>
           </div>
         </div>
