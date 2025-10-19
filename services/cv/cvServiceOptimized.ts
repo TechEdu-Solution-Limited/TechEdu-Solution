@@ -600,11 +600,29 @@ class OptimizedCVService {
       `/api/cv/ai/work-experience?cvId=${encodeURIComponent(cvId)}`,
     ];
 
+    // ✅ build body explicitly so startDate/endDate are always considered
+    const body: Record<string, any> = {
+      cvId,
+      // prefer camelCase; also include snake_case for older handlers
+      startDate: payload.startDate ?? null,
+      endDate: payload.endDate ?? null,
+      start_date: payload.startDate ?? null,
+      end_date: payload.endDate ?? null,
+    };
+
+    if (typeof payload.targetJobTitle === "string")
+      body.targetJobTitle = payload.targetJobTitle;
+    if (typeof payload.targetCompany === "string")
+      body.targetCompany = payload.targetCompany;
+    if (typeof payload.targetIndustry === "string")
+      body.targetIndustry = payload.targetIndustry;
+
     let lastErr: any = null;
 
     for (const ep of endpoints) {
       try {
-        const res = await this.apiRequest<any>(ep, "POST", { ...payload });
+        const res = await this.apiRequest<any>(ep, "POST", body);
+
         if (res?.data?.ok === false) {
           const reason =
             res?.error?.details?.[0] ||
@@ -613,6 +631,7 @@ class OptimizedCVService {
             "AI generation failed";
           throw new Error(reason);
         }
+
         // Prefer newest normalizer but tolerate older shapes
         const v3 = normalizeExperienceV3(res);
         const hasV3 =
@@ -631,21 +650,20 @@ class OptimizedCVService {
         ) {
           return v2;
         }
+
         // Legacy fallback
         return normalizeExperience(res);
       } catch (e: any) {
         lastErr = e;
-        // If NOT_FOUND (404) or explicit "Cannot POST ..." keep trying next variant
         const msg = (e?.message || "").toString().toLowerCase();
         if (
           msg.includes("cannot post") ||
           msg.includes("not found") ||
           msg.includes("404")
         ) {
-          continue;
+          continue; // try next variant
         }
-        // any other error: stop
-        break;
+        break; // non-404 error → stop trying
       }
     }
 
