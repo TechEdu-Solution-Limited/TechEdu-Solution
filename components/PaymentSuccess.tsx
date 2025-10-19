@@ -2,86 +2,133 @@
 
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { CheckCircle, Download, ArrowRight, Home, User } from "lucide-react";
+import { CheckCircle, Download, Home, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "react-toastify";
 import { useRole } from "@/contexts/RoleContext";
 
+// --- currency helpers ---
+const ZERO_DECIMAL = new Set([
+  "BIF",
+  "CLP",
+  "DJF",
+  "GNF",
+  "JPY",
+  "KMF",
+  "KRW",
+  "MGA",
+  "PYG",
+  "RWF",
+  "UGX",
+  "VND",
+  "VUV",
+  "XAF",
+  "XOF",
+  "XPF",
+]);
+
+const fromMinor = (minor: number, currency: string) =>
+  ZERO_DECIMAL.has(currency.toUpperCase()) ? minor : minor / 100;
+
+const formatCurrency = (amountMajor: number, currency: string) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency.toUpperCase() || "USD",
+  }).format(amountMajor);
+
+type PaymentDetails = {
+  paymentIntentId: string;
+  status: string;
+  amountMajor: number | null; // always MAJOR here
+  currency: string;
+  productName?: string | null;
+  paymentMethod?: string | null;
+  timestamp: string;
+};
+
 export default function PaymentSuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { userData } = useRole();
+
   const [loading, setLoading] = useState(true);
-  const [paymentDetails, setPaymentDetails] = useState<any>(null);
+  const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(
+    null
+  );
   const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
-    // Get payment details from URL parameters
+    // Grab params
     const paymentIntentId = searchParams.get("payment_intent");
-    const amount = searchParams.get("amount");
-    const currency = searchParams.get("currency");
+    const amountParam = searchParams.get("amount"); // MAJOR units (preferred)
+    const amountMinorParam = searchParams.get("amount_minor"); // MINOR units (optional/back-compat)
+    const currencyParam = (searchParams.get("currency") || "USD").toUpperCase();
     const productName = searchParams.get("product_name");
     const redirectStatus = searchParams.get("redirect_status");
     const paymentMethod = searchParams.get("payment_method");
 
-    if (paymentIntentId) {
-      // Set payment details based on redirect status
-      setPaymentDetails({
-        paymentIntentId,
-        status: redirectStatus || "unknown",
-        amount: amount,
-        currency: currency,
-        productName: productName ? decodeURIComponent(productName) : null,
-        paymentMethod: paymentMethod,
-        timestamp: new Date().toISOString(),
-      });
-
-      // Show appropriate toast based on status
-      if (redirectStatus === "succeeded") {
-        toast.success("Payment completed successfully!");
-      } else if (redirectStatus === "processing") {
-        toast.info(
-          "Payment is being processed. You'll be notified once it's complete."
-        );
-      } else if (redirectStatus === "return") {
-        toast.info("Returned from payment process.");
-      }
-    } else {
-      // No payment intent ID - might be a direct visit
+    if (!paymentIntentId) {
       toast.warn("No payment information found.");
       router.push("/");
       return;
     }
 
+    // Normalize to MAJOR units for display
+    let amountMajor: number | null = null;
+
+    if (amountMinorParam != null) {
+      const n = Number(amountMinorParam);
+      amountMajor = Number.isFinite(n) ? fromMinor(n, currencyParam) : null;
+    } else if (amountParam != null) {
+      // amount is already MAJOR in your flow
+      const n = Number(amountParam); // use Number/parseFloat, not parseInt
+      amountMajor = Number.isFinite(n) ? n : null;
+    }
+
+    const details: PaymentDetails = {
+      paymentIntentId,
+      status: redirectStatus || "unknown",
+      amountMajor,
+      currency: currencyParam,
+      productName: productName ? decodeURIComponent(productName) : null,
+      paymentMethod: paymentMethod || undefined,
+      timestamp: new Date().toISOString(),
+    };
+
+    setPaymentDetails(details);
+
+    // Toasts
+    if (redirectStatus === "succeeded") {
+      toast.success("Payment completed successfully!");
+    } else if (redirectStatus === "processing") {
+      toast.info(
+        "Payment is being processed. You'll be notified once it's complete."
+      );
+    } else if (redirectStatus === "return") {
+      toast.info("Returned from payment process.");
+    }
+
     setLoading(false);
   }, [searchParams, router]);
 
-  // Auto-redirect to dashboard after 5 seconds for successful payments
+  // Auto-redirect after success
   useEffect(() => {
-    // const bookingId = searchParams.get("bookingId");
-
     if (paymentDetails?.status === "succeeded" && userData?.role) {
       const timer = setTimeout(() => {
         setRedirecting(false);
-
-        // Redirect to the specific booking details page
         router.push(`/dashboard/bookings`);
-      }, 5000); // 5 seconds
-
+      }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [paymentDetails, userData, router, searchParams]);
+  }, [paymentDetails, userData, router]);
 
   const handleContinueToDashboard = () => {
     const bookingId = searchParams.get("bookingId");
-
     if (bookingId) {
-      // Redirect to the specific booking details page
       router.push(`/dashboard/bookings`);
     } else {
-      // Fallback to general dashboard
       router.push("/dashboard");
     }
   };
@@ -102,9 +149,7 @@ export default function PaymentSuccessPage() {
     }
   };
 
-  const handleGoHome = () => {
-    router.push("/");
-  };
+  const handleGoHome = () => router.push("/");
 
   if (loading) {
     return (
@@ -131,7 +176,7 @@ export default function PaymentSuccessPage() {
       `}</style>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 pt-32 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
-          {/* Success Header */}
+          {/* Header */}
           <div className="text-center mb-8">
             <div
               className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-6 ${
@@ -176,7 +221,7 @@ export default function PaymentSuccessPage() {
             )}
           </div>
 
-          {/* Payment Details Card */}
+          {/* Details */}
           <Card className="mb-8 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -208,14 +253,14 @@ export default function PaymentSuccessPage() {
                 </div>
               </div>
 
-              {paymentDetails?.amount && (
+              {paymentDetails?.amountMajor != null && (
                 <div>
                   <p className="text-sm text-gray-500">Amount</p>
                   <p className="text-xl font-bold text-green-600">
-                    {new Intl.NumberFormat("en-US", {
-                      style: "currency",
-                      currency: paymentDetails.currency?.toUpperCase() || "USD",
-                    }).format(parseInt(paymentDetails.amount) / 100)}
+                    {formatCurrency(
+                      paymentDetails.amountMajor,
+                      paymentDetails.currency
+                    )}
                   </p>
                 </div>
               )}
@@ -240,7 +285,7 @@ export default function PaymentSuccessPage() {
             </CardContent>
           </Card>
 
-          {/* Auto-redirect notification */}
+          {/* Notices */}
           {paymentDetails?.status === "succeeded" &&
             userData?.role &&
             !redirecting && (
@@ -250,19 +295,16 @@ export default function PaymentSuccessPage() {
                     🎉 Payment successful! You'll be redirected to your
                     dashboard in a few seconds...
                   </p>
-                  <div className="w-full bg-blue-200 rounded-full h-1">
+                  <div className="w-full bg-blue-2 00 rounded-full h-1">
                     <div
                       className="bg-blue-600 h-1 rounded-full animate-pulse"
-                      style={{
-                        animation: "progress 5s linear forwards",
-                      }}
-                    ></div>
+                      style={{ animation: "progress 5s linear forwards" }}
+                    />
                   </div>
                 </div>
               </div>
             )}
 
-          {/* Processing payment notification */}
           {paymentDetails?.status === "processing" && (
             <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-[12px]">
               <div className="text-center">
@@ -278,33 +320,7 @@ export default function PaymentSuccessPage() {
             </div>
           )}
 
-          {/* Return from payment notification */}
-          {paymentDetails?.status === "return" && (
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-[12px]">
-              <div className="text-center">
-                <p className="text-sm text-blue-700 mb-2">
-                  🔄 You've returned from the payment process.
-                </p>
-                <p className="text-xs text-blue-600">
-                  Please check your email for payment confirmation or contact
-                  support if you have any questions.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Redirecting state */}
-          {redirecting && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-[12px]">
-              <div className="text-center">
-                <p className="text-sm text-green-700">
-                  Redirecting to your dashboard...
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
+          {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-4">
             {paymentDetails?.status === "succeeded" ? (
               <Button
@@ -326,7 +342,7 @@ export default function PaymentSuccessPage() {
             )}
 
             <Button
-              onClick={handleGoHome}
+              onClick={() => router.push("/")}
               variant="ghost"
               className="py-3"
               disabled={redirecting}
@@ -336,7 +352,7 @@ export default function PaymentSuccessPage() {
             </Button>
           </div>
 
-          {/* Support Info */}
+          {/* Support */}
           <div className="mt-8 text-center">
             <p className="text-sm text-gray-500 mb-2">
               Need help? Contact our support team

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -24,9 +24,8 @@ import {
   X,
   ChevronRight,
 } from "lucide-react";
-import { toast } from "react-toastify";
-
 import { safeConsole } from "@/lib/console";
+
 // Validate Stripe publishable key
 const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE;
 // const stripeAccountId = process.env.NEXT_PUBLIC_STRIPE_ACCOUNT_ID;
@@ -41,20 +40,39 @@ if (stripePublishableKey && !stripePublishableKey.startsWith("pk_")) {
   );
 }
 
-// if (!stripeAccountId) {
-//   safeConsole.error("NEXT_PUBLIC_STRIPE_ACCOUNT_ID is not set");
-// }
-
 const stripePromise = loadStripe(
   stripePublishableKey!
-  //   , {
-  //   stripeAccount: stripeAccountId,
-  // }
+  // , { stripeAccount: stripeAccountId }
 );
+
+// currencies with no decimal (Stripe minor==major)
+const ZERO_DECIMAL = new Set([
+  "BIF",
+  "CLP",
+  "DJF",
+  "GNF",
+  "JPY",
+  "KMF",
+  "KRW",
+  "MGA",
+  "PYG",
+  "RWF",
+  "UGX",
+  "VND",
+  "VUV",
+  "XAF",
+  "XOF",
+  "XPF",
+]);
+
+const toMajor = (minor: number, currency: string) =>
+  ZERO_DECIMAL.has((currency || "USD").toUpperCase()) ? minor : minor / 100;
 
 interface PaymentFormProps {
   clientSecret: string;
+  /** amount in MINOR units (e.g. cents) */
   amount: number;
+  /** ISO currency code (e.g. "USD", "JPY") */
   currency: string;
   onSuccess: () => void;
   onError: (error: string) => void;
@@ -62,21 +80,6 @@ interface PaymentFormProps {
   productName?: string;
   bookingId?: string | null;
 }
-
-// Helper function to extract client secret from response
-const extractClientSecret = (response: any): string => {
-  // Try different possible paths for client secret
-  if (response?.data?.data?.clientSecret) {
-    return response.data.data.clientSecret;
-  }
-  if (response?.data?.clientSecret) {
-    return response.data.clientSecret;
-  }
-  if (response?.clientSecret) {
-    return response.clientSecret;
-  }
-  throw new Error("Client secret not found in response");
-};
 
 function PaymentForm({
   clientSecret,
@@ -88,9 +91,18 @@ function PaymentForm({
   productName = "Course",
   bookingId,
 }: PaymentFormProps) {
-  safeConsole.log("PaymentForm bookingId:", bookingId); // Debug log
+  safeConsole.log("PaymentForm bookingId:", bookingId);
+  safeConsole.log("PaymentForm received →", {
+    amountMinor: amount,
+    currency,
+    majorPreview: ZERO_DECIMAL.has(currency.toUpperCase())
+      ? amount
+      : amount / 100,
+  });
+
   const stripe = useStripe();
   const elements = useElements();
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentSuccessful, setPaymentSuccessful] = useState(false);
@@ -102,18 +114,20 @@ function PaymentForm({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+
+    const amountMajor = toMajor(amount, currency);
     if (!stripe || !elements) return;
 
-    // Validate client secret format
+    // Validate client secret format (pi_xxx_secret_xxx)
     if (!clientSecret || !clientSecret.startsWith("pi_")) {
       setError("Invalid payment intent. Please try again.");
       return;
     }
+
     setIsProcessing(true);
     setError(null);
 
     try {
-      // The client secret should be much longer than just the ID
       if (clientSecret.length < 50) {
         safeConsole.error(
           "Client secret seems too short - might be just the ID"
@@ -124,18 +138,16 @@ function PaymentForm({
       }
       if (!clientSecret.includes("_secret_")) {
         throw new Error("MISSING secret portion of clientSecret. Aborting.");
-      } else {
       }
 
       const cardNumberElement = elements.getElement(CardNumberElement);
-
       if (!cardNumberElement) {
         setError("Card number input not ready");
         setIsProcessing(false);
         return;
       }
 
-      // Step 1: Create the payment method
+      // 1) Create PaymentMethod
       const { paymentMethod, error: pmError } =
         await stripe.createPaymentMethod({
           type: "card",
@@ -153,13 +165,14 @@ function PaymentForm({
         return;
       }
 
-      // Step 2: Confirm the payment using the payment method ID
+      // 2) Confirm PaymentIntent
       const { error: submitError, paymentIntent } =
         await stripe.confirmCardPayment(clientSecret, {
-          payment_method: paymentMethod.id,
+          payment_method: paymentMethod!.id,
+          // return_url only used for redirect-based next actions (3DS)
           return_url: `${
             window.location.origin
-          }/payment-success?amount=${amount}&currency=${currency}&product_name=${encodeURIComponent(
+          }/payment-success?amount=${amountMajor}&currency=${currency}&product_name=${encodeURIComponent(
             productName
           )}&redirect_status=return${
             bookingId ? `&bookingId=${bookingId}` : ""
@@ -168,92 +181,87 @@ function PaymentForm({
 
       if (submitError) {
         safeConsole.error("Stripe confirmation error:", submitError);
-        setError(
-          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+        const message =
+          process.env.NODE_ENV === "production"
             ? "Something went wrong"
-            : submitError.message || "Payment failed"
-        );
-        onError(
-          process.env.NEXT_PUBLIC_NODE_ENV === "production"
-            ? "Something went wrong"
-            : submitError.message || "Payment failed"
-        );
+            : submitError.message || "Payment failed";
+        setError(message);
+        onError(message);
         setIsProcessing(false);
-      } else if (paymentIntent && paymentIntent.status === "succeeded") {
-        // Set payment successful state
-        setPaymentSuccessful(true);
+        return;
+      }
 
-        // Call onSuccess immediately to remove item from cart
+      if (paymentIntent?.status === "succeeded") {
+        setPaymentSuccessful(true);
         onSuccess();
 
-        // Redirect to success page immediately with payment details
         const successUrl = `/payment-success?payment_intent=${
           paymentIntent.id
-        }&amount=${amount}&currency=${currency}&product_name=${encodeURIComponent(
+        }&amount=${amountMajor}&currency=${currency}&product_name=${encodeURIComponent(
           productName
-        )}&redirect_status=succeeded&payment_method=${paymentMethod.id}${
+        )}&redirect_status=succeeded&payment_method=${paymentMethod!.id}${
           bookingId ? `&bookingId=${bookingId}` : ""
         }`;
+
         window.location.href = successUrl;
-      } else if (paymentIntent && paymentIntent.status === "requires_action") {
-        // Don't set error here as the redirect should handle it
-      } else if (paymentIntent && paymentIntent.status === "processing") {
-        // Payment is being processed - show success state and redirect
+        return;
+      }
+
+      if (paymentIntent?.status === "requires_action") {
+        // 3DS redirect will happen; nothing else to do here.
+        return;
+      }
+
+      if (paymentIntent?.status === "processing") {
         setPaymentSuccessful(true);
         onSuccess();
 
-        // Redirect to success page with processing status
         const processingUrl = `/payment-success?payment_intent=${
           paymentIntent.id
-        }&amount=${amount}&currency=${currency}&product_name=${encodeURIComponent(
+        }&amount=${amountMajor}&currency=${currency}&product_name=${encodeURIComponent(
           productName
-        )}&redirect_status=processing&payment_method=${paymentMethod.id}${
+        )}&redirect_status=processing&payment_method=${paymentMethod!.id}${
           bookingId ? `&bookingId=${bookingId}` : ""
         }`;
 
         window.location.href = processingUrl;
-      } else {
-        safeConsole.warn(
-          "Unexpected payment intent status:",
-          paymentIntent?.status
-        );
-        setError(
-          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+        return;
+      }
+
+      safeConsole.warn(
+        "Unexpected payment intent status:",
+        paymentIntent?.status
+      );
+      {
+        const message =
+          process.env.NODE_ENV === "production"
             ? "Something went wrong"
-            : `Payment status: ${paymentIntent?.status || "unknown"}`
-        );
-        onError(
-          process.env.NEXT_PUBLIC_NODE_ENV === "production"
-            ? "Something went wrong"
-            : `Payment status: ${paymentIntent?.status || "unknown"}`
-        );
+            : `Payment status: ${paymentIntent?.status || "unknown"}`;
+        setError(message);
+        onError(message);
         setIsProcessing(false);
       }
-    } catch (error: any) {
-      safeConsole.error("Unexpected error during payment:", error);
-      setError(
-        error.message || "An unexpected error occurred. Please try again."
-      );
-      onError(
-        error.message || "An unexpected error occurred. Please try again."
-      );
+    } catch (err: any) {
+      safeConsole.error("Unexpected error during payment:", err);
+      const message =
+        err?.message || "An unexpected error occurred. Please try again.";
+      setError(message);
+      onError(message);
       setIsProcessing(false);
     }
   };
 
-  const formatAmount = (amount: number, currency: string) => {
+  const formatAmount = (amountMinor: number, cur: string) => {
+    const major = toMajor(amountMinor, cur);
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: currency.toUpperCase(),
-    }).format(amount / 100);
+      currency: cur.toUpperCase(),
+    }).format(major);
   };
 
   const handleCardChange =
     (field: "number" | "expiry" | "cvc") => (event: any) => {
-      setCardComplete((prev) => ({
-        ...prev,
-        [field]: event.complete,
-      }));
+      setCardComplete((prev) => ({ ...prev, [field]: event.complete }));
       if (error) setError(null);
     };
 
@@ -266,18 +274,12 @@ function PaymentForm({
         fontSize: "16px",
         color: "#374151",
         fontFamily: "Inter, system-ui, sans-serif",
-        "::placeholder": {
-          color: "#9CA3AF",
-        },
-        ":-webkit-autofill": {
-          color: "#374151",
-        },
+        "::placeholder": { color: "#9CA3AF" },
+        ":-webkit-autofill": { color: "#374151" },
       },
-      invalid: {
-        color: "#DC2626",
-      },
+      invalid: { color: "#DC2626" },
     },
-  };
+  } as const;
 
   return (
     <div className="relative">
@@ -372,7 +374,7 @@ function PaymentForm({
               </div>
             </div>
 
-            {/* Expiry Date and CVV */}
+            {/* Expiry Date and CVC */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -430,7 +432,7 @@ function PaymentForm({
           </div>
         </div>
 
-        {/* Payment Button */}
+        {/* Pay button */}
         <div className="space-y-4">
           <Button
             type="submit"
@@ -462,7 +464,6 @@ function PaymentForm({
             )}
           </Button>
 
-          {/* Trust Indicators */}
           <div className="text-center">
             <p className="text-xs text-gray-500 mb-3">
               🔒 Your payment information is encrypted and secure
@@ -480,7 +481,7 @@ function PaymentForm({
       {process.env.NODE_ENV === "development" && (
         <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-[12px]">
           <div className="flex items-start gap-3">
-            <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
+            <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0" />
             <div>
               <p className="text-sm font-medium text-yellow-800 mb-2">
                 Test Mode - Use these test cards:
@@ -518,6 +519,7 @@ function PaymentForm({
 
 interface StripePaymentFormProps {
   clientSecret: string;
+  /** amount in MINOR units (e.g. cents) */
   amount: number;
   currency: string;
   onSuccess: () => void;
