@@ -762,13 +762,12 @@ class OptimizedCVService {
     if (!token) {
       throw new Error("Authentication token not found");
     }
-    const json = await this.apiRequest<any>(
+    const json = await this.apiRequest<{ data?: { ok?: boolean } }>(
       `/api/auth/ai/consent/accept`,
       "POST",
       {}
     );
-    if (!json?.ok) throw new Error("Failed to accept AI processing consent");
-    return true;
+    return json?.data?.ok === true;
   }
 
   // SKILLS: returns SkillsAssessment
