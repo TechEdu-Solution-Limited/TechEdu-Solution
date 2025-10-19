@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useMemo, use, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { getTokenFromCookies } from "@/lib/cookies";
@@ -43,7 +43,7 @@ export default function TemplateBuilderPage({
 }: TemplateBuilderPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { template: templateId } = use(params);
+  const { template: templateId } = useParams<{ template: string }>();
 
   // Get URL parameters
   const cvId = searchParams.get("cvId");
@@ -396,7 +396,7 @@ export default function TemplateBuilderPage({
       await cvOperations.handleSaveDraft(
         templateBuilder.personalInfo,
         templateBuilder.resumeData,
-        undefined, // cvId
+        currentCvId, // cvId
         templateId // template
       );
 
@@ -1058,11 +1058,8 @@ export default function TemplateBuilderPage({
           });
         }}
         onShowAIConsent={() => {
-          // Only show consent modal if AI processing consent is not already given
-          if (!aiConsent?.aiProcessing) {
+          if (!aiConsent?.aiProcessing || !aiConsent?.aiTraining) {
             setShowAIConsentModal(true);
-          } else {
-            safeConsole.log("AI processing consent already given:", aiConsent);
           }
         }}
         aiConsent={aiConsent}
