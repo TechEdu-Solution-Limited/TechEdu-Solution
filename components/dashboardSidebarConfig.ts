@@ -139,6 +139,16 @@ export const dashboardSidebarConfig = {
             icon: ShoppingCart,
             href: "/dashboard/payments",
           },
+          {
+            label: "My Applications",
+            icon: ClipboardList,
+            href: "/dashboard/applications",
+          },
+          {
+            label: "My Resumes",
+            icon: FileText,
+            href: "/dashboard/cvs",
+          },
         ],
       },
       // {
