@@ -2,9 +2,9 @@
 
 import { getTokenFromCookies } from "@/lib/cookies";
 
-/* -----------------------------------------------------------------------------
-   Safe JSON helpers: prune Window/DOM/React objects and break cycles
------------------------------------------------------------------------------ */
+/* ----------------------------------------------------------------------------- */
+/* Safe JSON helpers: prune Window/DOM/React objects and break cycles            */
+/* ----------------------------------------------------------------------------- */
 
 const PRUNE_KEYS = new Set([
   "window",
@@ -40,12 +40,9 @@ function isWindowLike(v: any) {
 
 function safeJsonStringify(input: any): string {
   const seen = new WeakSet<object>();
-
   return JSON.stringify(input, function (key, value) {
-    // Drop known problematic keys early
     if (PRUNE_KEYS.has(key)) return undefined;
 
-    // Functions / symbols / undefined => drop
     if (
       typeof value === "function" ||
       typeof value === "symbol" ||
@@ -81,14 +78,13 @@ function safeJsonStringify(input: any): string {
       if (value instanceof URL) return value.toString();
       if (value instanceof RegExp) return value.toString();
     }
-
     return value;
   });
 }
 
-/* -----------------------------------------------------------------------------
-   Types
------------------------------------------------------------------------------ */
+/* ----------------------------------------------------------------------------- */
+/* Types                                                                         */
+/* ----------------------------------------------------------------------------- */
 
 interface CVSection {
   id?: string;
@@ -143,7 +139,6 @@ interface DraftResponse {
 export type ExperienceAIResult = {
   description?: string;
   achievements?: string[];
-  // legacy / optional extras
   seniority?: "junior" | "mid" | "senior" | "lead";
   minYears?: number;
   topSkills?: string[];
@@ -151,19 +146,18 @@ export type ExperienceAIResult = {
 };
 
 type ExperienceAIRequest = {
-  startDate?: string; // "YYYY-MM-DD" or "YYYY-MM"
-  endDate?: string; // omit if "current"
+  startDate?: string;
+  endDate?: string;
   targetJobTitle?: string;
   targetCompany?: string;
   targetIndustry?: string;
 };
 
-// Normalized shapes the UI can rely on
 export type ExperienceAssessment = {
   seniority: "junior" | "mid" | "senior" | "lead";
-  minYears: number; // >= 0
-  description: string; // string (may be empty)
-  achievements: string[]; // string (may be empty)
+  minYears: number;
+  description: string;
+  achievements: string[];
 };
 
 export type SkillItem = {
@@ -173,24 +167,20 @@ export type SkillItem = {
 };
 
 export type SkillsAssessment = {
-  skills: SkillItem[]; // deduped by name
-  top: string[]; // unique names
+  skills: SkillItem[];
+  top: string[];
 };
 
-/*===========================================================================*/
-/*===========================================================================*/
-/*===============================AI NORMALIZER===============================*/
-/*===========================================================================*/
-/*===========================================================================*/
+/* ----------------------------------------------------------------------------- */
+/* AI NORMALIZERS                                                                */
+/* ----------------------------------------------------------------------------- */
 
-// helper: pick the best item based on jobTitle/company/current
 function pickBestItem(
   items: any[] = [],
   sel?: { jobTitle?: string; company?: string; preferCurrent?: boolean }
 ) {
   const jt = (sel?.jobTitle || "").toLowerCase().trim();
   const co = (sel?.company || "").toLowerCase().trim();
-
   let best = items[0] || null;
   let bestScore = -1;
 
@@ -221,18 +211,16 @@ function normalizeExperienceV2(
 ): ExperienceAIResult {
   const payload = raw?.data?.data ?? raw?.data ?? raw;
 
-  // New shape: { ok, items: [...] }
   if (Array.isArray(payload?.items) && payload.items.length) {
     const chosen = pickBestItem(payload.items, sel) || payload.items[0];
     return {
-      description: String(chosen?.description).trim(),
+      description: String(chosen?.description || "").trim(),
       achievements: Array.isArray(chosen?.achievements)
         ? chosen.achievements.map((s: any) => String(s).trim()).filter(Boolean)
         : [],
     };
   }
 
-  // Legacy shape: { seniority, minYears, topSkills, rationale }
   if (payload?.rationale || payload?.topSkills) {
     return {
       description: String(payload?.rationale ?? "").trim(),
@@ -245,13 +233,10 @@ function normalizeExperienceV2(
       rationale: payload?.rationale,
     };
   }
-
   return {};
 }
 
 function normalizeExperienceV3(raw: any): ExperienceAIResult {
-  // new shape:
-  // { ok: true, workExperience: { description, achievements, ... } }
   const p = raw?.data ?? raw;
   const w = p?.workExperience ?? p?.data?.workExperience;
   if (w) {
@@ -262,8 +247,6 @@ function normalizeExperienceV3(raw: any): ExperienceAIResult {
         : [],
     };
   }
-
-  // v2 fallback: { ok, items: [ { description, achievements } ] }
   const items = p?.items ?? p?.data?.items;
   if (Array.isArray(items) && items.length) {
     const chosen = items[0];
@@ -274,8 +257,6 @@ function normalizeExperienceV3(raw: any): ExperienceAIResult {
         : [],
     };
   }
-
-  // legacy fallback: { rationale, topSkills, ... }
   if (p?.rationale || p?.topSkills) {
     return {
       description: String(p?.rationale ?? "").trim(),
@@ -288,28 +269,21 @@ function normalizeExperienceV3(raw: any): ExperienceAIResult {
       rationale: p?.rationale,
     };
   }
-
   return {};
 }
 
-// Add this near the "Types" section
 export type AiSummary = { content: string; bullets: string[] };
 
 function normalizeSummary(raw: any): AiSummary {
-  // 1) plain string => treat as content only
   if (typeof raw === "string") return { content: raw.trim(), bullets: [] };
   if (!raw || typeof raw !== "object") return { content: "", bullets: [] };
 
-  // 2) common shapes the frontend may see
-  // a) { success, data: { content, bullets } }
   if (raw.success && raw.data && (raw.data.content || raw.data.bullets)) {
     return {
       content: String(raw.data.content ?? "").trim(),
       bullets: Array.isArray(raw.data.bullets) ? raw.data.bullets : [],
     };
   }
-
-  // b) axios-like: { data: { success, data: { content, bullets } } }
   if (raw.data && raw.data.success && raw.data.data) {
     const d = raw.data.data;
     return {
@@ -317,28 +291,22 @@ function normalizeSummary(raw: any): AiSummary {
       bullets: Array.isArray(d.bullets) ? d.bullets : [],
     };
   }
-
-  // c) axios-like: { data: { content, bullets } } or { data: { summary } }
   if (raw.data && (raw.data.content || raw.data.bullets || raw.data.summary)) {
     return {
       content: String(raw.data.content ?? raw.data.summary ?? "").trim(),
       bullets: Array.isArray(raw.data.bullets) ? raw.data.bullets : [],
     };
   }
-
-  // d) flat: { content, bullets } or { summary }
   if (raw.content || raw.bullets || raw.summary) {
     return {
       content: String(raw.content ?? raw.summary ?? "").trim(),
       bullets: Array.isArray(raw.bullets) ? raw.bullets : [],
     };
   }
-
   return { content: "", bullets: [] };
 }
 
 function normalizeExperience(raw: any): ExperienceAssessment {
-  // unwrap common axios/wrapper shapes
   const d = (raw?.data?.data ?? raw?.data ?? raw) as {
     seniority?: unknown;
     minYears?: unknown;
@@ -347,7 +315,6 @@ function normalizeExperience(raw: any): ExperienceAssessment {
     achievements?: unknown;
   };
 
-  // seniority
   let seniority = String(d?.seniority ?? "").toLowerCase();
   const valid = new Set<ExperienceAssessment["seniority"]>([
     "junior",
@@ -357,12 +324,10 @@ function normalizeExperience(raw: any): ExperienceAssessment {
   ]);
   if (!valid.has(seniority as any)) seniority = "mid";
 
-  // minYears
   const minYearsRaw = Number(d?.minYears);
   let minYears = Number.isFinite(minYearsRaw) ? minYearsRaw : 0;
   if (minYears < 0) minYears = 0;
 
-  // topSkills (force element type to string)
   const topSkillsInput = Array.isArray(d?.topSkills)
     ? (d!.topSkills as unknown[])
     : [];
@@ -374,7 +339,6 @@ function normalizeExperience(raw: any): ExperienceAssessment {
     )
   );
 
-  // rationale
   const description = String(d?.description ?? "").trim();
   const achievements = Array.isArray(d?.achievements)
     ? (d.achievements as unknown[])
@@ -389,13 +353,10 @@ function normalizeExperience(raw: any): ExperienceAssessment {
 }
 
 function normalizeSkills(raw: any): SkillsAssessment {
-  // unwrap common axios/wrapper shapes
   const d = (raw?.data?.data ?? raw?.data ?? raw) as {
     skills?: unknown;
     top?: unknown;
   };
-
-  // skills[]
   const incomingSkills = Array.isArray(d?.skills)
     ? (d.skills as unknown[])
     : [];
@@ -428,7 +389,6 @@ function normalizeSkills(raw: any): SkillsAssessment {
   }
   const skills = Array.from(skillsMap.values());
 
-  // top[] as string[]
   const topInput = Array.isArray(d?.top) ? (d.top as unknown[]) : [];
   const top: string[] = Array.from(
     new Set<string>(
@@ -441,77 +401,35 @@ function normalizeSkills(raw: any): SkillsAssessment {
   return { skills, top };
 }
 
-/* -----------------------------------------------------------------------------
-   Optimized CV service
------------------------------------------------------------------------------ */
+/* ----------------------------------------------------------------------------- */
+/* Optimized CV service                                                          */
+/* ----------------------------------------------------------------------------- */
+// lib/apiBase.ts
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
+
+const apiUrl = (path: string) =>
+  /^https?:\/\//i.test(path)
+    ? path
+    : `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
 
 class OptimizedCVService {
-  // Generic API request method
   private async apiRequest<T>(
     endpoint: string,
     method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" = "GET",
     body?: any
   ): Promise<T> {
-    // Safe JSON stringify function for logging
-    const safeStringify = (obj: any) => {
-      try {
-        return JSON.stringify(
-          obj,
-          (key, value) => {
-            if (value && typeof value === "object") {
-              // Handle all HTML elements
-              if (
-                value.constructor &&
-                value.constructor.name.startsWith("HTML")
-              ) {
-                return `[${value.constructor.name}]`;
-              }
-              // Handle SVG elements
-              if (
-                value.constructor &&
-                value.constructor.name.startsWith("SVG")
-              ) {
-                return `[${value.constructor.name}]`;
-              }
-              // Handle React Fiber nodes
-              if (value.__reactFiber$ || value.__reactInternalInstance) {
-                return "[ReactElement]";
-              }
-              // Handle circular references
-              if (value.constructor && value.constructor.name === "FiberNode") {
-                return "[FiberNode]";
-              }
-              // Handle any other DOM-like objects
-              if (value.nodeType || value.tagName || value.ownerDocument) {
-                return "[DOMElement]";
-              }
-            }
-            return value;
-          },
-          2
-        );
-      } catch (error) {
-        return "[Circular Reference Error]";
-      }
-    };
-
-    console.log(`🌐 API Request: ${method} ${endpoint}`, {
-      hasBody: !!body,
-      bodyKeys: body ? Object.keys(body) : [],
-      bodyPreview: body ? safeStringify(body).substring(0, 500) + "..." : null,
-    });
-
     const token = getTokenFromCookies();
     if (!token) {
       console.error("❌ Authentication token not found");
       throw new Error("Authentication token not found");
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-    const url = `${baseUrl}${endpoint}`;
+    const url = apiUrl(endpoint);
 
-    console.log(`🔗 Full URL: ${url}`);
-    console.log(`🚀 API Call: ${method} ${url}`);
+    console.log(`🚀 API Call: ${method} ${url}`, {
+      endpoint,
+      hasBody: !!body,
+    });
 
     const response = await fetch(url, {
       method,
@@ -519,14 +437,9 @@ class OptimizedCVService {
         "Content-Type": "application/json; charset=utf-8",
         Authorization: `Bearer ${token}`,
       },
-      body: body ? safeJsonStringify(body) : undefined,
+      body: body !== undefined ? safeJsonStringify(body) : undefined,
     });
 
-    console.log(
-      `📡 Response status: ${response.status} ${response.statusText}`
-    );
-
-    // Safer parsing: tolerate non-JSON error responses
     const raw = await response.text();
     let parsed: any = null;
     try {
@@ -535,38 +448,19 @@ class OptimizedCVService {
       parsed = { message: raw || "Non-JSON response" };
     }
 
-    console.log(`📥 Response data:`, parsed);
-
     if (!response.ok) {
-      console.error(`❌ API Error: ${response.status}`, {
-        status: response.status,
-        statusText: response.statusText,
-        parsed,
-        url: response.url,
-        method,
-        endpoint,
-      });
+      console.error(`❌ API Error ${response.status} for ${url}`, parsed);
       throw new Error(
         parsed?.message || `HTTP ${response.status}: ${response.statusText}`
       );
     }
 
-    console.log(`✅ API Success: ${method} ${endpoint}`);
     return parsed as T;
   }
 
-  // CV Operations
+  // CV CRUD
   async createCV(data: CreateCVRequest): Promise<string> {
-    console.log("🔧 createCV called with:", {
-      hasTitle: !!data.title,
-      hasSections: !!data.sections,
-      sectionsCount: data.sections?.length,
-      hasConsent: !!data.consent,
-    });
-
     const response = await this.apiRequest<CVResponse>("/api/cv", "POST", data);
-
-    console.log("✅ New CV created:", response.data.id);
     return response.data.id;
   }
 
@@ -579,25 +473,14 @@ class OptimizedCVService {
     id: string,
     data: Partial<CreateCVRequest>
   ): Promise<CVResponse["data"]> {
-    console.log("🔧 updateCV called with:", {
-      id,
-      hasTitle: !!data.title,
-      hasSections: !!data.sections,
-      sectionsCount: data.sections?.length,
-      hasConsent: !!data.consent,
-    });
-
     const response = await this.apiRequest<CVResponse>(
       `/api/cv/${id}`,
       "PATCH",
       data
     );
-
-    console.log("✅ CV updated successfully:", response.data.id);
     return response.data;
   }
 
-  // Get all CVs for authenticated user
   async getAllCVs(): Promise<CVResponse["data"][]> {
     const response = await this.apiRequest<{
       success: boolean;
@@ -610,7 +493,7 @@ class OptimizedCVService {
     await this.apiRequest(`/api/cv/${id}`, "DELETE");
   }
 
-  // Draft Operations
+  // Drafts
   async getDraft(id: string): Promise<DraftResponse["data"]> {
     const response = await this.apiRequest<DraftResponse>(
       `/api/cv/drafts/${id}`,
@@ -619,7 +502,6 @@ class OptimizedCVService {
     return response.data;
   }
 
-  // Try to find a draft by associated CV id
   async getDraftIdForCv(cvId: string): Promise<string | null> {
     try {
       const response = await this.apiRequest<{
@@ -630,16 +512,12 @@ class OptimizedCVService {
     } catch (error) {
       console.warn(
         "No existing draft found for cvId or endpoint unavailable:",
-        {
-          cvId,
-          error,
-        }
+        { cvId, error }
       );
       return null;
     }
   }
 
-  // Create draft with working data (template draft or with cvId)
   async createDraft(data: {
     cvId?: string;
     working: any[];
@@ -655,45 +533,31 @@ class OptimizedCVService {
     return response.data._id;
   }
 
-  // Create or update draft - prevents multiple drafts
   async createOrUpdateDraft(data: {
     cvId?: string;
     working: any[];
     isDirty?: boolean;
     aiSuggestions?: any;
     template?: string;
-    draftId?: string; // If provided, update existing draft
+    draftId?: string;
   }): Promise<string> {
-    console.log("🔧 createOrUpdateDraft called with:", {
-      cvId: data.cvId,
-      draftId: data.draftId,
-      hasWorking: data.working?.length,
-    });
-
     if (data.draftId) {
-      console.log("🔄 Updating existing draft:", data.draftId);
-      // Remove draftId from the request body since it's in the URL
       const { draftId, ...updateData } = data;
       const response = await this.apiRequest<DraftResponse>(
-        `/api/cv/drafts/${data.draftId}`,
+        `/api/cv/drafts/${draftId}`,
         "PATCH",
         updateData
       );
-      console.log("✅ Draft updated successfully:", response.data._id);
       return response.data._id;
     }
-
-    console.log("🆕 Creating new draft for cvId:", data.cvId);
     const response = await this.apiRequest<DraftResponse>(
       "/api/cv/drafts",
       "POST",
       data
     );
-    console.log("✅ New draft created:", response.data._id);
     return response.data._id;
   }
 
-  // Publish CV from draft
   async publishCV(draftId: string): Promise<string> {
     const response = await this.apiRequest<CVResponse>(
       `/api/cv/publish`,
@@ -703,15 +567,11 @@ class OptimizedCVService {
     return response.data.id;
   }
 
-  /*****************************************************************
- *****************************************************************
-// AI OPERATIONS
-******************************************************************
-******************************************************************/
-  // GENERATE SUMMARY
+  /* ------------------------------ AI OPERATIONS ------------------------------ */
+
   async generateSummary(
     cvId: string,
-    tone: string = "professional and concise"
+    tone = "professional and concise"
   ): Promise<AiSummary> {
     const response = await this.apiRequest<any>(
       `/api/cv/ai/summary?cvId=${encodeURIComponent(cvId)}`,
@@ -721,56 +581,89 @@ class OptimizedCVService {
     return normalizeSummary(response);
   }
 
-  // EXPERIENCE: returns normalized { description, achievements } (and legacy fields if present)
+  /**
+   * Robust experience generator: tries known endpoints until one succeeds.
+   * Many backends use different route names across versions:
+   *  - /api/cv/ai/work-entry-generate   (recommended)
+   *  - /api/cv/ai/experience
+   *  - /api/cv/ai/work-experience
+   */
   async generateExperience(
     cvId: string,
     payload: ExperienceAIRequest
   ): Promise<ExperienceAIResult> {
     if (!cvId) throw new Error("CV must be created first");
 
-    const res = await this.apiRequest<any>(
+    const endpoints = [
       `/api/cv/ai/work-entry-generate?cvId=${encodeURIComponent(cvId)}`,
-      "POST",
-      {
-        // new API expects these keys directly in the body
-        ...payload,
-      }
-    );
+      `/api/cv/ai/experience?cvId=${encodeURIComponent(cvId)}`,
+      `/api/cv/ai/work-experience?cvId=${encodeURIComponent(cvId)}`,
+    ];
 
-    if (res?.data?.ok === false) {
-      const reason =
-        res?.error?.details?.[0] ||
-        res?.data?.reason ||
-        res?.message ||
-        "AI experience generation failed";
-      throw new Error(
-        process.env.NEXT_PUBLIC_NODE_ENV === "production"
-          ? "Something went wrong"
-          : reason
-      );
+    let lastErr: any = null;
+
+    for (const ep of endpoints) {
+      try {
+        const res = await this.apiRequest<any>(ep, "POST", { ...payload });
+        if (res?.data?.ok === false) {
+          const reason =
+            res?.error?.details?.[0] ||
+            res?.data?.reason ||
+            res?.message ||
+            "AI generation failed";
+          throw new Error(reason);
+        }
+        // Prefer newest normalizer but tolerate older shapes
+        const v3 = normalizeExperienceV3(res);
+        const hasV3 =
+          (v3.description && v3.description.length > 0) ||
+          (Array.isArray(v3.achievements) && v3.achievements.length > 0);
+        if (hasV3) return v3;
+
+        const v2 = normalizeExperienceV2(res, {
+          jobTitle: payload.targetJobTitle,
+          company: payload.targetCompany,
+          preferCurrent: !payload.endDate,
+        });
+        if (
+          (v2.description && v2.description.length > 0) ||
+          (v2.achievements && v2.achievements.length > 0)
+        ) {
+          return v2;
+        }
+        // Legacy fallback
+        return normalizeExperience(res);
+      } catch (e: any) {
+        lastErr = e;
+        // If NOT_FOUND (404) or explicit "Cannot POST ..." keep trying next variant
+        const msg = (e?.message || "").toString().toLowerCase();
+        if (
+          msg.includes("cannot post") ||
+          msg.includes("not found") ||
+          msg.includes("404")
+        ) {
+          continue;
+        }
+        // any other error: stop
+        break;
+      }
     }
 
-    return normalizeExperienceV3(res);
+    throw new Error(
+      lastErr?.message ||
+        "AI experience generation failed (no compatible endpoint found). Please ensure your backend route is enabled."
+    );
   }
 
-  /**
-   * Call once if backend requires explicit AI processing consent
-   * POST /api/auth/ai/consent/accept  -> { ok: true }
-   */
+  /** Explicit AI-processing consent; returns true on { success, data: { ok: true } } */
   async acceptAIProcessing() {
-    const token = getTokenFromCookies();
-    if (!token) {
-      throw new Error("Authentication token not found");
-    }
-    const json = await this.apiRequest<{ data?: { ok?: boolean } }>(
-      `/api/auth/ai/consent/accept`,
-      "POST",
-      {}
-    );
+    const json = await this.apiRequest<{
+      success: boolean;
+      data?: { ok?: boolean };
+    }>(`/api/auth/ai/consent/accept`, "POST", {});
     return json?.data?.ok === true;
   }
 
-  // SKILLS: returns SkillsAssessment
   async generateSkills(
     cvId: string,
     level: "all" | "top-5" = "all",
@@ -822,7 +715,6 @@ class OptimizedCVService {
     const firstName = personalInfo.firstName || "User";
     const lastName = personalInfo.lastName || "Name";
     const fullName = `${firstName} ${lastName}`.trim();
-
     return { ...personalInfo, fullName };
   }
 
@@ -855,7 +747,6 @@ class OptimizedCVService {
       template,
     };
 
-    // ✅ Only attach consent if you explicitly pass it in
     if (typeof consent !== "undefined") {
       payload.consent = consent;
     }
@@ -864,6 +755,5 @@ class OptimizedCVService {
   }
 }
 
-// Export singleton instance
 export const cvService = new OptimizedCVService();
 export type { CreateCVRequest, CVResponse, CVSection, ConsentSettings };
