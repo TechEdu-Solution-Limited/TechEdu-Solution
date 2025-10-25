@@ -1,66 +1,126 @@
-import { SimplePaymentIntentRequest } from "@/types/payment";
+// /lib/api/paymentService.ts
+import { ApiResponse } from "@/types";
 import { postApiRequest, getApiRequest, putApiRequest } from "../apiFetch";
 import type {
   PaymentIntent,
   Payment,
-  CreatePaymentIntentRequest,
-  PaymentResponse,
   PaymentRefund,
-  ApiResponse,
   PaymentsResponse,
   PaymentFilters,
+  PaymentResponse,
   UpdatePaymentRequest,
-} from "@/types";
+  CreatePaymentIntentRequest,
+  SimplePaymentIntentRequest,
+  PricePreviewResponse,
+  InstallmentsPreviewResponse,
+  InstallmentsStartRequest,
+  InstallmentsStartResponse,
+  InstallmentsConfirmRequest,
+  InstallmentsConfirmResponse,
+  EarlyPayoffRequest,
+  EarlyPayoffResponse,
+  SavedPaymentMethod,
+} from "@/types/payment";
+import safeConsole from "../console";
+import { toMinor } from "../constants/currency";
 
 export class PaymentService {
-  /**
-   * Create a payment intent
-   */
+  /* -------------------------------------------------------------- *
+   * Helpers
+   * -------------------------------------------------------------- */
+
+  /** Build query string with sane defaults: skip null/undefined, "", "all"; repeat keys for arrays */
+  private static buildQuery(params?: Record<string, unknown>) {
+    if (!params) return "";
+    const qp = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v === undefined || v === null) continue;
+      if (v === "" || v === "all") continue;
+
+      if (Array.isArray(v)) {
+        if (v.length === 0) continue;
+        v.forEach((item) => qp.append(k, String(item)));
+        continue;
+      }
+      qp.append(k, String(v));
+    }
+    const s = qp.toString();
+    return s ? `?${s}` : "";
+  }
+
+  /* -------------------------------------------------------------- *
+   * Payment Intents (existing)
+   * -------------------------------------------------------------- */
+
   static async createPaymentIntent(
     data: CreatePaymentIntentRequest,
     token: string
   ): Promise<ApiResponse<PaymentResponse>> {
-    const response = await postApiRequest(`/api/payments/create-intent`, data, {
+    // NOTE: data.amount expected in MINOR units (backend/Stripe aligned)
+    return postApiRequest(`/api/payments/create-intent`, data, {
       Authorization: `Bearer ${token}`,
     });
-    return response;
   }
 
   /**
-   * Create a simplified payment intent
+   * Safer "simple" PI: caller supplies MAJOR, we convert to MINOR correctly for any currency exponent.
    */
   static async createSimplePaymentIntent(
     data: SimplePaymentIntentRequest,
-    amount: number,
+    amountMajor: number,
     currency: string,
     token: string
   ): Promise<ApiResponse<PaymentResponse>> {
-    // Filter out undefined values to avoid Stripe errors
+    // sanitize payload thoroughly
     const filteredData = Object.fromEntries(
-      Object.entries(data).filter(
-        ([_, value]) => value !== undefined && value !== ""
-      )
+      Object.entries(data).filter(([_, v]) => {
+        if (v === undefined || v === null) return false;
+        if (typeof v === "string" && v.trim() === "") return false;
+        if (Array.isArray(v) && v.length === 0) return false;
+        if (typeof v === "number" && !Number.isFinite(v)) return false;
+        return true;
+      })
     );
 
-    const payload = {
-      ...filteredData,
-      amount,
-      currency,
-    };
+    const amount = toMinor(amountMajor, currency);
+    const payload = { ...filteredData, amount, currency };
+
+    // Log summary only (no secrets / clientSecret)
+    safeConsole.log("🔍 [PaymentService] Creating Payment Intent", {
+      endpoint: "/api/payments/create-intent",
+      payload: {
+        amount,
+        currency,
+        ...((payload as any).productId && {
+          productId: (payload as any).productId,
+        }),
+        ...((payload as any).isTeam && { isTeam: (payload as any).isTeam }),
+        ...((payload as any).participantType && {
+          participantType: (payload as any).participantType,
+        }),
+        ...((payload as any).numberOfExpectedParticipants && {
+          numberOfExpectedParticipants: (payload as any)
+            .numberOfExpectedParticipants,
+        }),
+      },
+      hasToken: !!token,
+    });
 
     const response = await postApiRequest(
       `/api/payments/create-intent`,
       payload,
-      {
-        Authorization: `Bearer ${token}`,
-      }
+      { Authorization: `Bearer ${token}` }
     );
+
+    safeConsole.log("🔍 [PaymentService] Payment Intent API Response", {
+      status: response?.status,
+      hasData: !!response?.data,
+      dataKeys: response?.data ? Object.keys(response.data) : [],
+    });
+
     return response;
   }
 
-  /**
-   * Get payment intent by ID
-   */
   static async getPaymentIntent(
     paymentIntentId: string,
     token: string
@@ -68,9 +128,6 @@ export class PaymentService {
     return getApiRequest(`/api/payments/intent/${paymentIntentId}`, token);
   }
 
-  /**
-   * Confirm payment intent
-   */
   static async confirmPaymentIntent(
     paymentIntentId: string,
     token: string
@@ -82,9 +139,6 @@ export class PaymentService {
     );
   }
 
-  /**
-   * Cancel payment intent
-   */
   static async cancelPaymentIntent(
     paymentIntentId: string,
     token: string
@@ -96,9 +150,6 @@ export class PaymentService {
     );
   }
 
-  /**
-   * Get payment by ID
-   */
   static async getPayment(
     paymentId: string,
     token: string
@@ -106,34 +157,14 @@ export class PaymentService {
     return getApiRequest(`/api/payments/${paymentId}`, token);
   }
 
-  /**
-   * Get user's payment history with filters
-   */
   static async getUserPayments(
     token: string,
     filters?: PaymentFilters
   ): Promise<ApiResponse<PaymentsResponse>> {
-    const queryParams = new URLSearchParams();
-
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== "") {
-          queryParams.append(key, value.toString());
-        }
-      });
-    }
-
-    const queryString = queryParams.toString();
-    const url = queryString
-      ? `/api/payments/my-payments?${queryString}`
-      : `/api/payments/my-payments`;
-
-    return getApiRequest(url, token);
+    const query = this.buildQuery(filters as any);
+    return getApiRequest(`/api/payments/my-payments${query}`, token);
   }
 
-  /**
-   * Update payment status
-   */
   static async updatePayment(
     paymentId: string,
     data: UpdatePaymentRequest,
@@ -142,9 +173,6 @@ export class PaymentService {
     return putApiRequest(`/api/payments/${paymentId}`, data, token);
   }
 
-  /**
-   * Get payment statistics
-   */
   static async getPaymentStats(
     token: string,
     params?: {
@@ -163,37 +191,19 @@ export class PaymentService {
       currency: string;
     }>
   > {
-    const queryParams = new URLSearchParams();
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value) queryParams.append(key, value);
-      });
-    }
-    const queryString = queryParams.toString();
-    const url = queryString
-      ? `/api/payments/stats?${queryString}`
-      : `/api/payments/stats`;
-    return getApiRequest(url, token);
+    const query = this.buildQuery(params);
+    return getApiRequest(`/api/payments/stats${query}`, token);
   }
 
-  /**
-   * Process webhook
-   */
   static async processWebhook(
     webhookData: any
   ): Promise<ApiResponse<{ message: string }>> {
     return postApiRequest(`/api/payments/webhook`, webhookData);
   }
 
-  /**
-   * Create refund
-   */
   static async createRefund(
     paymentId: string,
-    data: {
-      amount: number;
-      reason: string;
-    },
+    data: { amount: number; reason: string },
     token: string
   ): Promise<ApiResponse<PaymentRefund>> {
     return postApiRequest(`/api/payments/${paymentId}/refund`, data, {
@@ -201,9 +211,6 @@ export class PaymentService {
     });
   }
 
-  /**
-   * Get refund by ID
-   */
   static async getRefund(
     refundId: string,
     token: string
@@ -211,9 +218,6 @@ export class PaymentService {
     return getApiRequest(`/api/payments/refunds/${refundId}`, token);
   }
 
-  /**
-   * Get payment refunds
-   */
   static async getPaymentRefunds(
     paymentId: string,
     token: string
@@ -221,26 +225,17 @@ export class PaymentService {
     return getApiRequest(`/api/payments/${paymentId}/refunds`, token);
   }
 
-  /**
-   * Get payment methods
-   */
   static async getPaymentMethods(token: string): Promise<
     ApiResponse<{
-      paymentMethods: any[];
-      defaultMethod?: any;
+      paymentMethods: SavedPaymentMethod[];
+      defaultMethod?: SavedPaymentMethod;
     }>
   > {
     return getApiRequest(`/api/payments/payment-methods`, token);
   }
 
-  /**
-   * Add payment method
-   */
   static async addPaymentMethod(
-    data: {
-      paymentMethodId: string;
-      isDefault?: boolean;
-    },
+    data: { paymentMethodId: string; isDefault?: boolean },
     token: string
   ): Promise<ApiResponse<{ message: string }>> {
     return postApiRequest(`/api/payments/payment-methods`, data, {
@@ -248,9 +243,6 @@ export class PaymentService {
     });
   }
 
-  /**
-   * Remove payment method
-   */
   static async removePaymentMethod(
     paymentMethodId: string,
     token: string
@@ -262,9 +254,6 @@ export class PaymentService {
     );
   }
 
-  /**
-   * Set default payment method
-   */
   static async setDefaultPaymentMethod(
     paymentMethodId: string,
     token: string
@@ -276,9 +265,6 @@ export class PaymentService {
     );
   }
 
-  /**
-   * Get payment analytics
-   */
   static async getPaymentAnalytics(
     token: string,
     params?: {
@@ -299,22 +285,10 @@ export class PaymentService {
       topProducts: any[];
     }>
   > {
-    const queryParams = new URLSearchParams();
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value) queryParams.append(key, value);
-      });
-    }
-    const queryString = queryParams.toString();
-    const url = queryString
-      ? `/api/payments/analytics?${queryString}`
-      : `/api/payments/analytics`;
-    return getApiRequest(url, token);
+    const query = this.buildQuery(params);
+    return getApiRequest(`/api/payments/analytics${query}`, token);
   }
 
-  /**
-   * Export payments
-   */
   static async exportPayments(
     token: string,
     params?: {
@@ -325,16 +299,73 @@ export class PaymentService {
       format?: "csv" | "excel";
     }
   ): Promise<ApiResponse<{ downloadUrl: string }>> {
-    const queryParams = new URLSearchParams();
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value) queryParams.append(key, value);
-      });
+    const query = this.buildQuery(params);
+    return getApiRequest(`/api/payments/export${query}`, token);
+  }
+
+  /* -------------------------------------------------------------- *
+   * NEW: Pricing previews
+   * -------------------------------------------------------------- */
+
+  static async getPricePreview(
+    productId: string,
+    quantity: number,
+    token?: string
+  ): Promise<ApiResponse<PricePreviewResponse>> {
+    const query = this.buildQuery({ quantity });
+    return getApiRequest(
+      `/api/products/${productId}/price-preview${query}`,
+      token
+    );
+  }
+
+  static async getInstallmentsPreview(
+    productId: string,
+    quantity: number,
+    token?: string,
+    planOverrides?: {
+      count?: number;
+      interval?: "day" | "week" | "month" | "year";
+      intervalCount?: number;
+      downPaymentType?: "percent" | "amount";
+      downPaymentValue?: number;
     }
-    const queryString = queryParams.toString();
-    const url = queryString
-      ? `/api/payments/export?${queryString}`
-      : `/api/payments/export`;
-    return getApiRequest(url, token);
+  ): Promise<ApiResponse<InstallmentsPreviewResponse>> {
+    const query = this.buildQuery({ quantity, ...planOverrides });
+    return getApiRequest(
+      `/api/products/${productId}/installments-preview${query}`,
+      token
+    );
+  }
+
+  /* -------------------------------------------------------------- *
+   * NEW: Installments lifecycle (Stripe SetupIntent + Schedule)
+   * -------------------------------------------------------------- */
+
+  static async startInstallmentsSetup(
+    payload: InstallmentsStartRequest,
+    token: string
+  ): Promise<ApiResponse<InstallmentsStartResponse>> {
+    return postApiRequest(`/api/billing/installments/start`, payload, {
+      Authorization: `Bearer ${token}`,
+    });
+  }
+
+  static async confirmInstallments(
+    payload: InstallmentsConfirmRequest,
+    token: string
+  ): Promise<ApiResponse<InstallmentsConfirmResponse>> {
+    return postApiRequest(`/api/billing/installments/confirm`, payload, {
+      Authorization: `Bearer ${token}`,
+    });
+  }
+
+  static async earlyPayoff(
+    payload: EarlyPayoffRequest,
+    token: string
+  ): Promise<ApiResponse<EarlyPayoffResponse>> {
+    return postApiRequest(`/api/billing/installments/early-payoff`, payload, {
+      Authorization: `Bearer ${token}`,
+    });
   }
 }

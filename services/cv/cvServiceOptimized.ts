@@ -713,17 +713,24 @@ class OptimizedCVService {
     prompt?: string,
     context?: { targetRole: string; industry: string | undefined }
   ): Promise<SkillsAssessment> {
-    const body: any = { level };
+    // ✅ include cvId in the body (and snake_case for legacy handlers)
+    const body: any = {
+      cvId,
+      cv_id: cvId,
+      level,
+    };
     if (prompt) body.prompt = prompt;
     if (context) body.context = context;
 
     const res = await this.apiRequest<any>(
+      // keep query param for existing route variants
       `/api/cv/ai/skills?cvId=${encodeURIComponent(cvId)}`,
       "POST",
       body
     );
     return normalizeSkills(res);
   }
+
 
   async generateProjects(
     cvId: string,

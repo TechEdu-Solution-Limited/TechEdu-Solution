@@ -48,4 +48,39 @@ export interface CartItem {
     bookingData?: any;
     bookingId: string;
   };
+
+  pricing?: {
+    model: "one_time" | "subscription"; // add other variants later if you introduce them
+    currency?: string;
+    allowQuantity?: boolean;
+    taxInclusive?: boolean;
+    basePrice?: number; // major units
+    tierType?: "none" | "volume" | "graduated";
+    minQty?: number;
+    maxQty?: number;
+    installments?: {
+      enabled: boolean;
+      interval?: "day" | "week" | "month" | "year";
+      intervalCount?: number;
+      downPaymentType?: "none" | "percent" | "amount";
+      downPaymentValue?: number;
+      count?: number; // number of installments
+      allowEarlyPayoff?: boolean;
+    };
+    autoRenew?: boolean;
+  };
 }
+
+/* ---------------------------- Types ----------------------------- */
+export type PricePreview = {
+  ok?: boolean;
+  currency: string;
+  quantity: number;
+  subtotal: number;
+  vat: number;
+  total: number;
+  unitPrice?: number;
+  model?: string; // "per_unit" | "subscription" | ...
+  tierType?: string;
+};
+export type BillingChoice = "pay_in_full" | "installments" | "subscription";

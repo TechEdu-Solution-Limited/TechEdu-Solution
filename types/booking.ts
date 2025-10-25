@@ -1,3 +1,5 @@
+import { Currency, Pricing } from "@/lib/constants/pricing";
+
 export interface Booking {
   _id: string;
   userId: string;
@@ -145,8 +147,10 @@ export interface UserBooking {
 
   // New fields from updated API response structure
   productName?: string;
-  productPrice?: number;
-  productCurrency?: string;
+  pricing?: Partial<Pricing> | null;
+  productPrice?: number; // you already set this in mapping
+  productCurrency?: Currency; // you already set this in mapping
+  discountPercentage?: number;
   instructorName?: string;
   instructorEmail?: string;
   scheduleAt?: string; // Legacy field - use scheduledStart instead

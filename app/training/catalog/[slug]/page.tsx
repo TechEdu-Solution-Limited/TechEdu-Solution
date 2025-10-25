@@ -7,6 +7,12 @@ import { useCart } from "@/contexts/CartContext";
 import { CartItem } from "@/types/cart";
 import { Product } from "@/types/product";
 import { useParams, notFound } from "next/navigation";
+import type { Currency, Pricing } from "@/lib/constants/pricing";
+import {
+  getPrimaryPrice,
+  getDiscountedPriceLabel,
+  formatMoneySafe,
+} from "@/utils/pricingDisplay";
 
 import { safeConsole } from "@/lib/console";
 
@@ -57,6 +63,19 @@ export default function ProductPage() {
     );
   if (!product) return notFound();
 
+  const priceFromPricing = product.pricing
+    ? getPrimaryPrice({ pricing: product.pricing })
+    : undefined;
+
+  const cartCurrency = (product.pricing?.currency ||
+    product.currency ||
+    "USD") as Currency;
+
+  const cartPrice =
+    typeof priceFromPricing === "number"
+      ? priceFromPricing
+      : Number(product.price ?? 0); // ensure numeric
+
   const handleEnroll = () => {
     // Check if product requires booking
     const requiresBooking =
@@ -67,8 +86,8 @@ export default function ProductPage() {
       id: product._id,
       title: product.service,
       description: product.description || "",
-      price: product.price,
-      currency: product.currency,
+      price: cartPrice, // ✅ safe numeric
+      currency: cartCurrency, // ✅ from pricing or fallback
       discountPercentage: product.discountPercentage || 0,
       category:
         product.productCategoryTitle || product.category || "Uncategorized",
@@ -233,29 +252,45 @@ export default function ProductPage() {
           </div>
 
           <div className="flex items-center gap-4 mb-4">
-            <div className="flex items-baseline gap-2">
+            {product.pricing ? (
+              // Structured pricing label (e.g., “£79.99 per session”, “£29.00 / 1 month”)
               <span className="text-2xl font-bold text-blue-900">
-                {new Intl.NumberFormat("en-US", {
-                  style: "currency",
-                  currency: product.currency || "USD",
-                }).format(
-                  product.price -
-                    (product.price * (product.discountPercentage ?? 0)) / 100
-                )}
+                {getDiscountedPriceLabel({
+                  pricing: product.pricing as Partial<Pricing>,
+                  discountPercentage: product.discountPercentage ?? 0,
+                })}
               </span>
-              {product.discountPercentage && product.discountPercentage > 0 && (
-                <span className="text-green-600 font-semibold text-lg">
-                  -{product.discountPercentage}%
-                </span>
-              )}
-            </div>
-            {product.discountPercentage && product.discountPercentage > 0 && (
-              <span className="text-lg text-gray-500 line-through">
-                {new Intl.NumberFormat("en-US", {
-                  style: "currency",
-                  currency: product.currency || "USD",
-                }).format(product.price)}
-              </span>
+            ) : (
+              // Legacy/fallback: number + currency with optional discount
+              (() => {
+                const cur = (product.currency || "USD") as Currency;
+                const raw = Number(product.price ?? 0); // make sure it’s numeric
+                const pct = Math.max(
+                  0,
+                  Number(product.discountPercentage || 0)
+                );
+                if (pct > 0) {
+                  const discounted = raw * (1 - pct / 100);
+                  return (
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl font-bold text-blue-900">
+                        {formatMoneySafe(discounted, cur)}
+                      </span>
+                      <span className="text-green-600 font-semibold text-lg">
+                        -{pct}%
+                      </span>
+                      <span className="text-lg text-gray-500 line-through">
+                        {formatMoneySafe(raw, cur)}
+                      </span>
+                    </div>
+                  );
+                }
+                return (
+                  <span className="text-2xl font-bold text-blue-900">
+                    {formatMoneySafe(raw, cur)}
+                  </span>
+                );
+              })()
             )}
           </div>
 

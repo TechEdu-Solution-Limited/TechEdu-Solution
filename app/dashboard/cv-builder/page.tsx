@@ -3,7 +3,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Upload, Sparkles, Download, Eye } from "lucide-react";
+import { FileText, Upload, Sparkles, Download, Eye, Loader2, Star } from "lucide-react";
 import Link from "next/link";
 import CVBuilderMain from "@/components/cv/builder/CVBuilderMain";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -16,6 +16,14 @@ import { getTokenFromCookies } from "@/lib/cookies";
 import { cvService } from "@/services/cv/cvServiceOptimized";
 import type { CVRatingResult } from "@/services/cv/cvServiceOptimized";
 import RatingModal from "@/components/cv/builder/modals/CVReatingModal";
+import { useEntitlements } from "@/hooks/useEntitlements";
+import SubscriptionModal from "@/components/cv/SubscriptionModal";
+// Remove the import since we'll use the existing one
+import CVUploadModal from "@/components/cv/CVUploadModal";
+import ProAccessModal from "@/components/cv/ProAccessModal";
+import { useRole } from "@/contexts/RoleContext";
+import { PaymentService } from "@/lib/api/paymentService";
+import { toast } from "react-toastify";
 
 // ---- Config ----
 type UploadStatus = "idle" | "uploading" | "success" | "error";
@@ -79,6 +87,24 @@ export default function ResumeBuilder() {
   const [ratingError, setRatingError] = useState<string | null>(null);
   const [ratingData, setRatingData] = useState<CVRatingResult | null>(null);
   const [redactForRating, setRedactForRating] = useState(false);
+
+  // New CV rating modals
+  const [showCVUploadModal, setShowCVUploadModal] = useState(false);
+  const [showCVRatingModal, setShowCVRatingModal] = useState(false);
+  const [showProAccessModal, setShowProAccessModal] = useState(false);
+  const [cvRatingLoading, setCvRatingLoading] = useState(false);
+  const [cvRatingResult, setCvRatingResult] = useState<CVRatingResult | null>(null);
+
+  // Role and authentication
+  const { isAuthenticated, userData } = useRole();
+
+  // Entitlement check
+  const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
+  const { hasAccess, loading: entitlementLoading, error: entitlementError } = useEntitlements({
+    subjectKey: 'cv_review',
+    subjectType: 'tool',
+    enabled: true,
+  });
 
   // Accept enhanced or basic storage hook
   const storage = useFirebaseStorage({
@@ -254,6 +280,154 @@ export default function ResumeBuilder() {
     } finally {
       setRatingBusy(false);
     }
+  }
+
+  // New CV rating functions
+  const handleFreeCVRating = () => {
+    if (!isAuthenticated) {
+      toast.error("Please log in to use the CV rating feature");
+      return;
+    }
+    setShowCVUploadModal(true);
+  };
+
+  const handleCVUpload = async (file: File) => {
+    setCvRatingLoading(true);
+    try {
+      // Upload file to Firebase storage first
+      const downloadURL = await uploadFile(file);
+      
+      // Rate the CV using the existing service
+      const result = await cvService.rateFromUrl(downloadURL, false);
+      setCvRatingResult(result);
+      setShowCVUploadModal(false);
+      setShowCVRatingModal(true);
+    } catch (error: any) {
+      safeConsole.error("CV rating failed:", error);
+      toast.error(error?.message || "Failed to analyze CV");
+    } finally {
+      setCvRatingLoading(false);
+    }
+  };
+
+  const handleProAccessSubscribe = async (plan: 'monthly' | 'one-time') => {
+    if (!isAuthenticated) {
+      toast.error("Please log in to subscribe");
+      return;
+    }
+
+    try {
+      const token = getTokenFromCookies();
+      if (!token) throw new Error("Authentication required");
+
+      // Create payment intent for Pro Access subscription
+      const productId = plan === 'monthly' ? 'pro-access-monthly' : 'pro-access-lifetime';
+      const amount = plan === 'monthly' ? 2999 : 29999; // £29.99 or £299.99 in minor units
+      
+      const response = await PaymentService.createSimplePaymentIntent(
+        {
+          productId,
+          isTeam: false,
+          participantType: 'individual',
+          numberOfExpectedParticipants: 1,
+          userNotes: '',
+        },
+        amount,
+        'gbp',
+        token
+      );
+
+      const paymentResponse = response?.data;
+      const clientSecret = paymentResponse?.data?.clientSecret;
+      if (clientSecret) {
+        // Redirect to payment form or handle payment
+        toast.success("Redirecting to payment...");
+        // You can implement payment handling here
+      } else {
+        throw new Error("Failed to create payment intent");
+      }
+    } catch (error: any) {
+      safeConsole.error("Subscription failed:", error);
+      toast.error(error?.message || "Failed to start subscription");
+    }
+  };
+
+  // Show loading state while checking entitlements
+  if (entitlementLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            Checking Access...
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300">
+            Verifying your CV review tool access
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if entitlement check failed
+  if (entitlementError) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            Access Check Failed
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-4">
+            {entitlementError}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show subscription modal if user doesn't have access
+  if (hasAccess === false) {
+    return (
+      <>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+          <div className="text-center max-w-md">
+            <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              Subscription Required
+            </h2>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
+              You need a subscription to access the CV Review tool.
+            </p>
+            <button
+              onClick={() => setSubscriptionModalOpen(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              View Subscription Options
+            </button>
+          </div>
+        </div>
+        <SubscriptionModal
+          isOpen={subscriptionModalOpen}
+          onClose={() => setSubscriptionModalOpen(false)}
+          featureName="CV Review Tool"
+        />
+      </>
+    );
   }
 
   // If user has chosen to start building, show the CVBuilderMain (kept for parity)
@@ -436,6 +610,21 @@ export default function ResumeBuilder() {
                       />
                       Redact personal info before analysis
                     </label>
+
+                    {/* Free CV Rating Button */}
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <button
+                        onClick={handleFreeCVRating}
+                        className="w-full px-4 py-2 bg-green-600 text-white rounded-[10px] hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                        title="Get a free CV analysis without uploading to your account"
+                      >
+                        <Star className="w-4 h-4" />
+                        Rate CV for Free
+                      </button>
+                      <p className="text-xs text-gray-500 text-center mt-2">
+                        Get instant analysis without saving to your account
+                      </p>
+                    </div>
 
                     {ratingError && (
                       <p className="text-center text-sm text-red-600">
@@ -668,6 +857,40 @@ export default function ResumeBuilder() {
           </div>
         </div>
       )}
+
+      {/* Subscription Modal */}
+      <SubscriptionModal
+        isOpen={subscriptionModalOpen}
+        onClose={() => setSubscriptionModalOpen(false)}
+        featureName="CV Review Tool"
+      />
+
+      {/* CV Upload Modal for Free Rating */}
+      <CVUploadModal
+        isOpen={showCVUploadModal}
+        onClose={() => setShowCVUploadModal(false)}
+        onUpload={handleCVUpload}
+        loading={cvRatingLoading}
+      />
+
+      {/* CV Rating Results Modal */}
+      <RatingModal
+        open={showCVRatingModal}
+        data={cvRatingResult}
+        onClose={() => setShowCVRatingModal(false)}
+        onStartEditing={() => {
+          setShowCVRatingModal(false);
+          setShowProAccessModal(true);
+        }}
+      />
+
+      {/* Pro Access Subscription Modal */}
+      <ProAccessModal
+        isOpen={showProAccessModal}
+        onClose={() => setShowProAccessModal(false)}
+        onSubscribe={handleProAccessSubscribe}
+        loading={false}
+      />
     </div>
   );
 }

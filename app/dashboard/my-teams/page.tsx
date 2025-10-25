@@ -116,7 +116,7 @@ export default function MyTeamsPage() {
       }
     } catch (error: any) {
       console.error("Error fetching teams:", error);
-      toast.error(error.message || "Failed to load teams");
+      // toast.error(error.message || "Failed to load teams");
     } finally {
       setLoading(false);
     }
@@ -145,7 +145,7 @@ export default function MyTeamsPage() {
       }
     } catch (error: any) {
       console.error("Error fetching team members:", error);
-      toast.error(error.message || "Failed to load team members");
+      // toast.error(error.message || "Failed to load team members");
     } finally {
       setMembersLoading(null);
     }
@@ -176,7 +176,7 @@ export default function MyTeamsPage() {
       }
     } catch (error: any) {
       console.error("Error leaving team:", error);
-      toast.error(error.message || "Failed to leave team");
+      // toast.error(error.message || "Failed to leave team");
     } finally {
       setLeaveLoading(null);
     }
@@ -390,7 +390,7 @@ export default function MyTeamsPage() {
 
       {/* Team Members Modal */}
       <Dialog open={showMembersModal} onOpenChange={setShowMembersModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-white">
           <DialogHeader>
             <DialogTitle className="text-2xl">
               {selectedTeamMembers?.teamName} - Team Members

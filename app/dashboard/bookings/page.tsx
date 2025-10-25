@@ -46,6 +46,12 @@ import {
   getDurationText,
   getPrimaryDateTime,
 } from "@/utils/helpers";
+import type { Currency, Pricing } from "@/lib/constants/pricing";
+import {
+  formatMoneySafe,
+  getDiscountedPriceLabel,
+  getPrimaryPrice,
+} from "@/utils/pricingDisplay";
 
 export default function UserBookingsPage() {
   const { userData } = useRole();
@@ -78,8 +84,8 @@ export default function UserBookingsPage() {
         return;
       }
 
-      // Determine the correct endpoint based on user role
-      let endpoint = "/api/bookings/user/my-bookings"; // fallback
+      // Choose endpoint by role
+      let endpoint = "/api/bookings/user/my-bookings";
       if (userData?.role === "student") {
         endpoint = "/api/bookings/student/my-bookings";
       } else if (userData?.role === "individualTechProfessional") {
@@ -91,74 +97,75 @@ export default function UserBookingsPage() {
       }
 
       const response = await getApiRequest(endpoint, token);
+
       if (response?.data?.success) {
         const bookingsData = response.data.data || [];
+        console.log("Raw bookings data:", bookingsData);
 
-        // Process each booking to handle data structure inconsistencies
-        const processedBookings = bookingsData.map((booking: any) => {
-          // Handle attachments - convert string to array if needed
-          if (booking.attachments && typeof booking.attachments === "string") {
-            booking.attachments = [booking.attachments];
-          }
+        const processedBookings = bookingsData.map((raw: any) => {
+          // Normalize attachments
+          const attachments: string[] = Array.isArray(raw.attachments)
+            ? raw.attachments
+            : raw.attachments
+            ? [raw.attachments]
+            : [];
 
-          // Handle new API structure with productId and instructorId objects
-          const processedBooking = {
-            ...booking,
-            // Extract product information from productId object
+          // Prefer pricing from productId; fallback to booking-level
+          const pricing: Partial<Pricing> | null =
+            raw.productId?.pricing ?? raw.pricing ?? null;
+
+          // Derive numeric price from structured pricing (covers one_time, subscription, per_unit)
+          const priceFromPricing = pricing
+            ? getPrimaryPrice({ pricing })
+            : undefined;
+
+          // Currency preference
+          const currencyFromPricing: Currency =
+            (pricing?.currency as Currency) ??
+            (raw.productId?.currency as Currency) ??
+            (raw.productCurrency as Currency) ??
+            ("gbp" as Currency);
+
+          return {
+            ...raw,
+
+            // Human-facing fields
             productName:
-              booking.productId?.service ||
-              booking.productName ||
-              "Unknown Service",
-            productPrice: booking.productId?.price || booking.productPrice || 0,
-            productCurrency:
-              booking.productId?.currency || booking.productCurrency || "USD",
+              raw.productId?.service ?? raw.productName ?? "Unknown Service",
 
-            // Extract instructor information from instructorId object
             instructorName:
-              booking.instructorId?.fullName ||
-              booking.instructorName ||
+              raw.instructorId?.fullName ??
+              raw.instructorName ??
               "Unknown Instructor",
             instructorEmail:
-              booking.instructorId?.email ||
-              booking.instructorEmail ||
-              "Unknown",
+              raw.instructorId?.email ?? raw.instructorEmail ?? "Unknown",
 
-            // Handle participant information
-            fullName:
-              booking.fullName ||
-              booking.bookingSchedulerFullName ||
-              booking.createdBy?.fullName ||
-              "Unknown",
-            email:
-              booking.email ||
-              booking.bookingSchedulerEmail ||
-              booking.createdBy?.email ||
-              "Unknown",
-            platformRole:
-              booking.platformRole ||
-              booking.bookingSchedulerPlatformRole ||
-              "Unknown",
+            // Schedule normalization
+            scheduleAt: raw.scheduleAt ?? raw.scheduledAt ?? raw.startTime,
+            endAt: raw.endAt ?? raw.endTime,
 
-            // Handle scheduling information
-            scheduleAt:
-              booking.scheduleAt || booking.scheduledAt || booking.startTime,
-            endAt: booking.endAt || booking.endTime,
+            // Arrays normalization
+            participants: Array.isArray(raw.participants)
+              ? raw.participants
+              : [],
+            actualDaysAndTime: Array.isArray(raw.actualDaysAndTime)
+              ? raw.actualDaysAndTime
+              : [],
+            attachments,
 
-            // Ensure arrays are properly handled
-            participants: Array.isArray(booking.participants)
-              ? booking.participants
-              : [],
-            actualDaysAndTime: Array.isArray(booking.actualDaysAndTime)
-              ? booking.actualDaysAndTime
-              : [],
-            attachments: Array.isArray(booking.attachments)
-              ? booking.attachments
-              : [],
-            // Handle schedulingMeta
-            schedulingMeta: booking.schedulingMeta || null,
+            // Pricing surface for UI
+            pricing,
+            productPrice:
+              (typeof priceFromPricing === "number"
+                ? priceFromPricing
+                : undefined) ??
+              raw.productId?.price ??
+              raw.productPrice ??
+              0,
+            productCurrency: currencyFromPricing,
+            discountPercentage:
+              raw.productId?.discountPercentage ?? raw.discountPercentage ?? 0,
           };
-
-          return processedBooking;
         });
 
         setBookings(processedBookings);
@@ -361,20 +368,7 @@ export default function UserBookingsPage() {
           <div className="flex flex-col lg:flex-row gap-3">
             <Button
               onClick={() => {
-                // if (isStudent) {
-                //   router.push("/academic-services");
-                // } else if (
-                //   userData?.role === "individualTechProfessional" ||
-                //   userData?.role === "teamTechProfessional"
-                // ) {
-                //   router.push("/training/catalog");
-                // } else if (userData?.role === "institution") {
-                //   // For institutions, show options or route to corporate consultancy
-                //   router.push("/corporate-consultancy");
-                // } else {
-                // Default fallback
                 router.push("/pricing");
-                // }
               }}
               disabled={loading}
               className="group relative px-6 py-3 bg-gradient-to-r from-sky-400 to-blue-600 text-white font-semibold rounded-2xl hover:from-sky-500 hover:to-blue-900 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
@@ -413,31 +407,6 @@ export default function UserBookingsPage() {
                 Refresh
               </span>
             </Button>
-            {/* <div className="flex flex-col lg:flex-row gap-3"> */}
-            {/* Show Academic Service button only for students */}
-            {/* {isStudent && (
-                <Link href="/dashboard/bookings/academic/new">
-                  <Button className="group relative px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 w-full">
-                    <span className="flex items-center gap-2">
-                      <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
-                      Book Academic Service
-                    </span>
-                  </Button>
-                </Link>
-              )} */}
-
-            {/* Show Training Program button only for tech professionals */}
-            {/* {isTechProfessional && (
-                <Link href="/dashboard/bookings/training/new">
-                  <Button className="group relative px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-2xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 w-full">
-                    <span className="flex items-center gap-2">
-                      <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
-                      Book Training Program
-                    </span>
-                  </Button>
-                </Link>
-              )} */}
-            {/* </div> */}
           </div>
         </div>
 
@@ -838,9 +807,40 @@ export default function UserBookingsPage() {
                     </span>
                   </div>
 
-                  {booking.productPrice && (
-                    <div className="font-semibold text-green-600">
-                      {booking.productPrice} {booking.productCurrency}
+                  {(booking.pricing ||
+                    typeof booking.productPrice === "number") && (
+                    <div className="font-semibold text-green-700">
+                      {booking.pricing
+                        ? getDiscountedPriceLabel({
+                            pricing: booking.pricing as Partial<Pricing>,
+                            discountPercentage: booking.discountPercentage ?? 0,
+                          })
+                        : (() => {
+                            const cur = (booking.productCurrency ||
+                              "gbp") as Currency;
+                            const price = Number(booking.productPrice || 0);
+                            const pct = Math.max(
+                              0,
+                              Number(booking.discountPercentage || 0)
+                            );
+                            if (pct > 0) {
+                              const discounted = price * (1 - pct / 100);
+                              return (
+                                <span className="flex items-baseline gap-2">
+                                  <span>
+                                    {formatMoneySafe(discounted, cur)}
+                                  </span>
+                                  <span className="text-sm text-slate-500 line-through">
+                                    {formatMoneySafe(price, cur)}
+                                  </span>
+                                  <span className="text-xs text-green-600">
+                                    (-{pct}%)
+                                  </span>
+                                </span>
+                              );
+                            }
+                            return formatMoneySafe(price, cur);
+                          })()}
                     </div>
                   )}
 
@@ -869,41 +869,6 @@ export default function UserBookingsPage() {
                         </div>
                       </div>
                     )}
-
-                  {/* Meeting and Scheduling Links */}
-                  {/* {(booking.meetingLink || booking.calendlyUrl || booking.bookingUrl) && (
-                    <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-[10px]">
-                      <p className="font-medium mb-2">Links:</p>
-                      <div className="space-y-2">
-                        {booking.meetingLink && (
-                          <div className="flex items-center gap-2">
-                            <Video className="w-4 h-4 text-blue-600" />
-                            <Link
-                              href={booking.meetingLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 underline text-xs"
-                            >
-                              Join Meeting
-                            </Link>
-                          </div>
-                        )}
-                        {booking.calendlyUrl && (
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-green-600" />
-                            <Link
-                              href={booking.calendlyUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-green-600 hover:text-green-800 underline text-xs"
-                            >
-                              Reschedule
-                            </Link>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )} */}
 
                   {booking.bookingUrl &&
                     booking.status !== "cancelled" &&
@@ -952,32 +917,7 @@ export default function UserBookingsPage() {
                         View
                       </Button>
                     </Link>
-                    {/* {canEditBooking(booking) ? (
-                      <Link href={`/dashboard/bookings/${booking._id}/edit`}>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-[5px]"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                      </Link>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled
-                        className="text-gray-400 cursor-not-allowed rounded-[5px]"
-                        title={
-                          booking.status === "cancelled" ||
-                          booking.status === "completed"
-                            ? "Cannot edit cancelled or completed bookings"
-                            : "Cannot edit confirmed bookings within 24 hours of session"
-                        }
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                    )} */}
+
                     {canCancelBooking(booking) ? (
                       <Button
                         size="sm"

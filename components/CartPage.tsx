@@ -29,6 +29,7 @@ import {
   registerUser,
   loginUser,
   apiRequest,
+  getApiRequest, // ← needed for team fetch
 } from "@/lib/apiFetch";
 import { Input } from "@/components/ui/input";
 import {
@@ -41,6 +42,7 @@ import {
 import StripePaymentForm from "@/components/StripePaymentForm";
 import { PaymentService } from "@/lib/api/paymentService";
 import type { SimplePaymentIntentRequest } from "@/types/payment";
+import type { InstallmentsPreviewResponse } from "@/types/payment";
 import { safeConsole } from "@/lib/console";
 import {
   individualTechProfessionalServices,
@@ -49,8 +51,9 @@ import {
   studentServices,
   teamTechProfessionalServices,
 } from "@/lib/constants/productTypes";
+import { BillingChoice, CartItem, PricePreview } from "@/types/cart";
 
-// ---------- Currency helpers (minor/major) ----------
+/* ----------------------- Currency helpers ----------------------- */
 const ZERO_DECIMAL = new Set([
   "BIF",
   "CLP",
@@ -72,52 +75,26 @@ const ZERO_DECIMAL = new Set([
 const toMinor = (amountMajor: number, currency: string) =>
   ZERO_DECIMAL.has((currency || "USD").toUpperCase())
     ? Math.round(amountMajor)
-    : Math.round(amountMajor * 100);
-
-// ---------- Types ----------
-type CartItem = {
-  id: string;
-  title: string;
-  description?: string;
-  image: string;
-  category?: string;
-  level?: string;
-  duration?: string;
-  certificate?: boolean;
-  price: number; // MAJOR units for UI (e.g., 19.99)
-  currency: string; // e.g., "USD"
-  productType: string;
-  requiresBooking?: boolean;
-  isAttachmentRequired?: boolean;
-  hasClassroom?: boolean;
-  hasSession?: boolean;
-  minutesPerSession?: number;
-  durationInMinutes?: number;
-  instructorId?: string;
-  bookingDetails?: {
-    bookingId?: string;
-    numberOfParticipants?: number;
-  };
-};
-
-// if your PaymentService returns these optionally, use a flexible type
-type CreatePIData = {
-  clientSecret: string;
-  bookingId?: string;
-  amount?: number; // MINOR units if provided by backend
-  currency?: string;
-};
-type CreatePIResponse = {
-  data?: {
-    success?: boolean;
-    data?: CreatePIData;
-    message?: string;
-  };
-};
+    : Math.round(amountMajor);
 
 export default function CartPage() {
-  const { cartItems, removeFromCart, clearCart, cartCount, updateCartItem } =
-    useCart();
+  const { cartItems, removeFromCart, clearCart, cartCount } = useCart();
+
+  const [pricePreviewById, setPricePreviewById] = useState<
+    Record<string, PricePreview>
+  >({});
+  const [paymentModeById, setPaymentModeById] = useState<
+    Record<string, BillingChoice>
+  >({});
+
+  // store the whole InstallmentsPreviewResponse (not only ["data"])
+  const [installmentsPreviewById, setInstallmentsPreviewById] = useState<
+    Record<string, InstallmentsPreviewResponse | null>
+  >({});
+
+  const [isFetchingInstallmentsById, setIsFetchingInstallmentsById] = useState<
+    Record<string, boolean>
+  >({});
 
   const {
     isAuthenticated,
@@ -140,14 +117,14 @@ export default function CartPage() {
   const success = searchParams.get("success");
   const canceled = searchParams.get("canceled");
 
-  // ---------- Inline auth state ----------
+  // auth UI
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [authError, setAuthError] = useState("");
   const [isLoginMode, setIsLoginMode] = useState(false);
 
-  // ---------- Payment state ----------
+  // payment modal state
   const [selectedCheckoutItemId, setSelectedCheckoutItemId] = useState<
     string | null
   >(null);
@@ -164,7 +141,12 @@ export default function CartPage() {
   const [paymentBookingId, setPaymentBookingId] = useState<string | null>(null);
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
 
-  // ---------- Booking step ----------
+  // which flow is active inside Stripe modal
+  const [activeFlow, setActiveFlow] = useState<
+    null | "payment" | "setup-installments" | "setup-subscription"
+  >(null);
+
+  // booking step
   const [showBookingDetailsForm, setShowBookingDetailsForm] = useState(false);
   const [bookingFormData, setBookingFormData] = useState({
     userNotes: "",
@@ -174,25 +156,68 @@ export default function CartPage() {
   });
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
 
-  // ---------- Redirect param ----------
+  // team context
+  const [teamData, setTeamData] = useState<any>(null);
+  const [members, setMembers] = useState<any[]>([]);
+  const [teamLoading, setTeamLoading] = useState(false);
+
+  // redirect
   const redirectParam =
     typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("redirect")
       : null;
   const redirectTo = redirectParam || "/dashboard";
 
-  // ---------- UI helpers ----------
+  /* --------------------------- UI helpers --------------------------- */
+  const refreshPricePreview = async (item: CartItem, qty: number) => {
+    try {
+      const token = getTokenFromCookies() || "";
+      const resp = await PaymentService.getPricePreview(item.id, qty, token);
+      const data = resp?.data;
+      if (data?.ok) {
+        setPricePreviewById((prev) => ({
+          ...prev,
+          [item.id]: {
+            ok: true,
+            currency: (data.currency || item.currency || "USD").toUpperCase(),
+            quantity: data.quantity ?? qty,
+            subtotal: data.subtotal ?? 0,
+            vat: data.vat ?? 0,
+            total: data.total ?? 0,
+            unitPrice: data.unitPrice,
+            model: data.model,
+            tierType: data.tierType,
+          },
+        }));
+        return true;
+      }
+    } catch (e) {
+      safeConsole.warn("Price preview (refresh) failed:", e);
+    }
+    return false;
+  };
+
   const formatCurrency = (amount: number, currency: string = "USD") =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency }).format(
-      amount
-    );
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: (currency || "USD").toUpperCase(),
+    }).format(amount);
 
   const calculateTotal = () =>
-    cartItems.reduce((sum, item) => sum + (item.price || 0), 0);
+    cartItems.reduce(
+      (sum, item) =>
+        sum + (pricePreviewById[item.id]?.total ?? item.price ?? 0),
+      0
+    );
 
-  const getCartCurrency = () => cartItems[0]?.currency || "USD";
+  const getCartCurrency = () =>
+    (
+      pricePreviewById[cartItems[0]?.id]?.currency ||
+      cartItems[0]?.currency ||
+      "USD"
+    ).toUpperCase();
 
-  // ---------- Role checks ----------
+  /* --------------------------- Role checks -------------------------- */
   const canPurchaseProductType = (productType: string, role: string) => {
     if (!isAuthenticated) return false;
     switch (role) {
@@ -231,13 +256,12 @@ export default function CartPage() {
     removeFromCart(itemId);
     toast.success(`${itemTitle} removed from cart`);
   };
-
   const handleClearCart = () => {
     clearCart();
     toast.success("Cart cleared");
   };
 
-  // ---------- Routing helpers ----------
+  /* ------------------------- Routing helpers ------------------------ */
   const getDashboardRoute = (role: string) => {
     const map: Record<string, string> = {
       student: "student",
@@ -300,7 +324,6 @@ export default function CartPage() {
       if (!token) return getOnboardingRoute(role, id);
 
       setIsCheckingOnboarding(true);
-
       const startResponse = await apiRequest(
         "/api/onboarding/start",
         "POST",
@@ -325,7 +348,133 @@ export default function CartPage() {
     return getOnboardingRoute(role, id);
   };
 
-  // ---------- Checkout flow ----------
+  /* ------------------ Billing Modes & Quantity Rules ----------------- */
+
+  // Treat per_person like one-time with optional installments (default: pay_in_full)
+  const ONE_TIME_LIKE = new Set<string>(["one_time", "per_person", "per_unit"]);
+
+  const getSupportedModesForItem = (
+    item: CartItem,
+    preview?: PricePreview
+  ): BillingChoice[] => {
+    const model = (preview?.model ||
+      item.pricing?.model ||
+      (item.isRecurring ? "subscription" : "one_time")) as string;
+
+    const installmentsEnabled = !!item.pricing?.installments?.enabled;
+
+    if (model === "subscription") return ["subscription"];
+    if (ONE_TIME_LIKE.has(model)) {
+      return installmentsEnabled
+        ? ["pay_in_full", "installments"]
+        : ["pay_in_full"];
+    }
+    return ["pay_in_full"];
+  };
+
+  const getDefaultModeForItem = (itemId: string): BillingChoice => {
+    const item = cartItems.find((ci) => ci.id === itemId);
+    if (!item) return "pay_in_full";
+    const supported = getSupportedModesForItem(item, pricePreviewById[itemId]);
+    return supported[0]; // defaults to pay_in_full for per_person/one_time/per_unit
+  };
+
+  const ensureDefaultMode = (itemId: string) => {
+    setPaymentModeById((prev) => {
+      if (prev[itemId]) return prev;
+      return { ...prev, [itemId]: getDefaultModeForItem(itemId) };
+    });
+  };
+
+  // Team helpers
+  const isTeamSelected = () =>
+    userData?.role === "teamTechProfessional" &&
+    (bookingFormData?.participantType === "team" || bookingFormData?.isTeam);
+
+  // Active team size = active/accepted members + admin(1)
+  const getTeamSize = () => {
+    const activeCount = Array.isArray(members)
+      ? members.filter((m) => {
+          const s = String(m?.status || "").toLowerCase();
+          return ["active", "accepted"].includes(s) || !s;
+        }).length
+      : 0;
+    return activeCount + 1;
+  };
+
+  // Min/Max from product.pricing
+  const getMinQty = (item: CartItem) => Math.max(1, item?.pricing?.minQty ?? 1);
+  const getMaxQty = (item: CartItem) => item?.pricing?.maxQty ?? Infinity;
+
+  // Resolve quantity: team → team size; individual → 1; else explicit numberOfParticipants or 1
+  const resolveQuantityForItem = (item: CartItem) => {
+    if (isTeamSelected()) return getTeamSize();
+    const n = item?.bookingDetails?.numberOfParticipants;
+    return typeof n === "number" && n > 0 ? n : 1;
+  };
+
+  // Enforce min/max whenever team is selected
+  const validateQuantityBounds = (item: CartItem, qty: number) => {
+    if (!isTeamSelected()) return { ok: true as const };
+    const min = getMinQty(item);
+    const max = getMaxQty(item);
+    if (qty < min)
+      return {
+        ok: false as const,
+        reason: `Team members must not be lower than ${min}.`,
+      };
+    if (qty > max)
+      return {
+        ok: false as const,
+        reason: `Maximum allowed is ${max} person${max > 1 ? "s" : ""}.`,
+      };
+    return { ok: true as const };
+  };
+
+  const handleModeChange = async (itemId: string, mode: BillingChoice) => {
+    setPaymentModeById((prev) => ({ ...prev, [itemId]: mode }));
+
+    // fetch installments preview lazily
+    if (mode === "installments" && !installmentsPreviewById[itemId]) {
+      try {
+        setIsFetchingInstallmentsById((prev) => ({ ...prev, [itemId]: true }));
+        const token = getTokenFromCookies() || "";
+        const item = cartItems.find((ci) => ci.id === itemId);
+
+        const qty = item ? resolveQuantityForItem(item) : 1;
+
+        const resp = await PaymentService.getInstallmentsPreview(
+          itemId,
+          qty,
+          token
+        );
+        const payload: any = resp?.data;
+        const ok =
+          typeof payload?.ok === "boolean"
+            ? payload.ok
+            : typeof payload?.success === "boolean"
+            ? payload.success
+            : false;
+
+        if (ok) {
+          setInstallmentsPreviewById((prev) => ({
+            ...prev,
+            [itemId]: payload,
+          }));
+        } else {
+          toast.error(payload?.message || "Unable to fetch installments plan");
+          setInstallmentsPreviewById((prev) => ({ ...prev, [itemId]: null }));
+        }
+      } catch (e: any) {
+        safeConsole.error("Installments preview error:", e);
+        toast.error("Failed to fetch installments preview");
+      } finally {
+        setIsFetchingInstallmentsById((prev) => ({ ...prev, [itemId]: false }));
+      }
+    }
+  };
+
+  /* --------------------------- Checkout flow --------------------------- */
   const handleProductCheckout = async (productId: string) => {
     if (!isAuthenticated) {
       const redirectUrl = encodeURIComponent(`/cart`);
@@ -355,18 +504,30 @@ export default function CartPage() {
     }
 
     setSelectedCheckoutItemId(productId);
+    ensureDefaultMode(productId);
 
-    // Only show booking step when required; otherwise jump to payment
+    // collect booking details first if needed
     if (item.requiresBooking) {
       setShowBookingDetailsForm(true);
-    } else {
-      await createPaymentIntent(productId);
+      return;
     }
+
+    const mode = paymentModeById[productId] || getDefaultModeForItem(productId);
+
+    if (mode === "pay_in_full") {
+      await createPaymentIntent(productId);
+      setActiveFlow("payment");
+      return;
+    }
+
+    // installments or subscription
+    await beginSetupFlow(productId, mode as "installments" | "subscription");
   };
 
-  // Put this inside your CartPage component body (same place as before)
-  const createPaymentIntent: (productId: string) => Promise<void> = async (
-    productId
+  // create PaymentIntent (pay-in-full)
+  const createPaymentIntent = async (
+    productId: string,
+    overrideQty?: number
   ) => {
     try {
       const item = cartItems.find((ci) => ci.id === productId) as
@@ -385,7 +546,7 @@ export default function CartPage() {
       if (!token)
         throw new Error("Authentication required. Please log in again.");
 
-      // Resolve IDs
+      // IDs
       const userId =
         getUserId() ||
         (userData as any)?.id ||
@@ -401,39 +562,56 @@ export default function CartPage() {
       if (!profileId)
         throw new Error("Profile ID not found. Please refresh your profile.");
 
-      // --- Amount in MINOR units (sanitize “1,750.00” → 1750 before toMinor) ---
-      const priceMajor =
+      // 🔢 derive quantity (team-aware) + validate
+      const quantity =
+        typeof overrideQty === "number"
+          ? overrideQty
+          : resolveQuantityForItem(item);
+      const vBounds = validateQuantityBounds(item, quantity);
+      if (!vBounds.ok) throw new Error(vBounds.reason);
+
+      // 🔄 ensure preview is for this exact quantity
+      await refreshPricePreview(item, quantity);
+      const ppNow = pricePreviewById[item.id];
+
+      // 💰 compute amount and currency (preview → fallback multiply)
+      const currencyLower = (
+        ppNow?.currency ||
+        item.currency ||
+        "USD"
+      ).toLowerCase();
+
+      const basePriceMajor =
         typeof item.price === "number"
           ? item.price
           : Number(String(item.price ?? 0).replace(/,/g, ""));
-      const currencyLower = (item.currency || "USD").toLowerCase(); // for backend/Stripe
+
+      const priceMajor =
+        typeof ppNow?.total === "number" && (ppNow?.quantity ?? 1) === quantity
+          ? ppNow.total
+          : basePriceMajor * quantity;
+
       const amountMinor = toMinor(priceMajor, currencyLower);
 
-      // --- Booking (use temp id if you aren’t creating one yet) ---
-      let currentBookingId = item.bookingDetails?.bookingId || "";
-      if (item.requiresBooking && !currentBookingId) {
-        currentBookingId = "temp-booking-id-for-testing";
-      }
-
-      // --- Attachments & notes gating ---
-      const needsBooking = !!item.requiresBooking;
+      // 📎 attachments / notes gating if required
       const needsAttachment = !!item.isAttachmentRequired;
       const firstAttachment = bookingFormData.attachments?.[0];
-
       if (needsAttachment && !firstAttachment)
         throw new Error("Attachment URL is required for this product");
       if (needsAttachment && !bookingFormData.userNotes?.trim())
         throw new Error("User notes are required for this product");
 
-      // --- Build minimal payload for your API ---
+      // 📨 backend payload (tell server the headcount too)
       const paymentData: SimplePaymentIntentRequest & {
         attachmentUrl?: string;
       } = {
         productId: item.id,
         isTeam: bookingFormData.isTeam ?? false,
         participantType: bookingFormData.participantType ?? "individual",
-        numberOfExpectedParticipants: 1,
-        ...(needsBooking ? { userNotes: bookingFormData.userNotes } : {}),
+        numberOfExpectedParticipants: quantity,
+        ...(item.requiresBooking
+          ? { userNotes: bookingFormData.userNotes }
+          : {}),
         ...(needsAttachment
           ? { attachments: firstAttachment, attachmentUrl: firstAttachment }
           : {}),
@@ -442,12 +620,6 @@ export default function CartPage() {
         }),
       };
 
-      safeConsole.log("Creating PaymentIntent with:", {
-        amountMinor,
-        currency: currencyLower,
-        paymentData,
-      });
-
       const response: any = await PaymentService.createSimplePaymentIntent(
         paymentData,
         amountMinor,
@@ -455,29 +627,37 @@ export default function CartPage() {
         token
       );
 
-      if (!response?.data?.success) {
+      const payload: any = response?.data;
+      const ok =
+        typeof payload?.ok === "boolean"
+          ? payload.ok
+          : typeof payload?.success === "boolean"
+          ? payload.success
+          : false;
+
+      if (!ok) {
         throw new Error(
           process.env.NEXT_PUBLIC_NODE_ENV === "production"
             ? "Something went wrong"
-            : response?.data?.message || "Failed to create payment intent"
+            : payload?.message || "Failed to create payment intent"
         );
       }
 
-      const data = response.data.data || {};
-      const secret: string | undefined = data.clientSecret;
-
-      if (!secret || !secret.includes("_secret_")) {
+      const data = payload?.data || payload;
+      const secret: string | undefined =
+        data?.clientSecret || payload?.clientSecret;
+      if (!secret || !secret.includes("_secret_"))
         throw new Error("Invalid payment intent response");
-      }
 
-      if (data.bookingId) setPaymentBookingId(data.bookingId);
+      if (data?.bookingId) setPaymentBookingId(data.bookingId);
 
-      // ✅ Drive UI from your local amount/currency (don’t trust server echo for display)
       setPaymentClientSecret(secret);
-      setPaymentAmountMinor(amountMinor); // <— use the *Minor* setter
-      setPaymentCurrency((item.currency || "USD").toUpperCase()); // for display
+      setPaymentAmountMinor(amountMinor); // 👈 Stripe modal shows multiplied total
+      setPaymentCurrency(
+        (ppNow?.currency || item.currency || "USD").toUpperCase()
+      );
       setShowPaymentForm(true);
-
+      setActiveFlow("payment");
       toast.success("Secure payment initialized");
     } catch (err: any) {
       safeConsole.error("Init payment error:", err);
@@ -497,7 +677,204 @@ export default function CartPage() {
     }
   };
 
+  // start SetupIntent (installments or subscription)
+  const beginSetupFlow = async (
+    productId: string,
+    mode: "installments" | "subscription",
+    overrideQty?: number
+  ) => {
+    try {
+      const item = cartItems.find((ci) => ci.id === productId) as
+        | CartItem
+        | undefined;
+      if (!item) {
+        toast.error("Item not found in cart");
+        return;
+      }
+
+      setSelectedCheckoutItemId(productId);
+      setIsInitializingPayment(true);
+      setPaymentError(null);
+
+      const token = getTokenFromCookies();
+      if (!token)
+        throw new Error("Authentication required. Please log in again.");
+
+      // IDs
+      const userId =
+        getUserId() ||
+        (userData as any)?.id ||
+        (userData as any)?._id ||
+        (userData as any)?.userId;
+
+      let profileId: string | null = null;
+      if (profile?.profile?._id) profileId = profile.profile._id;
+      else profileId = getProfileId();
+
+      if (!userId)
+        throw new Error("User ID not found. Please refresh your profile.");
+      if (!profileId)
+        throw new Error("Profile ID not found. Please refresh your profile.");
+
+      // derive quantity + validate
+      const quantity =
+        typeof overrideQty === "number"
+          ? overrideQty
+          : resolveQuantityForItem(item);
+      // after: const quantity = ...
+      await refreshPricePreview(item, quantity);
+
+      const vBounds = validateQuantityBounds(item, quantity);
+      if (!vBounds.ok) throw new Error(vBounds.reason);
+
+      if (mode === "installments" && !installmentsPreviewById[productId]) {
+        await handleModeChange(productId, "installments"); // fetch plan
+        if (!installmentsPreviewById[productId])
+          throw new Error("Installments plan unavailable for this product.");
+      }
+
+      const firstAttachment = bookingFormData.attachments?.[0];
+      const payload: any = {
+        productId,
+        quantity, // ← IMPORTANT
+        billingMode: mode,
+        participantType: bookingFormData.participantType ?? "individual",
+        isTeam: bookingFormData.isTeam ?? false,
+        numberOfExpectedParticipants: quantity, // ← IMPORTANT
+        ...(item.requiresBooking
+          ? { userNotes: bookingFormData.userNotes }
+          : {}),
+        ...(item.isAttachmentRequired && firstAttachment
+          ? { attachmentUrl: firstAttachment }
+          : {}),
+        plan: installmentsPreviewById[productId]?.plan || undefined,
+        ...((userData as any)?.stripeCustomerId && {
+          customerId: (userData as any).stripeCustomerId,
+        }),
+      };
+
+      // Persist payload if you need it later (as you did before)
+      localStorage.setItem("pendingSetupPayload", JSON.stringify(payload));
+
+      const startResp = await PaymentService.startInstallmentsSetup(
+        payload,
+        token
+      );
+      const startPayload: any = startResp?.data;
+      const okStart =
+        typeof startPayload?.ok === "boolean"
+          ? startPayload.ok
+          : typeof startPayload?.success === "boolean"
+          ? startPayload.success
+          : false;
+
+      if (!okStart) {
+        throw new Error(startPayload?.message || "Failed to start setup");
+      }
+
+      const setupSecret =
+        startPayload?.data?.clientSecret ?? startPayload?.clientSecret;
+
+      if (!setupSecret || !setupSecret.includes("_secret_"))
+        throw new Error("Invalid SetupIntent response");
+
+      setPaymentClientSecret(setupSecret);
+      setPaymentAmountMinor(null);
+      setPaymentCurrency(
+        (
+          pricePreviewById[productId]?.currency ||
+          item.currency ||
+          "USD"
+        ).toUpperCase()
+      );
+      setShowPaymentForm(true);
+      setActiveFlow(
+        mode === "installments" ? "setup-installments" : "setup-subscription"
+      );
+      toast.success("Secure setup started");
+    } catch (err: any) {
+      safeConsole.error("Begin setup error:", err);
+      const msg = err?.message || "Failed to start billing setup";
+      setPaymentError(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : msg
+      );
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : msg
+      );
+    } finally {
+      setIsInitializingPayment(false);
+    }
+  };
+
+  // called after confirmCardSetup succeeds
+  const handleSetupSuccess = async (setupIntentId: string) => {
+    try {
+      if (!selectedCheckoutItemId) return;
+      const item = cartItems.find((ci) => ci.id === selectedCheckoutItemId) as
+        | CartItem
+        | undefined;
+      if (!item) return;
+
+      const token = getTokenFromCookies() || "";
+      const mode = (paymentModeById[selectedCheckoutItemId] ||
+        getDefaultModeForItem(selectedCheckoutItemId)) as
+        | "installments"
+        | "subscription";
+
+      const quantity = resolveQuantityForItem(item);
+      const payload: any = {
+        productId: selectedCheckoutItemId,
+        quantity,
+        billingMode: mode,
+        setupIntentId,
+        plan:
+          installmentsPreviewById[selectedCheckoutItemId]?.plan || undefined,
+      };
+
+      const confirmResp = await PaymentService.confirmInstallments(
+        payload,
+        token
+      );
+
+      const out: any = confirmResp?.data;
+      const ok =
+        typeof out?.ok === "boolean"
+          ? out.ok
+          : typeof out?.success === "boolean"
+          ? out.success
+          : false;
+
+      if (!ok) {
+        throw new Error(
+          out?.message || out?.error || "Failed to finalize setup"
+        );
+      }
+
+      toast.success(
+        mode === "installments"
+          ? "Installment plan activated"
+          : "Subscription started"
+      );
+      if (selectedCheckoutItemId) removeFromCart(selectedCheckoutItemId);
+      handleClosePaymentForm();
+    } catch (err: any) {
+      safeConsole.error("Confirm setup error:", err);
+      toast.error(err?.message || "Failed to finalize billing setup");
+    }
+  };
+
   const handlePaymentSuccess = () => {
+    safeConsole.log("✅ [CartPage] Payment Success Handler Called:", {
+      selectedCheckoutItemId,
+      paymentAmountMinor,
+      paymentCurrency,
+      paymentBookingId,
+      activeFlow,
+    });
     if (selectedCheckoutItemId) removeFromCart(selectedCheckoutItemId);
     setShowPaymentForm(false);
     setPaymentClientSecret(null);
@@ -505,13 +882,19 @@ export default function CartPage() {
     setPaymentAmountMinor(null);
     setPaymentCurrency(null);
     setPaymentBookingId(null);
+    setActiveFlow(null);
   };
-
   const handlePaymentError = (error: string) => {
+    safeConsole.error("❌ [CartPage] Payment Error Handler Called:", {
+      error,
+      selectedCheckoutItemId,
+      paymentAmountMinor,
+      paymentCurrency,
+      activeFlow,
+    });
     setPaymentError(error);
     toast.error(`Payment failed: ${error}`);
   };
-
   const handleClosePaymentForm = () => {
     setShowPaymentForm(false);
     setPaymentClientSecret(null);
@@ -520,12 +903,12 @@ export default function CartPage() {
     setPaymentAmountMinor(null);
     setPaymentCurrency(null);
     setPaymentBookingId(null);
+    setActiveFlow(null);
   };
 
-  // ---------- Booking form handlers ----------
+  /* ---------------------- Booking form handlers ---------------------- */
   const handleBookingFormSubmit = async () => {
     if (!selectedCheckoutItemId) return;
-
     const item = cartItems.find((ci) => ci.id === selectedCheckoutItemId) as
       | CartItem
       | undefined;
@@ -542,8 +925,55 @@ export default function CartPage() {
       }
     }
 
+    // derive & validate quantity (team rules apply regardless of model)
+    const qty = resolveQuantityForItem(item);
+    const { ok, reason } = validateQuantityBounds(item, qty);
+    if (!ok) {
+      toast.error(reason!);
+      return;
+    }
+
+    // Optional: refresh preview with resolved headcount so numbers match charge
+    try {
+      const token = getTokenFromCookies() || "";
+      const resp = await PaymentService.getPricePreview(item.id, qty, token);
+      const data = resp?.data;
+      if (data?.ok) {
+        setPricePreviewById((prev) => ({
+          ...prev,
+          [item.id]: {
+            ok: true,
+            currency: (data.currency || item.currency || "USD").toUpperCase(),
+            quantity: qty,
+            subtotal: data.subtotal ?? 0,
+            vat: data.vat ?? 0,
+            total: data.total ?? 0,
+            unitPrice: data.unitPrice,
+            model: data.model,
+            tierType: data.tierType,
+          },
+        }));
+      }
+    } catch (e) {
+      safeConsole.warn("Price preview refresh failed:", e);
+    }
+
     setShowBookingDetailsForm(false);
-    await createPaymentIntent(selectedCheckoutItemId);
+
+    // Route based on billing choice
+    const mode =
+      paymentModeById[selectedCheckoutItemId] ||
+      getDefaultModeForItem(selectedCheckoutItemId);
+
+    if (mode === "pay_in_full") {
+      await createPaymentIntent(selectedCheckoutItemId, qty);
+    } else {
+      await beginSetupFlow(
+        selectedCheckoutItemId,
+        mode as "installments" | "subscription",
+        qty
+      );
+    }
   };
 
   const handleBookingFormCancel = () => {
@@ -560,16 +990,12 @@ export default function CartPage() {
   const handleAttachmentUpload = async (file: File) => {
     setIsUploadingAttachment(true);
     try {
-      // Replace with your uploader; keeping name to match your previous code:
-      // const downloadURL = await uploadAttachment(file, "booking-attachments");
-      // For now, simulate success with a blob URL to keep flow simple:
+      // TODO: replace with your uploader
       const downloadURL = URL.createObjectURL(file);
-
       setBookingFormData((prev) => ({
         ...prev,
         attachments: [...prev.attachments, downloadURL],
       }));
-
       toast.success("File uploaded successfully");
     } catch (error) {
       safeConsole.error("Upload error:", error);
@@ -578,7 +1004,6 @@ export default function CartPage() {
       setIsUploadingAttachment(false);
     }
   };
-
   const removeAttachment = (index: number) => {
     setBookingFormData((prev) => ({
       ...prev,
@@ -586,16 +1011,14 @@ export default function CartPage() {
     }));
   };
 
-  // ---------- Quick auth ----------
+  /* --------------------------- Quick auth --------------------------- */
   const handleQuickSignUp = async () => {
     if (!authEmail || !authPassword) {
       setAuthError("Please enter both email and password");
       return;
     }
-
     setIsAuthLoading(true);
     setAuthError("");
-
     try {
       const response = await registerUser({
         fullName: authEmail.split("@")[0],
@@ -603,11 +1026,8 @@ export default function CartPage() {
         password: authPassword,
         role: "student",
       });
-
-      if (response.status >= 400) {
+      if (response.status >= 400)
         throw new Error(response.data.message || "Registration failed");
-      }
-
       toast.success("Account created! Check your email to verify.");
       setAuthEmail("");
       setAuthPassword("");
@@ -635,10 +1055,8 @@ export default function CartPage() {
       setAuthError("Please enter both email and password");
       return;
     }
-
     setIsAuthLoading(true);
     setAuthError("");
-
     try {
       const response = await loginUser({
         email: authEmail,
@@ -665,7 +1083,7 @@ export default function CartPage() {
       ];
       const user = possibleUserPaths.find((u) => u);
 
-      if (token) saveTokenToCookies(token);
+      if (token) saveTokenToCookies(token as string);
       if (user) saveUserDataToCookies(user);
 
       toast.success("Login successful!");
@@ -693,24 +1111,18 @@ export default function CartPage() {
             startResp?.data?.status ??
             startResp?.data?.data?.status ??
             "unknown";
-
           if (onboardingStatus === "completed") {
             window.location.href = getDashboardRoute(role);
             return;
           }
-
           window.location.href = getOnboardingRoute(role, userId);
           return;
         } catch (e) {
           safeConsole.error("Onboarding check failed:", e);
-          const role: string = user.role || "student";
-          const userId: string =
-            user?.id || user?._id || user?.userId || user?.user_id || "";
           window.location.href = getOnboardingRoute(role, userId);
           return;
         }
       } else {
-        // Fallback if shape differs; try refresh then reload
         try {
           const ok = await refreshAuth();
           if (!ok) window.location.reload();
@@ -726,7 +1138,107 @@ export default function CartPage() {
     }
   };
 
-  // ---------- Auto-redirect after success banner ----------
+  /* --------------------- Fetch price previews --------------------- */
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      const token = getTokenFromCookies();
+      await Promise.all(
+        cartItems.map(async (item) => {
+          // default preview quantity (won't include team until they choose it in modal)
+          const qty =
+            item?.bookingDetails?.numberOfParticipants &&
+            item.bookingDetails.numberOfParticipants > 0
+              ? item.bookingDetails.numberOfParticipants
+              : 1;
+          try {
+            const resp = await PaymentService.getPricePreview(
+              item.id,
+              qty,
+              token || ""
+            );
+            const data = resp?.data;
+            if (!cancelled && data?.ok) {
+              setPricePreviewById((prev) => ({
+                ...prev,
+                [item.id]: {
+                  ok: true,
+                  currency: (
+                    data.currency ||
+                    item.currency ||
+                    "USD"
+                  ).toUpperCase(),
+                  quantity: data.quantity ?? qty,
+                  subtotal: data.subtotal ?? 0,
+                  vat: data.vat ?? 0,
+                  total: data.total ?? 0,
+                  unitPrice: data.unitPrice,
+                  model: data.model,
+                  tierType: data.tierType,
+                },
+              }));
+              ensureDefaultMode(item.id);
+            }
+          } catch (e) {
+            safeConsole.warn("Price preview failed:", e);
+          }
+        })
+      );
+    };
+    if (cartItems.length > 0) run();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartItems]);
+
+  /* ---------------- Team fetch when teamTechProfessional ------------- */
+  useEffect(() => {
+    if (isAuthenticated && userData?.role === "teamTechProfessional") {
+      fetchTeamData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, userData?.role]);
+
+  const fetchTeamData = async () => {
+    try {
+      setTeamLoading(true);
+      const token = getTokenFromCookies();
+      const meResp = await getApiRequest("/api/users/me", token || undefined);
+      if (meResp.status >= 400) throw new Error("Failed to fetch user data");
+
+      const me = meResp?.data?.data?.data;
+
+      // Try multiple shapes to find teamId
+      const teamId = meResp.data?.data?.data?.profile?._id;
+
+      if (!teamId) throw new Error("No team ID found in user profile");
+
+      const [teamResp, membersResp] = await Promise.all([
+        getApiRequest(`/api/teams/${teamId}`, token || undefined),
+        getApiRequest(`/api/teams/${teamId}/members`, token || undefined),
+      ]);
+
+      if (teamResp.status >= 400) throw new Error("Failed to fetch team data");
+      if (membersResp.status >= 400)
+        throw new Error("Failed to fetch team members");
+
+      setTeamData(teamResp.data?.data);
+      const list = membersResp.data?.data?.members || [];
+      setMembers(Array.isArray(list) ? list : []);
+    } catch (error: any) {
+      safeConsole.error("Error fetching team data:", error);
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : error.message || "Failed to load team data"
+      );
+    } finally {
+      setTeamLoading(false);
+    }
+  };
+
+  /* ---------------- Auto-redirect on success banner --------------- */
   useEffect(() => {
     if (success) {
       const t = setTimeout(() => (window.location.href = "/dashboard"), 5000);
@@ -734,7 +1246,7 @@ export default function CartPage() {
     }
   }, [success]);
 
-  // ---------- Empty cart ----------
+  /* ------------------------- Empty Cart UI ------------------------- */
   if (cartCount === 0) {
     return (
       <section>
@@ -854,7 +1366,7 @@ export default function CartPage() {
     );
   }
 
-  // ---------- Main cart ----------
+  /* --------------------------- Main Cart UI --------------------------- */
   const selectedItem = selectedCheckoutItemId
     ? (cartItems.find((ci) => ci.id === selectedCheckoutItemId) as
         | CartItem
@@ -976,7 +1488,8 @@ export default function CartPage() {
                       </div>
                       <p className="text-green-700">
                         You're all set to complete your purchase. Click
-                        "Purchase Now" on any course to proceed.
+                        "Purchase Now" (or "Subscribe") on any course to
+                        proceed.
                       </p>
                     </CardContent>
                   </Card>
@@ -1000,100 +1513,121 @@ export default function CartPage() {
                         {formatCurrency(calculateTotal(), getCartCurrency())}
                       </p>
                       <p className="text-xs text-gray-500">
-                        Prices as provided by the service
+                        Prices provided by service (incl. VAT if applicable)
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {cartItems.map((item: CartItem) => (
-                  <div
-                    key={item.id}
-                    className="flex flex-col lg:flex-row items-start gap-4 p-6 border border-gray-200 rounded-[12px] hover:shadow-md transition-all duration-200 bg-white"
-                  >
-                    <div className="relative w-full lg:w-32 h-40 lg:h-32 flex-shrink-0">
-                      <Image
-                        src={item.image}
-                        alt={item.title}
-                        fill
-                        className="rounded-[10px] object-cover"
-                      />
-                      <div className="absolute top-2 right-2">
-                        <Badge
-                          variant="secondary"
-                          className="bg-white/90 text-gray-700"
-                        >
-                          {item.category}
-                        </Badge>
-                      </div>
-                    </div>
+                {cartItems.map((item: CartItem) => {
+                  const pp = pricePreviewById[item.id];
+                  const supportedModes = getSupportedModesForItem(item, pp); // per_person defaults to pay_in_full, allows installments if enabled
+                  const choice =
+                    paymentModeById[item.id] || getDefaultModeForItem(item.id);
+                  const canInstallments =
+                    supportedModes.includes("installments");
+                  const showModeToggle = supportedModes.length > 1;
 
-                    <div className="flex-1 min-w-0 w-full space-y-4">
-                      <div className="space-y-2">
-                        <h3 className="font-bold text-xl text-gray-900 line-clamp-2">
-                          {item.title}
-                        </h3>
-                        <p className="text-gray-600 line-clamp-2">
-                          {item.description}
-                        </p>
-                      </div>
+                  const isLoadingPlan = !!isFetchingInstallmentsById[item.id];
+                  const plan: any = installmentsPreviewById[item.id]?.plan;
 
-                      <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
-                        {item.duration && (
-                          <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full">
-                            <Clock size={16} className="text-blue-500" />
-                            <span>{item.duration}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full">
-                          <Award size={16} className="text-green-500" />
-                          <span>
-                            {item.certificate
-                              ? "Certificate Included"
-                              : "No Certificate"}
-                          </span>
+                  const displayCurrency = (
+                    pp?.currency ||
+                    item.currency ||
+                    "USD"
+                  ).toUpperCase();
+                  const displayAmount = pp?.total ?? item.price ?? 0;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex flex-col lg:flex-row items-start gap-4 p-6 border border-gray-200 rounded-[12px] hover:shadow-md transition-all duration-200 bg-white"
+                    >
+                      {/* image */}
+                      <div className="relative w-full lg:w-32 h-40 lg:h-32 flex-shrink-0">
+                        <Image
+                          src={item.image}
+                          alt={item.title}
+                          fill
+                          className="rounded-[10px] object-cover"
+                        />
+                        <div className="absolute top-2 right-2">
+                          <Badge
+                            variant="secondary"
+                            className="bg-white/90 text-gray-700"
+                          >
+                            {item.category}
+                          </Badge>
                         </div>
-                        {item.level && (
-                          <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full">
-                            <span className="text-xs font-medium px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
-                              {item.level}
-                            </span>
-                          </div>
-                        )}
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant={
-                            !canPurchaseProductType(
-                              item.productType,
-                              userData.role || ""
-                            )
-                              ? "default"
-                              : "destructive"
-                          }
-                          className="text-sm"
-                        >
-                          {item.productType || "Training & Certification"}
-                        </Badge>
-                      </div>
-
-                      {isAuthenticated && item.requiresBooking && (
-                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-[10px]">
-                          <div className="flex items-center gap-2 text-blue-700">
-                            <Calendar className="w-4 h-4" />
-                            <span className="text-sm font-medium">
-                              Bookable Service
-                            </span>
-                          </div>
-                          <p className="text-xs text-blue-600 mt-1">
-                            Additional details will be collected during checkout
+                      {/* details */}
+                      <div className="flex-1 min-w-0 w-full space-y-4">
+                        <div className="space-y-2">
+                          <h3 className="font-bold text-xl text-gray-900 line-clamp-2">
+                            {item.title}
+                          </h3>
+                          <p className="text-gray-600 line-clamp-2">
+                            {item.description}
                           </p>
                         </div>
-                      )}
 
-                      {isAuthenticated &&
-                        !canPurchaseProductType(
+                        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
+                          {item.duration && (
+                            <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full">
+                              <Clock size={16} className="text-blue-500" />
+                              <span>{item.duration}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full">
+                            <Award size={16} className="text-green-500" />
+                            <span>
+                              {item.certificate
+                                ? "Certificate Included"
+                                : "No Certificate"}
+                            </span>
+                          </div>
+                          {item.level && (
+                            <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full">
+                              <span className="text-xs font-medium px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                                {item.level}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant={
+                              !canPurchaseProductType(
+                                item.productType,
+                                userData.role || ""
+                              )
+                                ? "default"
+                                : "destructive"
+                            }
+                            className="text-sm"
+                          >
+                            {item.productType || "Training & Certification"}
+                          </Badge>
+                        </div>
+
+                        {isAuthenticated && item.requiresBooking && (
+                          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-[10px]">
+                            <div className="flex items-center gap-2 text-blue-700">
+                              <Calendar className="w-4 h-4" />
+                              <span className="text-sm font-medium">
+                                Bookable Service
+                              </span>
+                            </div>
+                            <p className="text-xs text-blue-600 mt-1">
+                              Additional details will be collected during
+                              checkout
+                            </p>
+                          </div>
+                        )}
+
+                        {!canPurchaseProductType(
                           item.productType,
                           userData.role || ""
                         ) && (
@@ -1106,65 +1640,173 @@ export default function CartPage() {
                             </div>
                           </div>
                         )}
-                    </div>
 
-                    <div className="w-full lg:w-auto lg:text-right space-y-4">
-                      <div className="text-center lg:text-right">
-                        <p className="text-3xl font-bold text-[#011F72] mb-1">
-                          {formatCurrency(
-                            item.price || 0,
-                            item.currency || "USD"
+                        {/* Billing choice UI — only show if there is actually a choice */}
+                        <div className="space-y-2">
+                          {showModeToggle && (
+                            <div className="inline-flex rounded-md shadow-sm border border-gray-200 overflow-hidden">
+                              {supportedModes.includes("pay_in_full") && (
+                                <Button
+                                  type="button"
+                                  variant={
+                                    choice === "pay_in_full"
+                                      ? "default"
+                                      : "ghost"
+                                  }
+                                  className={`px-3 py-1 rounded-none ${
+                                    choice === "pay_in_full" ? "" : "bg-white"
+                                  }`}
+                                  onClick={() =>
+                                    handleModeChange(item.id, "pay_in_full")
+                                  }
+                                >
+                                  Pay in full
+                                </Button>
+                              )}
+
+                              {canInstallments && (
+                                <Button
+                                  type="button"
+                                  variant={
+                                    choice === "installments"
+                                      ? "default"
+                                      : "ghost"
+                                  }
+                                  className={`px-3 py-1 rounded-none ${
+                                    choice === "installments" ? "" : "bg-white"
+                                  }`}
+                                  onClick={() =>
+                                    handleModeChange(item.id, "installments")
+                                  }
+                                >
+                                  Pay in 6 months
+                                </Button>
+                              )}
+
+                              {supportedModes.includes("subscription") && (
+                                <Button
+                                  type="button"
+                                  variant={
+                                    choice === "subscription"
+                                      ? "default"
+                                      : "ghost"
+                                  }
+                                  className={`px-3 py-1 rounded-none ${
+                                    choice === "subscription" ? "" : "bg-white"
+                                  }`}
+                                  onClick={() =>
+                                    handleModeChange(item.id, "subscription")
+                                  }
+                                >
+                                  Subscribe monthly
+                                </Button>
+                              )}
+                            </div>
                           )}
-                        </p>
-                        <p className="text-sm text-gray-500">per course</p>
+
+                          {/* Hints */}
+                          {choice === "installments" && (
+                            <div className="text-xs text-gray-600">
+                              {isLoadingPlan && <span>Fetching plan…</span>}
+                              {!isLoadingPlan && plan && (
+                                <span>
+                                  Pay today:{" "}
+                                  {formatCurrency(
+                                    plan.downPaymentAmount || 0,
+                                    displayCurrency
+                                  )}
+                                  {" · "}Then {plan.count ?? 5}×{" "}
+                                  {formatCurrency(
+                                    plan.installmentAmount || 0,
+                                    displayCurrency
+                                  )}
+                                  {" every "}
+                                  {plan.intervalCount ?? 1}{" "}
+                                  {plan.interval ?? "month"}
+                                  {(plan.intervalCount ?? 1) > 1 ? "s" : ""}
+                                </span>
+                              )}
+                              {!isLoadingPlan && !plan && (
+                                <span className="text-red-600">
+                                  Installments unavailable for this item.
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {choice === "subscription" && (
+                            <div className="text-xs text-gray-600">
+                              This item bills on a recurring basis. You’ll add a
+                              payment method now and be charged per cycle.
+                            </div>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex flex-col gap-3">
-                        <Button
-                          onClick={() => handleProductCheckout(item.id)}
-                          className="w-full lg:w-48 bg-[#0D1140] hover:bg-blue-700 text-white text-base py-3 px-6 rounded-[10px] font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
-                          disabled={
-                            isInitializingPayment ||
-                            !canPurchaseProductType(
-                              item.productType,
-                              userData.role || ""
-                            )
-                          }
-                        >
-                          {isInitializingPayment &&
-                          selectedCheckoutItemId === item.id ? (
-                            <>
-                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                              Processing...
-                            </>
-                          ) : (
-                            <>
-                              <CreditCard size={20} className="mr-2" />
-                              {!isAuthenticated
-                                ? "Login to Purchase"
-                                : !canPurchaseProductType(
-                                    item.productType,
-                                    userData.role || ""
-                                  )
-                                ? "Role Restricted"
-                                : "Purchase Now"}
-                            </>
-                          )}
-                        </Button>
+                      {/* price + actions */}
+                      <div className="w-full lg:w-auto lg:text-right space-y-4">
+                        <div className="text-center lg:text-right">
+                          <p className="text-3xl font-bold text-[#011F72] mb-1">
+                            {formatCurrency(displayAmount, displayCurrency)}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {choice === "subscription"
+                              ? "per cycle"
+                              : "per course"}
+                          </p>
+                        </div>
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveItem(item.id, item.title)}
-                          className="w-full lg:w-48 text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200"
-                        >
-                          <Trash2 size={16} className="mr-2" />
-                          Remove
-                        </Button>
+                        <div className="flex flex-col gap-3">
+                          <Button
+                            onClick={() => handleProductCheckout(item.id)}
+                            className="w-full lg:w-48 bg-[#0D1140] hover:bg-blue-700 text-white text-base py-3 px-6 rounded-[10px] font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                            disabled={
+                              isInitializingPayment ||
+                              !canPurchaseProductType(
+                                item.productType,
+                                userData.role || ""
+                              ) ||
+                              (choice === "installments" &&
+                                (!installmentsPreviewById[item.id] ||
+                                  isLoadingPlan))
+                            }
+                          >
+                            {isInitializingPayment &&
+                            selectedCheckoutItemId === item.id ? (
+                              <>
+                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                Processing...
+                              </>
+                            ) : (
+                              <>
+                                <CreditCard size={20} className="mr-2" />
+                                {!isAuthenticated
+                                  ? "Login to Continue"
+                                  : choice === "subscription"
+                                  ? "Subscribe"
+                                  : choice === "installments"
+                                  ? "Start Plan"
+                                  : "Purchase Now"}
+                              </>
+                            )}
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              handleRemoveItem(item.id, item.title)
+                            }
+                            className="w-full lg:w-48 text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200"
+                          >
+                            <Trash2 size={16} className="mr-2" />
+                            Remove
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </CardContent>
             </Card>
           </div>
@@ -1269,13 +1911,17 @@ export default function CartPage() {
           </Link>
         </div>
 
-        {/* Stripe Payment Form (inline modal-style card) */}
+        {/* Stripe Payment / Setup Form */}
         {showPaymentForm && paymentClientSecret && selectedCheckoutItemId && (
           <div className="max-w-3xl mx-auto mt-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <span>Secure Payment</span>
+                  <span>
+                    {activeFlow?.startsWith("setup")
+                      ? "Add Payment Method"
+                      : "Secure Payment"}
+                  </span>
                   <Button variant="outline" onClick={handleClosePaymentForm}>
                     Close
                   </Button>
@@ -1293,38 +1939,56 @@ export default function CartPage() {
                   </div>
                 )}
 
-                <StripePaymentForm
-                  clientSecret={paymentClientSecret}
-                  amount={
-                    paymentAmountMinor ??
-                    toMinor(
-                      cartItems.find((ci) => ci.id === selectedCheckoutItemId)
-                        ?.price || 0,
-                      cartItems.find((ci) => ci.id === selectedCheckoutItemId)
-                        ?.currency || "USD"
-                    )
-                  }
-                  currency={(
+                {(() => {
+                  const sel = cartItems.find(
+                    (ci) => ci.id === selectedCheckoutItemId
+                  );
+                  const pp = selectedCheckoutItemId
+                    ? pricePreviewById[selectedCheckoutItemId]
+                    : undefined;
+                  const currency = (
                     paymentCurrency ??
-                    cartItems.find((ci) => ci.id === selectedCheckoutItemId)
-                      ?.currency ??
+                    pp?.currency ??
+                    sel?.currency ??
                     "USD"
-                  ).toUpperCase()}
-                  onSuccess={handlePaymentSuccess}
-                  onError={handlePaymentError}
-                  onClose={handleClosePaymentForm}
-                  productName={
-                    cartItems.find((ci) => ci.id === selectedCheckoutItemId)
-                      ?.title || "Course"
-                  }
-                  bookingId={paymentBookingId}
-                />
+                  ).toUpperCase();
+
+                  return (
+                    <StripePaymentForm
+                      mode={
+                        activeFlow?.startsWith("setup") ? "setup" : "payment"
+                      }
+                      clientSecret={paymentClientSecret}
+                      amount={
+                        activeFlow === "payment"
+                          ? paymentAmountMinor ??
+                            (pp
+                              ? toMinor(pp.total, pp.currency)
+                              : toMinor(
+                                  sel?.price || 0,
+                                  sel?.currency || "USD"
+                                ))
+                          : undefined
+                      }
+                      currency={currency}
+                      onSuccess={handlePaymentSuccess} // PaymentIntent (pay-in-full)
+                      onSetupSuccess={handleSetupSuccess} // SetupIntent (installments/subscription)
+                      onError={handlePaymentError}
+                      onClose={handleClosePaymentForm}
+                      productName={sel?.title || "Course"}
+                      bookingId={paymentBookingId}
+                    />
+                  );
+                })()}
               </CardContent>
             </Card>
           </div>
         )}
 
-        {/* Booking Details Form Modal */}
+        {/* Keep mount order stable for modal layers */}
+        {showPaymentForm /* keep above */}
+
+        {/* Booking Details Modal */}
         {showBookingDetailsForm && selectedCheckoutItemId && selectedItem && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-[10px] max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -1381,6 +2045,7 @@ export default function CartPage() {
                     </div>
                   )}
 
+                  {/* Team vs Individual selection (for teamTechProfessional) */}
                   {userData?.role === "teamTechProfessional" && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1401,10 +2066,34 @@ export default function CartPage() {
                         <option value="individual">For Myself Only</option>
                         <option value="team">For My Team</option>
                       </select>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Choose whether to book for yourself only or for your
-                        entire team.
-                      </p>
+
+                      {/* Headcount + limits */}
+                      {isTeamSelected() && (
+                        <p className="text-xs text-gray-600 mt-2">
+                          Headcount detected: <strong>{getTeamSize()}</strong>.
+                          Limits: min {getMinQty(selectedItem)}, max{" "}
+                          {getMaxQty(selectedItem)}.
+                        </p>
+                      )}
+
+                      {/* Violation message */}
+                      {(() => {
+                        if (!isTeamSelected()) return null;
+                        const qty = resolveQuantityForItem(selectedItem);
+                        const v = validateQuantityBounds(selectedItem, qty);
+                        return v.ok ? null : (
+                          <p className="text-xs text-red-600 mt-1">
+                            {v.reason}
+                          </p>
+                        );
+                      })()}
+
+                      {/* Team loading hint */}
+                      {isTeamSelected() && teamLoading && (
+                        <p className="text-xs text-blue-600 mt-1">
+                          Loading your team…
+                        </p>
+                      )}
                     </div>
                   )}
 
@@ -1498,6 +2187,16 @@ export default function CartPage() {
                     className="px-6 bg-blue-600 hover:bg-blue-700"
                     disabled={
                       isInitializingPayment ||
+                      // block when team selected while loading team
+                      (isTeamSelected() && teamLoading) ||
+                      // block on min/max violation
+                      (() => {
+                        if (!selectedItem) return false;
+                        if (!isTeamSelected()) return false;
+                        const qty = resolveQuantityForItem(selectedItem);
+                        return !validateQuantityBounds(selectedItem, qty).ok;
+                      })() ||
+                      // existing attachment gates
                       (selectedItem.isAttachmentRequired &&
                         (!bookingFormData.userNotes.trim() ||
                           bookingFormData.attachments.length === 0))

@@ -11,6 +11,7 @@ import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
 import { safeConsole } from "@/lib/console";
+
 interface Notification {
   _id: string;
   type: string;
@@ -24,9 +25,29 @@ interface Notification {
   };
 }
 
+type ApiResult =
+  | {
+      success: true;
+      message: string;
+      data?: {
+        team?: { id: string; name: string };
+        message?: string;
+      };
+      meta?: Record<string, any>;
+    }
+  | {
+      success: false;
+      message?: string;
+    };
+
+const ALREADY_ACCEPTED = "Invitation already accepted";
+const ALREADY_DECLINED = "Invitation declined successfully"; // success path message
+const ALREADY_DECLINED_ERROR = "Invitation already declined";
+
 export default function TeamInvitesPage() {
   const { userData } = useRole();
   const searchParams = useSearchParams();
+
   const [processingAction, setProcessingAction] = useState<
     "accept" | "decline" | null
   >(null);
@@ -36,6 +57,13 @@ export default function TeamInvitesPage() {
     adminName: string;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Holds success payload and switches UI to result view
+  const [result, setResult] = useState<ApiResult | null>(null);
+
+  // NEW: When a terminal server response (like "Invitation already accepted") is returned,
+  // we hide the Accept/Decline buttons and show this message instead.
+  const [finalMessage, setFinalMessage] = useState<string | null>(null);
 
   // Get invitation token from URL parameters first
   const urlToken = searchParams.get("token");
@@ -90,6 +118,12 @@ export default function TeamInvitesPage() {
     fetchInvitationToken();
   }, [urlToken]);
 
+  const getErrorDetail = (err: any): string | undefined => {
+    const details = err?.error?.details;
+    if (Array.isArray(details) && details.length > 0) return details[0];
+    return err?.message || err?.error?.message;
+  };
+
   const handleAcceptInvitation = async () => {
     if (!invitationToken) {
       toast.error(
@@ -119,12 +153,6 @@ export default function TeamInvitesPage() {
         userProfile?.fullName || userData?.fullName || "Unknown User";
       const email = userProfile?.email || userData?.email || "";
 
-      // Debug logging
-      safeConsole.log("User profile:", userProfile);
-      safeConsole.log("UserData from context:", userData);
-      safeConsole.log("Extracted fullName:", fullName);
-      safeConsole.log("Extracted email:", email);
-
       if (!fullName || fullName === "Unknown User") {
         throw new Error("User full name is required but not available");
       }
@@ -134,28 +162,18 @@ export default function TeamInvitesPage() {
       const contactEmail = email; // Use the user's email
       const contactPhone = userProfile?.phone || ""; // Individual profile might have phone
 
-      // Debug logging
-      safeConsole.log("User profile data:", userProfile);
-      safeConsole.log("Training availability:", trainingAvailability);
-      safeConsole.log("Contact email:", contactEmail);
-
       const requestBody = {
         invitationToken,
         fullName,
         email,
         teamName: teamInfo?.teamName || "Unknown Team",
-        // Flattened learning goals fields (no nested object)
-        goalType: "custom", // Default goal type for team members
-        priorityAreas: [], // Empty array
-        trainingTimeline: "Flexible", // Default timeline
-        trainingAvailability: trainingAvailability,
-        contactEmail: contactEmail,
-        contactPhone: contactPhone,
+        goalType: "custom",
+        priorityAreas: [],
+        trainingTimeline: "Flexible",
+        trainingAvailability,
+        contactEmail,
+        contactPhone,
       };
-
-      // Debug logging
-      safeConsole.log("Sending request body:", requestBody);
-      safeConsole.log("Learning goals goalType:", requestBody.goalType);
 
       const response = await postApiRequest(
         "/api/teams/invite/accept",
@@ -163,25 +181,33 @@ export default function TeamInvitesPage() {
         { Authorization: `Bearer ${token}` }
       );
 
-      if (response.status >= 400) {
+      if (response.status >= 400) throw response.data;
+
+      const payload: ApiResult = response.data;
+      if ((payload as any)?.success) {
+        setResult(payload);
+        setInvitationToken(null);
+        toast.success(payload.message || "Invitation accepted successfully!");
+      } else {
         throw response.data;
       }
-
-      toast.success("Invitation accepted successfully!");
-
-      // Redirect to teams page after successful acceptance
-      setTimeout(() => {
-        window.location.href = "/dashboard/my-teams";
-      }, 1500);
     } catch (error: any) {
+      const detail = getErrorDetail(error);
       safeConsole.error("Error accepting invitation:", error);
-      toast.error(
-        process.env.NEXT_PUBLIC_NODE_ENV === "production"
-          ? "Something went wrong"
-          : error?.error?.details?.[0] ||
-              error?.message ||
-              "Failed to accept invitation"
-      );
+
+      // NEW: if API says "Invitation already accepted", hide buttons and show that message instead
+      if (detail === ALREADY_ACCEPTED) {
+        setFinalMessage(detail);
+        // We keep invitationToken intact so the page context is clear,
+        // but the render branch below will hide the buttons.
+        toast.info(detail);
+      } else {
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : detail || "Failed to accept invitation"
+        );
+      }
     } finally {
       setProcessingAction(null);
     }
@@ -207,23 +233,27 @@ export default function TeamInvitesPage() {
         { Authorization: `Bearer ${token}` }
       );
 
-      if (response.status >= 400) {
+      if (response.status >= 400) throw response.data;
+
+      const payload: ApiResult = response.data;
+      if ((payload as any)?.success) {
+        setResult(payload);
+        setInvitationToken(null);
+        toast.success(payload.message || "Invitation declined successfully!");
+      } else {
         throw response.data;
       }
-
-      toast.success("Invitation declined successfully!");
-
-      // Redirect to dashboard after declining
-      setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 1500);
     } catch (error: any) {
+      const detail = getErrorDetail(error);
       safeConsole.error("Error declining invitation:", error);
-      toast.error(
-        error?.error?.details?.[0] ||
-          error?.message ||
-          "Failed to decline invitation"
-      );
+
+      // Optional symmetry: treat "already declined" as terminal too
+      if (detail === ALREADY_DECLINED_ERROR) {
+        setFinalMessage(detail);
+        toast.info(detail);
+      } else {
+        toast.error(detail || "Failed to decline invitation");
+      }
     } finally {
       setProcessingAction(null);
     }
@@ -237,6 +267,52 @@ export default function TeamInvitesPage() {
             <CardContent className="p-8 text-center">
               <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
               <p className="text-gray-600">Loading invitation details...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // RESULT VIEW: replaces the invitation UI once accept/decline succeeds
+  if (result && (result as any).success) {
+    const teamName =
+      (result as any)?.data?.team?.name ?? teamInfo?.teamName ?? undefined;
+
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-2xl mx-auto px-4">
+          <Card>
+            <CardContent className="p-8 text-center">
+              <CheckCircle className="h-10 w-10 mx-auto mb-3 text-green-600" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                {(result as any).message || "Success"}
+              </h3>
+              {teamName ? (
+                <p className="text-gray-700">
+                  Team: <span className="font-medium">{teamName}</span>
+                </p>
+              ) : null}
+              {/* No accept/decline buttons here by design */}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // FINAL MESSAGE VIEW: when API returns a terminal error like "Invitation already accepted"
+  if (finalMessage) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-2xl mx-auto px-4">
+          <Card>
+            <CardContent className="p-8 text-center">
+              <CheckCircle className="h-10 w-10 mx-auto mb-3 text-green-600" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                {finalMessage}
+              </h3>
+              {/* Intentionally no action buttons per requirement */}
             </CardContent>
           </Card>
         </div>
@@ -297,6 +373,7 @@ export default function TeamInvitesPage() {
               </p>
             </div>
 
+            {/* Buttons are automatically hidden in result/finalMessage views */}
             <div className="flex flex-col md:flex-row gap-4 justify-center">
               <Button
                 onClick={handleAcceptInvitation}

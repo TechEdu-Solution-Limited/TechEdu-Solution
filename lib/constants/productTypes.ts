@@ -32,15 +32,15 @@ export const studentServices = [
 ];
 
 export const individualTechProfessionalServices = [
-  "Academic Support Services",
   "Training & Certification",
   "Career Development & Mentorship",
+  "Corporate & Business Consultancy",
 ];
 
 export const teamTechProfessionalServices = [
-  "Academic Support Services",
   "Training & Certification",
   "Career Development & Mentorship",
+  "Corporate & Business Consultancy",
 ];
 
 export const recruiterServices = [

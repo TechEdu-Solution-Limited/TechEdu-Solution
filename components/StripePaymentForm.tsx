@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -11,7 +11,6 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Loader2,
@@ -26,26 +25,27 @@ import {
 } from "lucide-react";
 import { safeConsole } from "@/lib/console";
 
-// Validate Stripe publishable key
 const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE;
-// const stripeAccountId = process.env.NEXT_PUBLIC_STRIPE_ACCOUNT_ID;
+const stripeAccountId = process.env.NEXT_PUBLIC_STRIPE_ACCOUNT_ID;
 
-if (!stripePublishableKey) {
+if (!stripePublishableKey)
   safeConsole.error("NEXT_PUBLIC_STRIPE_PUBLISHABLE is not set");
-}
 if (stripePublishableKey && !stripePublishableKey.startsWith("pk_")) {
   safeConsole.error(
     "Invalid Stripe publishable key format:",
-    stripePublishableKey.substring(0, 20) + "..."
+    stripePublishableKey.substring(0, 20) + "…"
   );
 }
 
-const stripePromise = loadStripe(
-  stripePublishableKey!
-  // , { stripeAccount: stripeAccountId }
-);
+console.log("🔍 [StripePaymentForm] Stripe Configuration:", {
+  publishableKey: stripePublishableKey
+    ? `${stripePublishableKey.slice(0, 20)}...`
+    : "undefined",
+  stripeAccountId: stripeAccountId || "undefined",
+  isTestMode: stripePublishableKey?.startsWith("pk_test_"),
+  hasAccountId: !!stripeAccountId,
+});
 
-// currencies with no decimal (Stripe minor==major)
 const ZERO_DECIMAL = new Set([
   "BIF",
   "CLP",
@@ -64,17 +64,18 @@ const ZERO_DECIMAL = new Set([
   "XOF",
   "XPF",
 ]);
-
 const toMajor = (minor: number, currency: string) =>
   ZERO_DECIMAL.has((currency || "USD").toUpperCase()) ? minor : minor / 100;
 
+/* ================= Inner PaymentForm (unchanged logic) ================= */
+
 interface PaymentFormProps {
   clientSecret: string;
-  /** amount in MINOR units (e.g. cents) */
-  amount: number;
-  /** ISO currency code (e.g. "USD", "JPY") */
-  currency: string;
+  mode?: "payment" | "setup";
+  amount?: number; // required if mode="payment"
+  currency?: string; // required if mode="payment"
   onSuccess: () => void;
+  onSetupSuccess?: (setupIntentId: string) => void;
   onError: (error: string) => void;
   onClose?: () => void;
   productName?: string;
@@ -83,173 +84,38 @@ interface PaymentFormProps {
 
 function PaymentForm({
   clientSecret,
+  mode = "payment",
   amount,
   currency,
   onSuccess,
+  onSetupSuccess,
   onError,
   onClose,
   productName = "Course",
   bookingId,
 }: PaymentFormProps) {
-  safeConsole.log("PaymentForm bookingId:", bookingId);
-  safeConsole.log("PaymentForm received →", {
-    amountMinor: amount,
-    currency,
-    majorPreview: ZERO_DECIMAL.has(currency.toUpperCase())
-      ? amount
-      : amount / 100,
-  });
+  const isPayment = mode === "payment";
+  const isSetup = mode === "setup";
 
   const stripe = useStripe();
   const elements = useElements();
 
+  safeConsole.debug(
+    "[stripe] Using publishable key:",
+    (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE || "").slice(0, 10),
+    "… (test? ->",
+    (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE || "").startsWith("pk_test_"),
+    ")"
+  );
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [paymentSuccessful, setPaymentSuccessful] = useState(false);
+  const [successUI, setSuccessUI] = useState(false);
   const [cardComplete, setCardComplete] = useState({
     number: false,
     expiry: false,
     cvc: false,
   });
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-
-    const amountMajor = toMajor(amount, currency);
-    if (!stripe || !elements) return;
-
-    // Validate client secret format (pi_xxx_secret_xxx)
-    if (!clientSecret || !clientSecret.startsWith("pi_")) {
-      setError("Invalid payment intent. Please try again.");
-      return;
-    }
-
-    setIsProcessing(true);
-    setError(null);
-
-    try {
-      if (clientSecret.length < 50) {
-        safeConsole.error(
-          "Client secret seems too short - might be just the ID"
-        );
-        setError("Invalid payment intent format. Please try again.");
-        setIsProcessing(false);
-        return;
-      }
-      if (!clientSecret.includes("_secret_")) {
-        throw new Error("MISSING secret portion of clientSecret. Aborting.");
-      }
-
-      const cardNumberElement = elements.getElement(CardNumberElement);
-      if (!cardNumberElement) {
-        setError("Card number input not ready");
-        setIsProcessing(false);
-        return;
-      }
-
-      // 1) Create PaymentMethod
-      const { paymentMethod, error: pmError } =
-        await stripe.createPaymentMethod({
-          type: "card",
-          card: cardNumberElement,
-          billing_details: {
-            name: "",
-            email: "",
-          },
-        });
-
-      if (pmError) {
-        safeConsole.error("createPaymentMethod error:", pmError);
-        setError(pmError.message || "Card error");
-        setIsProcessing(false);
-        return;
-      }
-
-      // 2) Confirm PaymentIntent
-      const { error: submitError, paymentIntent } =
-        await stripe.confirmCardPayment(clientSecret, {
-          payment_method: paymentMethod!.id,
-          // return_url only used for redirect-based next actions (3DS)
-          return_url: `${
-            window.location.origin
-          }/payment-success?amount=${amountMajor}&currency=${currency}&product_name=${encodeURIComponent(
-            productName
-          )}&redirect_status=return${
-            bookingId ? `&bookingId=${bookingId}` : ""
-          }`,
-        });
-
-      if (submitError) {
-        safeConsole.error("Stripe confirmation error:", submitError);
-        const message =
-          process.env.NODE_ENV === "production"
-            ? "Something went wrong"
-            : submitError.message || "Payment failed";
-        setError(message);
-        onError(message);
-        setIsProcessing(false);
-        return;
-      }
-
-      if (paymentIntent?.status === "succeeded") {
-        setPaymentSuccessful(true);
-        onSuccess();
-
-        const successUrl = `/payment-success?payment_intent=${
-          paymentIntent.id
-        }&amount=${amountMajor}&currency=${currency}&product_name=${encodeURIComponent(
-          productName
-        )}&redirect_status=succeeded&payment_method=${paymentMethod!.id}${
-          bookingId ? `&bookingId=${bookingId}` : ""
-        }`;
-
-        window.location.href = successUrl;
-        return;
-      }
-
-      if (paymentIntent?.status === "requires_action") {
-        // 3DS redirect will happen; nothing else to do here.
-        return;
-      }
-
-      if (paymentIntent?.status === "processing") {
-        setPaymentSuccessful(true);
-        onSuccess();
-
-        const processingUrl = `/payment-success?payment_intent=${
-          paymentIntent.id
-        }&amount=${amountMajor}&currency=${currency}&product_name=${encodeURIComponent(
-          productName
-        )}&redirect_status=processing&payment_method=${paymentMethod!.id}${
-          bookingId ? `&bookingId=${bookingId}` : ""
-        }`;
-
-        window.location.href = processingUrl;
-        return;
-      }
-
-      safeConsole.warn(
-        "Unexpected payment intent status:",
-        paymentIntent?.status
-      );
-      {
-        const message =
-          process.env.NODE_ENV === "production"
-            ? "Something went wrong"
-            : `Payment status: ${paymentIntent?.status || "unknown"}`;
-        setError(message);
-        onError(message);
-        setIsProcessing(false);
-      }
-    } catch (err: any) {
-      safeConsole.error("Unexpected error during payment:", err);
-      const message =
-        err?.message || "An unexpected error occurred. Please try again.";
-      setError(message);
-      onError(message);
-      setIsProcessing(false);
-    }
-  };
 
   const formatAmount = (amountMinor: number, cur: string) => {
     const major = toMajor(amountMinor, cur);
@@ -281,9 +147,231 @@ function PaymentForm({
     },
   } as const;
 
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!stripe || !elements) return;
+
+    const hasSecretPart = clientSecret && clientSecret.includes("_secret_");
+    const looksLikePI = clientSecret?.startsWith("pi_");
+    const looksLikeSI = clientSecret?.startsWith("seti_");
+
+    if (!clientSecret || clientSecret.length < 50 || !hasSecretPart) {
+      setError("Invalid client secret. Please try again.");
+      return;
+    }
+    if (isPayment && !looksLikePI) {
+      setError("Invalid payment intent. Please try again.");
+      return;
+    }
+    if (isSetup && !looksLikeSI) {
+      setError("Invalid setup intent. Please try again.");
+      return;
+    }
+
+    const cardNumberElement = elements.getElement(CardNumberElement);
+    if (!cardNumberElement) {
+      setError("Card number input not ready");
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const { paymentMethod, error: pmError } =
+        await stripe.createPaymentMethod({
+          type: "card",
+          card: cardNumberElement,
+          billing_details: { name: "", email: "" },
+        });
+      if (pmError) {
+        const message = pmError.message || "Card error";
+        setError(message);
+        setIsProcessing(false);
+        return;
+      }
+
+      if (isPayment) {
+        safeConsole.log(
+          "🔍 [StripePaymentForm] Starting Payment Confirmation:",
+          {
+            clientSecret: clientSecret
+              ? `${clientSecret.slice(0, 20)}...`
+              : "undefined",
+            paymentMethodId: paymentMethod?.id,
+            amount,
+            currency,
+            productName,
+            bookingId,
+            stripeAccountId: stripeAccountId || "undefined",
+          }
+        );
+
+        const { error: submitError, paymentIntent } =
+          await stripe.confirmCardPayment(clientSecret, {
+            payment_method: paymentMethod!.id,
+            return_url: `${
+              window.location.origin
+            }/payment-success?amount=${toMajor(
+              amount!,
+              currency!
+            )}&currency=${currency}&product_name=${encodeURIComponent(
+              productName
+            )}&redirect_status=return${
+              bookingId ? `&bookingId=${bookingId}` : ""
+            }`,
+          });
+
+        safeConsole.log("🔍 [StripePaymentForm] Payment Confirmation Result:", {
+          submitError,
+          paymentIntent: paymentIntent
+            ? {
+                id: paymentIntent.id,
+                status: paymentIntent.status,
+                amount: paymentIntent.amount,
+                currency: paymentIntent.currency,
+              }
+            : null,
+        });
+
+        if (submitError) {
+          safeConsole.error(
+            "❌ [StripePaymentForm] Payment Confirmation Error:",
+            {
+              error: submitError,
+              code: submitError.code,
+              message: submitError.message,
+              type: submitError.type,
+              clientSecret: clientSecret
+                ? `${clientSecret.slice(0, 20)}...`
+                : "undefined",
+              stripeAccountId: stripeAccountId || "undefined",
+            }
+          );
+          const message =
+            process.env.NODE_ENV === "production"
+              ? "Something went wrong"
+              : submitError.message || "Payment failed";
+          setError(message);
+          onError(message);
+          setIsProcessing(false);
+          return;
+        }
+
+        if (paymentIntent?.status === "succeeded") {
+          safeConsole.log("✅ [StripePaymentForm] Payment Succeeded:", {
+            paymentIntentId: paymentIntent.id,
+            status: paymentIntent.status,
+            amount: paymentIntent.amount,
+            currency: paymentIntent.currency,
+            productName,
+            bookingId,
+          });
+          setSuccessUI(true);
+          onSuccess();
+          const successUrl = `/payment-success?payment_intent=${
+            paymentIntent.id
+          }&amount=${toMajor(
+            amount!,
+            currency!
+          )}&currency=${currency}&product_name=${encodeURIComponent(
+            productName
+          )}&redirect_status=succeeded&payment_method=${paymentMethod!.id}${
+            bookingId ? `&bookingId=${bookingId}` : ""
+          }`;
+          safeConsole.log(
+            "🔍 [StripePaymentForm] Redirecting to success URL:",
+            successUrl
+          );
+          window.location.href = successUrl;
+          return;
+        }
+
+        if (paymentIntent?.status === "requires_action") return; // 3DS
+        if (paymentIntent?.status === "processing") {
+          setSuccessUI(true);
+          onSuccess();
+          const processingUrl = `/payment-success?payment_intent=${
+            paymentIntent.id
+          }&amount=${toMajor(
+            amount!,
+            currency!
+          )}&currency=${currency}&product_name=${encodeURIComponent(
+            productName
+          )}&redirect_status=processing&payment_method=${paymentMethod!.id}${
+            bookingId ? `&bookingId=${bookingId}` : ""
+          }`;
+          window.location.href = processingUrl;
+          return;
+        }
+
+        const message =
+          process.env.NODE_ENV === "production"
+            ? "Something went wrong"
+            : `Payment status: ${paymentIntent?.status || "unknown"}`;
+        setError(message);
+        onError(message);
+        setIsProcessing(false);
+        return;
+      }
+
+      // SetupIntent
+      const { error: setupErr, setupIntent } = await stripe.confirmCardSetup(
+        clientSecret,
+        {
+          payment_method: paymentMethod!.id,
+          return_url: `${window.location.origin}/billing-complete`,
+        }
+      );
+
+      if (setupErr) {
+        const message =
+          process.env.NODE_ENV === "production"
+            ? "Something went wrong"
+            : setupErr.message || "Setup failed";
+        setError(message);
+        onError(message);
+        setIsProcessing(false);
+        return;
+      }
+
+      if (
+        setupIntent?.status === "succeeded" ||
+        setupIntent?.status === "processing"
+      ) {
+        setSuccessUI(true);
+        onSetupSuccess?.(setupIntent.id);
+        setIsProcessing(false);
+        return;
+      }
+      if (setupIntent?.status === "requires_action") return;
+
+      const message =
+        process.env.NODE_ENV === "production"
+          ? "Something went wrong"
+          : `Setup status: ${setupIntent?.status || "unknown"}`;
+      setError(message);
+      onError(message);
+      setIsProcessing(false);
+    } catch (err: any) {
+      const message =
+        err?.message || "An unexpected error occurred. Please try again.";
+      setError(message);
+      onError(message);
+      setIsProcessing(false);
+    }
+  };
+
+  const payCta =
+    isPayment && amount != null && currency
+      ? `Pay ${new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: currency.toUpperCase(),
+        }).format(toMajor(amount, currency))}`
+      : "Set up payment method";
+
   return (
     <div className="relative">
-      {/* Header with back button */}
       {onClose && (
         <div className="absolute top-4 right-4">
           <button
@@ -301,54 +389,70 @@ function PaymentForm({
           <Shield className="w-6 h-6 text-green-600" />
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Secure Payment
+          {mode === "payment" ? "Secure Payment" : "Secure Billing Setup"}
         </h2>
         <p className="text-gray-600">
-          Complete your purchase for {productName}
+          {mode === "payment"
+            ? `Complete your purchase for ${productName}`
+            : `Add a payment method for ${productName}`}
         </p>
       </div>
 
-      {/* Order Summary */}
-      <div className="bg-gray-50 rounded-[12px] p-4 mb-6">
-        <div className="flex justify-between items-center mb-3">
-          <span className="text-sm font-medium text-gray-700">
-            Order Summary
-          </span>
-          <Badge variant="secondary" className="text-xs">
-            Secure
-          </Badge>
-        </div>
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Subtotal</span>
-            <span className="font-medium">
-              {formatAmount(amount, currency)}
+      {mode === "payment" && amount != null && currency && (
+        <div className="bg-gray-50 rounded-[12px] p-4 mb-6">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-sm font-medium text-gray-700">
+              Order Summary
             </span>
+            <Badge variant="secondary" className="text-xs">
+              Secure
+            </Badge>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Processing Fee</span>
-            <span className="font-medium">Free</span>
-          </div>
-          <div className="border-t pt-2">
-            <div className="flex justify-between font-semibold text-lg">
-              <span>Total</span>
-              <span className="text-green-600">
-                {formatAmount(amount, currency)}
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Subtotal</span>
+              <span className="font-medium">
+                {new Intl.NumberFormat("en-US", {
+                  style: "currency",
+                  currency: currency.toUpperCase(),
+                }).format(toMajor(amount, currency))}
               </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Processing Fee</span>
+              <span className="font-medium">Free</span>
+            </div>
+            <div className="border-t pt-2">
+              <div className="flex justify-between font-semibold text-lg">
+                <span>Total</span>
+                <span className="text-green-600">
+                  {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: currency.toUpperCase(),
+                  }).format(toMajor(amount, currency))}
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {mode === "setup" && (
+        <div className="bg-blue-50 rounded-[12px] p-4 mb-6 border border-blue-200">
+          <p className="text-sm text-blue-800">
+            You’re adding a payment method. You may be charged later according
+            to your plan.
+          </p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Card Input Section */}
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-3">
               Payment Method
             </label>
 
-            {/* Card Number */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Card Number
@@ -356,7 +460,7 @@ function PaymentForm({
               <div className="relative">
                 <div className="border-2 border-gray-200 rounded-[12px] p-4 bg-white hover:border-blue-300 focus-within:border-blue-500 transition-colors">
                   <CardNumberElement
-                    options={cardElementStyle}
+                    options={{ style: cardElementStyle.style }}
                     onChange={handleCardChange("number")}
                   />
                 </div>
@@ -374,7 +478,6 @@ function PaymentForm({
               </div>
             </div>
 
-            {/* Expiry Date and CVC */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -382,7 +485,7 @@ function PaymentForm({
                 </label>
                 <div className="border-2 border-gray-200 rounded-[12px] p-4 bg-white hover:border-blue-300 focus-within:border-blue-500 transition-colors">
                   <CardExpiryElement
-                    options={cardElementStyle}
+                    options={{ style: cardElementStyle.style }}
                     onChange={handleCardChange("expiry")}
                   />
                 </div>
@@ -394,7 +497,7 @@ function PaymentForm({
                 </label>
                 <div className="border-2 border-gray-200 rounded-[12px] p-4 bg-white hover:border-blue-300 focus-within:border-blue-500 transition-colors">
                   <CardCvcElement
-                    options={cardElementStyle}
+                    options={{ style: cardElementStyle.style }}
                     onChange={handleCardChange("cvc")}
                   />
                 </div>
@@ -402,20 +505,16 @@ function PaymentForm({
             </div>
           </div>
 
-          {/* Error Display */}
           {error && (
             <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-[12px]">
               <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium text-red-800">
-                  Payment Error
-                </p>
+                <p className="text-sm font-medium text-red-800">Error</p>
                 <p className="text-sm text-red-700 mt-1">{error}</p>
               </div>
             </div>
           )}
 
-          {/* Security Badges */}
           <div className="flex items-center justify-center gap-6 py-4">
             <div className="flex items-center gap-2 text-xs text-gray-500">
               <Lock className="w-4 h-4" />
@@ -432,123 +531,108 @@ function PaymentForm({
           </div>
         </div>
 
-        {/* Pay button */}
         <div className="space-y-4">
           <Button
             type="submit"
-            disabled={
-              !stripe || isProcessing || !isFormComplete || paymentSuccessful
-            }
+            disabled={!stripe || isProcessing || !isFormComplete || successUI}
             className={`w-full py-4 rounded-[12px] font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
-              paymentSuccessful
+              successUI
                 ? "bg-green-600 hover:bg-green-600"
                 : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
             } text-white`}
           >
-            {paymentSuccessful ? (
+            {successUI ? (
               <div className="flex items-center justify-center">
                 <CheckCircle className="w-5 h-5 mr-3" />
-                <span>Payment Successful!</span>
+                <span>
+                  {mode === "payment"
+                    ? "Payment Successful!"
+                    : "Setup Complete!"}
+                </span>
               </div>
             ) : isProcessing ? (
               <div className="flex items-center justify-center">
                 <Loader2 className="w-5 h-5 mr-3 animate-spin" />
-                <span>Processing Payment...</span>
+                <span>
+                  {mode === "payment"
+                    ? "Processing Payment..."
+                    : "Saving Card..."}
+                </span>
               </div>
             ) : (
               <div className="flex items-center justify-center">
                 <CreditCard className="w-5 h-5 mr-3" />
-                <span>Pay {formatAmount(amount, currency)}</span>
+                <span>
+                  {mode === "payment" && amount != null && currency
+                    ? `Pay ${new Intl.NumberFormat("en-US", {
+                        style: "currency",
+                        currency: currency.toUpperCase(),
+                      }).format(toMajor(amount, currency))}`
+                    : "Set up payment method"}
+                </span>
                 <ChevronRight className="w-5 h-5 ml-2" />
               </div>
             )}
           </Button>
-
-          <div className="text-center">
-            <p className="text-xs text-gray-500 mb-3">
-              🔒 Your payment information is encrypted and secure
-            </p>
-            <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
-              <span>• No recurring charges</span>
-              <span>• 30-day guarantee</span>
-              <span>• Instant access</span>
-            </div>
-          </div>
         </div>
       </form>
-
-      {/* Test Mode Indicator */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-[12px]">
-          <div className="flex items-start gap-3">
-            <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-yellow-800 mb-2">
-                Test Mode - Use these test cards:
-              </p>
-              <div className="grid grid-cols-1 gap-2 text-xs text-yellow-700">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono bg-yellow-100 px-2 py-1 rounded">
-                    4242 4242 4242 4242
-                  </span>
-                  <span>Visa</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono bg-yellow-100 px-2 py-1 rounded">
-                    5555 5555 5555 4444
-                  </span>
-                  <span>Mastercard</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono bg-yellow-100 px-2 py-1 rounded">
-                    3782 822463 10005
-                  </span>
-                  <span>AMEX</span>
-                </div>
-                <p className="text-yellow-600 mt-2">
-                  Any future date, any 3-digit CVC
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
+/* =============== Exported wrapper with dynamic stripeAccount =============== */
+
 interface StripePaymentFormProps {
   clientSecret: string;
-  /** amount in MINOR units (e.g. cents) */
-  amount: number;
-  currency: string;
+  mode?: "payment" | "setup";
+  amount?: number;
+  currency?: string;
   onSuccess: () => void;
+  onSetupSuccess?: (setupIntentId: string) => void;
   onError: (error: string) => void;
   onClose?: () => void;
   productName?: string;
   bookingId?: string | null;
+  /** Add this: only for Connect flows */
+  stripeAccountId?: string;
 }
 
 export default function StripePaymentForm({
   clientSecret,
+  mode = "payment",
   amount,
   currency,
   onSuccess,
+  onSetupSuccess,
   onError,
   onClose,
   productName,
   bookingId,
+  stripeAccountId, // <— NEW
 }: StripePaymentFormProps) {
+  const elementsStripe = useMemo(() => {
+    // If you pass a connected account id, Elements will send `Stripe-Account` header.
+    if (!stripePublishableKey) return null;
+    return loadStripe(
+      stripePublishableKey,
+      stripeAccountId ? { stripeAccount: stripeAccountId } : undefined
+    );
+  }, [stripeAccountId]);
+
+  if (!elementsStripe) return null;
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
-          <Elements stripe={stripePromise}>
+          <Elements stripe={elementsStripe}>
             <PaymentForm
               clientSecret={clientSecret}
+              mode={mode}
               amount={amount}
               currency={currency}
               onSuccess={onSuccess}
+              onSetupSuccess={onSetupSuccess}
               onError={onError}
               onClose={onClose}
               productName={productName}

@@ -359,11 +359,11 @@ export const dashboardSidebarConfig = {
                 icon: Home,
                 href: "/dashboard/team-tech-professional",
               },
-              {
-                label: "My Role",
-                icon: User,
-                href: "/dashboard/team-tech-professional/my-role",
-              },
+              // {
+              //   label: "My Role",
+              //   icon: User,
+              //   href: "/dashboard/team-tech-professional/my-role",
+              // },
               {
                 label: "My Bookings",
                 icon: BookOpen,

@@ -26,6 +26,18 @@ function scoreToLevel(score: number): Skill["level"] {
   return "Beginner";
 }
 
+function uniqByName(list: AISuggestion[]) {
+  const seen = new Set<string>();
+  const out: AISuggestion[] = [];
+  for (const s of list) {
+    const k = (s.name || "").trim().toLowerCase();
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    out.push(s);
+  }
+  return out;
+}
+
 export default function SkillsSection({
   skills,
   personalInfo,
@@ -130,6 +142,17 @@ export default function SkillsSection({
     return () => window.removeEventListener("keydown", onKey);
   }, [overlayOpen]);
 
+  // ---- Lock background scroll while overlay is open ----
+  useEffect(() => {
+    if (!overlayOpen) return;
+    const { body } = document;
+    const prev = body.style.overflow;
+    body.style.overflow = "hidden";
+    return () => {
+      body.style.overflow = prev;
+    };
+  }, [overlayOpen]);
+
   // ---- Fetch AI ----
   const generateAISkills = async () => {
     if (!personalInfo?.targetedJobTitle?.trim()) {
@@ -141,19 +164,18 @@ export default function SkillsSection({
       return;
     }
 
-    // Consent: require processing + training
+    // Consent: require aiProcessing only (training is optional)
     try {
       const cv = await cvService.getCV(String(cvId)).catch(() => null);
       const processing = !!(
         cv?.consent?.aiProcessing || aiConsent?.aiProcessing
       );
-      const training = !!(cv?.consent?.aiTraining || aiConsent?.aiTraining);
-      if (!processing || !training) {
+      if (!processing) {
         onShowAIConsent ? onShowAIConsent() : alert("AI consent is required.");
         return;
       }
     } catch {
-      if (!aiConsent?.aiProcessing || !aiConsent?.aiTraining) {
+      if (!aiConsent?.aiProcessing) {
         onShowAIConsent ? onShowAIConsent() : alert("AI consent is required.");
         return;
       }
@@ -167,11 +189,11 @@ export default function SkillsSection({
         undefined,
         {
           targetRole: personalInfo.targetedJobTitle,
-          industry: undefined,
+          industry: (personalInfo as any)?.industry || undefined, // include industry if you have it
         }
       );
 
-      const suggestions: AISuggestion[] =
+      const raw: AISuggestion[] =
         (res?.skills ?? [])
           .filter((s) => s?.name)
           .map((s) => ({
@@ -179,6 +201,8 @@ export default function SkillsSection({
             score: Number(s.score ?? 0),
             evidence: s.evidence,
           })) || [];
+
+      const suggestions = uniqByName(raw);
 
       if (!suggestions.length) {
         alert("No skill suggestions returned. Try again later.");
@@ -400,7 +424,7 @@ export default function SkillsSection({
                       }`}
                       onClick={() => {
                         if (alreadyAdded) return;
-                        setSelected((m) => ({ ...m, [idx]: !m[idx] }));
+                        toggleSelect(idx);
                       }}
                       title={
                         alreadyAdded
@@ -470,7 +494,7 @@ export default function SkillsSection({
                 size="sm"
                 variant="outline"
                 className="rounded-[8px]"
-                onClick={() => addSuggestions(aiSuggestions)}
+                onClick={() => addSuggestions(aiSuggestions!)}
               >
                 Add all
               </Button>
@@ -479,7 +503,7 @@ export default function SkillsSection({
                 size="sm"
                 variant="outline"
                 className="rounded-[8px]"
-                onClick={() => addSuggestions(aiSuggestions, { top5: true })}
+                onClick={() => addSuggestions(aiSuggestions!, { top5: true })}
               >
                 Add top 5
               </Button>

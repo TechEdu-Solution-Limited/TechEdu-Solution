@@ -1,9 +1,55 @@
+// src/types/payment.ts
+
+/** Common currency type */
+export type CurrencyCode = "gbp" | "usd" | "eur" | (string & {});
+
+/** Pricing models & tiering helpers (for captured snapshots) */
+export type PricingModel = "one_time" | "per_unit" | "subscription";
+export type TierType = "none" | "volume" | "graduated";
+
+/** Participant type shared across API */
+export type ParticipantType = "individual" | "team";
+
+/** A stricter union we can normalize around */
+export type UnifiedSucceeded = "succeeded" | "success";
+
+export interface CapturedPricingSnapshot {
+  /** Model at time of purchase */
+  model: PricingModel;
+  /** Quantity purchased (for per_unit) */
+  quantity?: number;
+  /** Effective unit price (after volume/tier) in MAJOR units (e.g., 135.00) */
+  unitPrice?: number;
+  /** Subtotal, VAT, total in MAJOR units */
+  subtotal?: number;
+  vat?: number;
+  total?: number;
+  /** Currency code used to display */
+  currency?: CurrencyCode;
+  /** Optional discount applied (percent) */
+  discountPercentage?: number;
+  /** Optional detail for graduated pricing */
+  tierType?: TierType;
+  graduatedDetail?: Array<{
+    qty: number;
+    unitPrice: number;
+    line: number;
+  }>;
+}
+
+/* ------------------------------------------------------------------ */
+/* Core records                                                         */
+/* ------------------------------------------------------------------ */
+
 export interface PaymentIntent {
   _id: string;
   userId: string;
   productId: string;
-  amount: number; // in cents
+
+  /** Amount in MINOR units (e.g., pence/cents). Keep this as minor to align with Stripe. */
+  amount: number;
   currency: string;
+
   productType: string;
   bookingService: string;
   platformRole: string;
@@ -11,31 +57,49 @@ export interface PaymentIntent {
   profileId: string; // Profile ID is required
   isSession: boolean;
   isClassroom: boolean;
+
   customerId?: string;
   stripePaymentIntentId?: string;
-  status: "pending" | "processing" | "succeeded" | "failed" | "cancelled";
-  createdAt: Date;
-  updatedAt: Date;
+
+  /** Keep your existing values + Stripe-style "succeeded" for consistency */
+  status: "pending" | "processing" | UnifiedSucceeded | "failed" | "cancelled";
+
+  /** Optional snapshot so UIs don’t break if product pricing changes later */
+  capturedPricing?: CapturedPricingSnapshot;
+
+  /** Use ISO strings everywhere for consistency */
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Payment {
   _id: string;
-  userId: string;
   provider: "stripe" | "flutterwave" | "paystack";
   transactionId: string;
+
+  /** Recommend: MINOR units for consistency with Stripe */
   amount: number;
-  status: "pending" | "success" | "failed";
+
+  /** Keep both for bw-compat; normalize at the API layer if desired */
+  status: "pending" | UnifiedSucceeded | "failed";
+
   currency: string;
+  userId: string;
   productId: string;
+
   jobApplicationId?: string;
   bookingId?: string;
+
   stripeProductId?: string;
   stripePriceId?: string;
+
   couponCode?: string;
   clientSecret?: string;
-  metadata: Record<string, any>;
+
+  metadata: Record<string, unknown>;
   webhookReceived: boolean;
   receiptUrl?: string;
+
   productType:
     | "Training & Certification"
     | "Academic Support Services"
@@ -44,7 +108,9 @@ export interface Payment {
     | "AI-Powered or Automation Services"
     | "Recruitment & Job Matching"
     | "Marketing, Consultation & Free Services";
+
   bookingService: string;
+
   platformRole:
     | "student"
     | "individualTechProfessional"
@@ -53,15 +119,26 @@ export interface Payment {
     | "institution"
     | "admin"
     | "visitor";
+
   profileId: string; // Profile ID is required
   isSession: boolean;
   isClassroom: boolean;
+
+  /** Optional snapshot to preserve display values */
+  capturedPricing?: CapturedPricingSnapshot;
+
   isDeleted: boolean;
   deletedAt?: string;
   deletedBy?: string;
+
+  /** Recommend using ISO string everywhere for consistency */
   createdAt: string;
   updatedAt: string;
 }
+
+/* ------------------------------------------------------------------ */
+/* Webhooks & refunds                                                  */
+/* ------------------------------------------------------------------ */
 
 export interface PaymentWebhook {
   id: string;
@@ -71,13 +148,13 @@ export interface PaymentWebhook {
     object: {
       id: string;
       object: string;
-      amount: number;
+      amount: number; // Stripe sends MINOR units
       currency: string;
       status: string;
       payment_intent?: string;
       charge?: string;
       customer?: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     };
   };
   created: number;
@@ -86,7 +163,7 @@ export interface PaymentWebhook {
 export interface PaymentRefund {
   _id: string;
   paymentId: string;
-  amount: number;
+  amount: number; // recommend MINOR units
   reason: string;
   status: "pending" | "succeeded" | "failed";
   stripeRefundId?: string;
@@ -94,10 +171,15 @@ export interface PaymentRefund {
   processedAt?: Date;
 }
 
-// Payment creation request - Updated to match new API spec
+/* ------------------------------------------------------------------ */
+/* Create / Update requests & list filters                             */
+/* ------------------------------------------------------------------ */
+
 export interface CreatePaymentIntentRequest {
+  /** MINOR units expected by backend (align with Stripe) */
   amount: number;
   currency: string;
+
   productId: string;
   productType:
     | "Training & Certification"
@@ -107,7 +189,9 @@ export interface CreatePaymentIntentRequest {
     | "AI-Powered or Automation Services"
     | "Recruitment & Job Matching"
     | "Marketing, Consultation & Free Services";
+
   bookingService: string;
+
   platformRole:
     | "student"
     | "individualTechProfessional"
@@ -116,33 +200,37 @@ export interface CreatePaymentIntentRequest {
     | "institution"
     | "admin"
     | "visitor";
-  userId: string; // User ID is required
-  profileId: string; // Profile ID is required
+
+  userId: string; // required
+  profileId: string; // required
+
   isSession: boolean;
   isClassroom: boolean;
+
   customerId?: string;
   bookingId: string;
+
   // Additional booking details for payment intent
   userNotes?: string;
-  attachments?: string[];
+  attachments?: string[]; // keep array type
   isTeam: boolean;
-  participantType: "individual" | "team";
+  participantType: ParticipantType;
 }
 
-// Simplified payment intent request for the new API structure
+/** Slim version your new API supports */
 export interface SimplePaymentIntentRequest {
   productId: string;
   isTeam: boolean;
   userNotes: string;
-  attachments?: string; // Single attachment URL
-  participantType: string; // individual | team
-  numberOfExpectedParticipants: number;
-  jobApplicationId?: string; // Optional - only included if present
-  couponCode?: string; // Optional - only included if present
-  customerId?: string; // Optional - only included if present
+  attachments?: string[]; // CHANGED: was string
+  participantType: ParticipantType; // CHANGED: was string
+  numberOfExpectedParticipants?: number; // optional for flexibility
+  jobApplicationId?: string;
+  couponCode?: string;
+  customerId?: string;
 }
 
-// Payment response
+/** Generic response wrapper */
 export interface PaymentResponse {
   success: boolean;
   message: string;
@@ -150,7 +238,7 @@ export interface PaymentResponse {
     paymentIntentId: string;
     clientSecret?: string;
     redirectUrl?: string;
-    bookingId?: string; // Booking ID from the created booking
+    bookingId?: string;
   };
   error?: {
     code: string;
@@ -176,7 +264,7 @@ export interface PaymentFilters {
   limit?: number;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
-  status?: "all" | "pending" | "success" | "failed";
+  status?: "all" | "pending" | "success" | "succeeded" | "failed";
   provider?: "all" | "stripe" | "flutterwave" | "paystack";
   productType?:
     | "all"
@@ -202,9 +290,142 @@ export interface PaymentFilters {
   search?: string;
 }
 
-// Update payment request
 export interface UpdatePaymentRequest {
-  status?: "pending" | "success" | "failed";
+  status?: "pending" | "success" | "succeeded" | "failed";
   receiptUrl?: string;
   webhookReceived?: boolean;
+}
+
+/* ------------------------------------------------------------------ */
+/* NEW: Endpoint contracts you shared (price + installments)          */
+/* ------------------------------------------------------------------ */
+
+/** GET /api/products/{id}/price-preview?quantity=... */
+export interface PricePreviewResponse {
+  ok: boolean;
+  currency: CurrencyCode;
+  model: PricingModel;
+  quantity: number;
+  subtotal: number; // MAJOR
+  vat: number; // MAJOR
+  total: number; // MAJOR
+  unitPrice?: number; // MAJOR
+  tierType?: TierType;
+  graduatedDetail?: Array<{
+    qty: number;
+    unitPrice: number;
+    line: number;
+  }>;
+}
+
+/** GET /api/products/{id}/installments-preview?quantity=... */
+export type InstallmentInterval = "day" | "week" | "month" | "year";
+
+export interface InstallmentPlan {
+  count: number;
+  interval: InstallmentInterval;
+  intervalCount: number;
+  downPaymentType: "percent" | "amount";
+  downPaymentValue: number;
+}
+
+export interface InstallmentsPreviewResponse {
+  ok: boolean;
+  currency: CurrencyCode;
+  total: number; // MAJOR
+  downPayment: number; // MAJOR
+  installments: number[]; // MAJOR
+  plan: InstallmentPlan;
+}
+
+/** POST /api/billing/installments/start */
+export interface InstallmentsStartRequest {
+  user: { id: string; email: string; name: string };
+}
+export interface InstallmentsStartResponse {
+  customerId: string;
+  clientSecret: string; // Stripe SetupIntent client_secret
+}
+
+/** POST /api/billing/installments/confirm */
+export interface InstallmentsConfirmRequest {
+  user: { id: string; email: string; name: string };
+  productId: string;
+  quantity: number;
+  plan: InstallmentPlan;
+  setupIntentId?: string; // if you confirm SI frontend and pass to server
+  paymentMethodId?: string; // or pass attached PM id
+}
+
+export interface InstallmentsConfirmEcho {
+  user: { id: string; email: string; name: string };
+  productName: string;
+  currency: CurrencyCode;
+  pricing: {
+    model: PricingModel;
+    currency: CurrencyCode;
+    basePrice?: number;
+    unitName?: string;
+    allowQuantity?: boolean;
+    minQty?: number;
+    maxQty?: number;
+  };
+  quantity: number;
+  plan: InstallmentPlan;
+}
+
+export interface InstallmentsConfirmFinal {
+  ok: true;
+  scheduleId: string;
+  total: number; // MAJOR
+  downPayment: number; // MAJOR
+  installments: number[]; // MAJOR
+  prices?: string[];
+}
+
+export type InstallmentsConfirmResponse =
+  | InstallmentsConfirmEcho
+  | InstallmentsConfirmFinal;
+
+/** POST /api/billing/installments/early-payoff */
+export interface EarlyPayoffRequest {
+  scheduleId: string;
+}
+export interface EarlyPayoffResponse {
+  ok: true;
+  invoiceId: string;
+  amountPaid: number; // MAJOR
+  currency: CurrencyCode;
+}
+
+/* ------------------------------------------------------------------ */
+/* Payment method (replace any[])                                     */
+/* ------------------------------------------------------------------ */
+
+export interface SavedPaymentMethod {
+  id: string;
+  type: "card" | "bank_account" | string;
+  brand?: string;
+  last4?: string;
+  expMonth?: number;
+  expYear?: number;
+  isDefault?: boolean;
+  /** Provider-specific fields */
+  [k: string]: unknown;
+}
+
+/* ------------------------------------------------------------------ */
+/* Type guards (handy in UI)                                          */
+/* ------------------------------------------------------------------ */
+
+export function isInstallmentsConfirmFinal(
+  r: InstallmentsConfirmResponse
+): r is InstallmentsConfirmFinal {
+  return (r as any)?.ok === true && "scheduleId" in (r as any);
+}
+
+export function isInstallmentsConfirmEcho(
+  r: InstallmentsConfirmResponse
+): r is InstallmentsConfirmEcho {
+  return !(r as any)?.ok;
 }

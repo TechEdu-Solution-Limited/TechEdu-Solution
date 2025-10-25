@@ -1,3 +1,4 @@
+import { Pricing } from "@/lib/constants/pricing";
 import { PRODUCT_TYPE_OPTIONS } from "@/lib/constants/productTypes";
 
 export type ProductType = (typeof PRODUCT_TYPE_OPTIONS)[number];
@@ -16,6 +17,8 @@ export interface Product {
   currency: string;
   discountPercentage?: number;
   originalPrice?: number;
+
+  pricing?: Partial<Pricing> | null;
 
   // Visual Assets
   thumbnailUrl?: string;
