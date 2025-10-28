@@ -28,6 +28,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const savedCart = localStorage.getItem("cart");
     if (savedCart) {
       try {
+        safeConsole.log(`Cart From Contxt: ${savedCart}`);
         setCartItems(JSON.parse(savedCart));
       } catch (error) {
         safeConsole.error("Error loading cart from localStorage:", error);

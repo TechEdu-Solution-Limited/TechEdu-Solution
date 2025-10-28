@@ -247,7 +247,7 @@ export default function SkillsSection({
           </button>
 
           {/* AI button (opens full-screen overlay) */}
-          <Button
+          {/* <Button
             type="button"
             variant="outline"
             size="sm"
@@ -272,7 +272,7 @@ export default function SkillsSection({
             <span className="text-sm">
               {overlayOpen ? "Hide AI" : "AI Suggestions"}
             </span>
-          </Button>
+          </Button> */}
         </div>
       </div>
 

@@ -6,8 +6,8 @@ export const PRODUCT_TYPE_OPTIONS = [
   "Corporate & Business Consultancy",
   "Career Connect",
   // "Institutional & Team Services",
-  // "AI-Powered or Automation Services",
-  // "Marketing, Consultation & Free Services",
+  "Tools",
+  "Marketing, Consultation & Free Services",
 ] as const;
 
 // Tab types for pricing page

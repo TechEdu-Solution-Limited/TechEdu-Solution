@@ -1,3 +1,5 @@
+// /types/cart.ts
+
 export interface CartItem {
   id: string;
   title: string;
@@ -28,7 +30,7 @@ export interface CartItem {
   hasCertificate?: boolean;
   requiresEnrollment?: boolean;
   isBookableService?: boolean;
-  isAttachmentRequired?: boolean; // New field to indicate if attachments are required
+  isAttachmentRequired?: boolean;
   instructorId?: string;
   instructorName?: string;
   virtualPlatform?: string;
@@ -50,11 +52,11 @@ export interface CartItem {
   };
 
   pricing?: {
-    model: "one_time" | "subscription"; // add other variants later if you introduce them
+    model: "one_time" | "subscription";
     currency?: string;
     allowQuantity?: boolean;
     taxInclusive?: boolean;
-    basePrice?: number; // major units
+    basePrice?: number; // major
     tierType?: "none" | "volume" | "graduated";
     minQty?: number;
     maxQty?: number;
@@ -64,14 +66,23 @@ export interface CartItem {
       intervalCount?: number;
       downPaymentType?: "none" | "percent" | "amount";
       downPaymentValue?: number;
-      count?: number; // number of installments
+      count?: number;
       allowEarlyPayoff?: boolean;
     };
     autoRenew?: boolean;
+
+    // subscription fields used in checkout
+    subscriptionPrice?: number;
+    interval?: "day" | "week" | "month" | "year";
+    intervalCount?: number;
+    trialDays?: number;
+    setupFee?: number;
+    proration?: boolean;
+    vatPercentage?: number;
   };
 }
 
-/* ---------------------------- Types ----------------------------- */
+/* -------- Price preview from server -------- */
 export type PricePreview = {
   ok?: boolean;
   currency: string;
@@ -80,7 +91,8 @@ export type PricePreview = {
   vat: number;
   total: number;
   unitPrice?: number;
-  model?: string; // "per_unit" | "subscription" | ...
+  model?: string; // "one_time" | "subscription"
   tierType?: string;
 };
+
 export type BillingChoice = "pay_in_full" | "installments" | "subscription";

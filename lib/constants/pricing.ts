@@ -10,7 +10,11 @@ export type Currency =
   | "jpy"
   | "inr"
   | "ngn";
-export type PricingModel = "one_time" | "subscription" | "per_unit";
+export type PricingModel =
+  | "one_time"
+  | "subscription"
+  | "per_unit"
+  | "installments";
 export type Interval = "day" | "week" | "month" | "year";
 export type TierType = "none" | "volume" | "graduated" | "stairstep";
 export type DownPaymentType = "percent" | "amount";

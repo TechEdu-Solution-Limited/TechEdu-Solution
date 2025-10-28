@@ -1,4 +1,5 @@
 import { UserBooking } from "@/types/booking";
+import type { PricingModel, TierType } from "@/lib/constants/pricing";
 
 // Helper function to get the primary date/time for display
 export const getPrimaryDateTime = (booking: UserBooking) => {
@@ -73,3 +74,74 @@ export const formatDateTime = (dateString: string) => {
     minute: "2-digit",
   });
 };
+
+// Helper function for pricing
+// ⬇️ place near your other helpers (top of file)
+
+// Map product.TierType → cart's allowed tier union
+export const normalizeTierType = (
+  t?: TierType
+): "none" | "volume" | "graduated" | undefined => {
+  if (!t) return undefined;
+  if (t === "stairstep") return "graduated";
+  if (t === "none" || t === "volume" || t === "graduated") return t;
+  return undefined;
+};
+
+// Map product.PricingModel → cart's allowed model union
+export const normalizeCartModel = (
+  m?: PricingModel
+): "one_time" | "subscription" =>
+  m === "subscription" ? "subscription" : "one_time";
+
+type Tier = { upTo: number; unitPrice: number };
+
+/**
+ * Returns the per-tier unitPrice for the smallest `upTo` ≥ qty.
+ * If qty is greater than all `upTo`, returns the unitPrice of the maximum `upTo`.
+ * Strict camel `upTo` only (no `upto`).
+ *
+ * @param tiersArray - Array of tiers (may be unsorted and/or partial).
+ * @param qtyInput   - Quantity (total team members).
+ * @returns unitPrice of the hit tier, or the max-tier price if qty is above all caps, or null if no valid tiers exist.
+ */
+export function getTierUnitPrice(
+  tiersArray: ReadonlyArray<Partial<Tier>> | null | undefined,
+  qtyInput: number
+): number | null {
+  const qty = Math.max(0, Math.floor(Number(qtyInput)));
+  if (!Number.isFinite(qty) || !tiersArray?.length) return null;
+
+  let bestUpTo: number | null = null; // smallest upTo >= qty
+  let bestPrice: number | null = null;
+
+  let maxUpTo: number | null = null; // largest upTo (fallback)
+  let maxPrice: number | null = null;
+
+  for (const t of tiersArray) {
+    if (!t) continue;
+
+    const cap = Number((t as any).upTo);
+    const price = Number((t as any).unitPrice);
+
+    if (!Number.isFinite(cap) || !Number.isFinite(price) || price < 0) {
+      continue; // skip invalid rows
+    }
+
+    // Track the smallest cap that still covers qty
+    if (cap >= qty && (bestUpTo === null || cap < bestUpTo)) {
+      bestUpTo = cap;
+      bestPrice = price;
+    }
+
+    // Track the overall maximum cap (for qty above all caps)
+    if (maxUpTo === null || cap > maxUpTo) {
+      maxUpTo = cap;
+      maxPrice = price;
+    }
+  }
+
+  if (bestPrice != null) return bestPrice; // we found the smallest cap ≥ qty
+  if (maxPrice != null) return maxPrice; // qty above all caps → use max tier
+  return null; // no valid tiers
+}

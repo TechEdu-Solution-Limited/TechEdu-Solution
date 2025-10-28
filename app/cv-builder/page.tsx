@@ -185,8 +185,8 @@ export const PRICING_PLANS: Array<{
   },
   {
     key: "scholarship",
-    title: "Scholarship Pro",
-    price: "£10 one-time",
+    title: "Pro Access + Coach",
+    price: "Subscription options",
     description: [
       "Strategy guides + templates",
       "Includes full coach feedback on 1–2 documents",

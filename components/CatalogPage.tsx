@@ -1,6 +1,9 @@
+// components/CatalogPage.tsx
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,37 +16,20 @@ import {
   PaginationEllipsis,
   PaginationLink,
 } from "@/components/ui/pagination";
-import Image from "next/image";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "./ui/select";
+
 import { useCart } from "@/contexts/CartContext";
-import Link from "next/link";
 import type { CartItem } from "@/types/cart";
 import type { Product } from "@/types/product";
-import { getApiRequest } from "@/lib/apiFetch";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { safeConsole } from "@/lib/console";
-import { SORT_OPTIONS } from "@/lib/constants/productTypes";
 
-// ✅ Pricing types + helpers
-// If your file is "@/lib/constant/pricing", change this import path accordingly.
-import type {
-  Pricing,
-  PricingModel,
-  Currency,
-  TierType,
-} from "@/lib/constants/pricing";
-import {
-  getPrimaryPrice,
-  getDiscountPercent,
-  inferCurrency,
-  formatMoneySafe,
-} from "@/utils/pricingDisplay";
+import { getApiRequest } from "@/lib/apiFetch";
+import { safeConsole } from "@/lib/console";
+import type { Pricing } from "@/lib/constants/pricing";
+import { normalizeCartModel, normalizeTierType } from "@/utils/helpers";
+import { getCurrencySymbol } from "@/lib/constants/currencies";
+
+// ⬇️ NEW: team hook
+import { teamFetcher } from "@/utils/teamFetcher";
+import { number } from "framer-motion";
 
 interface CatalogPageProps {
   productType?: string;
@@ -52,6 +38,86 @@ interface CatalogPageProps {
   emptyStateTitle?: string;
   emptyStateDescription?: string;
 }
+
+/* ----------------------------- Pricing helpers ----------------------------- */
+
+const getUpTo = (t: any): number | undefined =>
+  typeof t?.upTo === "number"
+    ? t.upTo
+    : typeof t?.upto === "number"
+    ? t.upto
+    : undefined;
+
+const pickTier = (tiers: any[] = [], qty: number) => {
+  if (!tiers.length) return { tier: undefined, index: -1 };
+  const idx = tiers.findIndex((t) => {
+    const upTo = getUpTo(t);
+    return typeof upTo === "number" ? qty <= upTo : false;
+  });
+  const index = idx >= 0 ? idx : tiers.length - 1;
+  return { tier: tiers[index], index };
+};
+
+const isStairstep = (pricing: Pricing) =>
+  pricing?.model === "per_unit" &&
+  (pricing.tierType ?? "volume") === "stairstep";
+
+const isVolume = (pricing?: Pricing) =>
+  pricing?.model === "per_unit" &&
+  (pricing.tierType ?? "volume") !== "stairstep";
+
+/**
+ * Display amount rules:
+ * - one_time → basePrice
+ * - subscription → subscriptionPrice
+ * - per_unit / volume → (per-unit price at tier picked by membersCount) × (membersCount + 1 admin)
+ * - per_unit / stairstep → flat band price (tier picked by membersCount), no multiplication
+ */
+const teamAwareDisplayAmount = (
+  pricing: Partial<Pricing> | null,
+  membersCount: number // ← number of team members (EXCLUDING admin)
+): number => {
+  if (!pricing) return 0;
+
+  switch (pricing.model) {
+    case "one_time":
+      return Number(pricing.basePrice) ?? 0;
+
+    case "subscription":
+      return Number(pricing.subscriptionPrice) ?? 0;
+
+    case "per_unit": {
+      const tierQty = Math.max(1, membersCount);
+      const { tier } = pickTier(pricing.tiers ?? [], tierQty);
+      const unitOrFlat = tier?.unitPrice ?? pricing.basePrice ?? 0;
+
+      if (isStairstep(pricing as Pricing)) {
+        // flat band total
+        return Number(unitOrFlat);
+      }
+      // volume → multiply by (members + admin)
+      const qtyMultiplier = Math.max(1, membersCount + 1);
+      return Number(unitOrFlat * qtyMultiplier);
+    }
+
+    default:
+      return 0;
+  }
+};
+
+const pricingBadgeLabel = (pricing: Pricing | undefined): string => {
+  if (!pricing) return "unit";
+  if (pricing.model === "per_unit") {
+    return isStairstep(pricing) ? "flat" : pricing.unitName || "unit";
+  }
+  if (pricing.model === "one_time") return "person";
+  if (pricing.model === "subscription") return "team";
+  return "unit";
+};
+
+/** For our totals view, we never append "/". Keep slash only for one_time. */
+const showSlash = (pricing: Pricing | undefined): boolean =>
+  pricing?.model === "one_time";
 
 export default function CatalogPage({
   productType = "Training & Certification",
@@ -63,166 +129,52 @@ export default function CatalogPage({
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
 
+  // Basic filters
   const [deliveryMode, setDeliveryMode] = useState("all");
   const [sessionType, setSessionType] = useState("all");
   const [difficulty, setDifficulty] = useState("");
   const [sortBy, setSortBy] = useState("default");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-
-  // Additional filters
-  const [isRecurring, setIsRecurring] = useState<boolean | null>(null);
-  const [requiresBooking, setRequiresBooking] = useState<boolean | null>(null);
-  const [hasCertificate, setHasCertificate] = useState<boolean | null>(null);
-  const [hasClassroom, setHasClassroom] = useState<boolean | null>(null);
-  const [hasSession, setHasSession] = useState<boolean | null>(null);
-  const [hasAssessment, setHasAssessment] = useState<boolean | null>(null);
-  const [isBookableService, setIsBookableService] = useState<boolean | null>(
-    null
-  );
-  const [requiresEnrollment, setRequiresEnrollment] = useState<boolean | null>(
-    null
-  );
-  const [mode, setMode] = useState("all");
-  const [minPrice, setMinPrice] = useState<number | null>(null);
-  const [maxPrice, setMaxPrice] = useState<number | null>(null);
-  const [minDiscount, setMinDiscount] = useState<number | null>(null);
-  const [maxDiscount, setMaxDiscount] = useState<number | null>(null);
-  const [minDuration, setMinDuration] = useState<number | null>(null);
-  const [maxDuration, setMaxDuration] = useState<number | null>(null);
-  const [minProgramLength, setMinProgramLength] = useState<number | null>(null);
-  const [maxProgramLength, setMaxProgramLength] = useState<number | null>(null);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const perPage = 12;
 
   const { addToCart, isInCart } = useCart();
-  const [flyingItem, setFlyingItem] = useState<any>(null);
+
+  const [flyingItem, setFlyingItem] = useState<{
+    id: string;
+    title: string;
+    image: string;
+    startPos: { x: number; y: number };
+    endPos: { x: number; y: number };
+  } | null>(null);
+
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+
   const [categories, setCategories] = useState<string[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  /* ---------------------- Pricing helpers (TS-safe) ---------------------- */
+  // ⬇️ Pull team data (members + admin)
+  const { members, loading: teamLoading, fetchTeamData } = teamFetcher();
 
-  // Normalize pricing for helper calls (helpers expect pricing?: Partial<Pricing> | undefined, not null)
-  function toHelperShape(p: Product) {
-    return {
-      ...p,
-      pricing: p.pricing ?? undefined,
-      // Some helpers look for top-level fallbacks too
-      discountPercentage: p.discountPercentage,
-      currency: p.currency,
-      price: p.price,
-    };
-  }
+  useEffect(() => {
+    fetchTeamData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Get display currency (lowercase Currency literal)
-  function pickCurrency(p: Product): Currency {
-    const helperIn = toHelperShape(p);
-    const inferred = inferCurrency(helperIn) as Currency | undefined;
-    const top = (p.currency || inferred || "usd").toLowerCase();
-    return top as string as Currency;
-  }
-
-  // Return base/final/pricing label safely
-  const priceParts = (p: Product) => {
-    const helperIn = toHelperShape(p);
-    const cur = pickCurrency(p);
-
-    // Base/original (prefer explicit originalPrice; else helper; else top-level)
-    const helperBase = Number(getPrimaryPrice(helperIn) || 0);
-    const base =
-      typeof p.originalPrice === "number"
-        ? p.originalPrice
-        : helperBase > 0
-        ? helperBase
-        : typeof p.price === "number"
-        ? p.price
-        : 0;
-
-    // Discount % (prefer top-level, else helper, else derive)
-    let pct =
-      typeof p.discountPercentage === "number"
-        ? p.discountPercentage
-        : getDiscountPercent(helperIn) || 0;
-    if (
-      !pct &&
-      typeof p.originalPrice === "number" &&
-      typeof p.price === "number" &&
-      p.originalPrice > p.price
-    ) {
-      pct = Math.round((1 - p.price / p.originalPrice) * 100);
-    }
-
-    // Final price (prefer explicit top-level discounted, else apply pct to base)
-    const final =
-      typeof p.price === "number" && p.price > 0
-        ? p.price
-        : pct
-        ? base * (1 - pct / 100)
-        : base;
-
-    return {
-      base,
-      pct,
-      cur,
-      final,
-      fmtBase: formatMoneySafe(base, cur),
-      fmtFinal: formatMoneySafe(final, cur),
-    };
-  };
-
-  // Is per-unit (used as “per person” when unitName suggests that)
-  const modelOf = (p: Product): PricingModel | "one_time" => {
-    const m = p.pricing?.model;
-    if (!m) return p.isRecurring ? "subscription" : "one_time";
-    return m;
-  };
-
-  const unitName = (p: Product): string => {
-    const u = p.pricing?.unitName;
-    if (u) return u;
-    // fall back to program mode for a reasonable label
-    const m = (p.mode || "").toLowerCase();
-    if (m === "hours") return "hour";
-    if (m === "days") return "day";
-    if (m === "weeks") return "week";
-    if (m === "months") return "month";
-    if (m === "sessions") return "session";
-    return "unit";
-  };
-
-  const isPerUnit = (p: Product) => modelOf(p) === "per_unit";
-  const isPerPerson = (p: Product) => {
-    if (!isPerUnit(p)) return false;
-    const u = unitName(p).toLowerCase();
-    return ["person", "participant", "seat", "member"].includes(u);
-  };
-
-  type BillingDescription = { key: string; label: string };
-  const describeBilling = (p: Product): BillingDescription => {
-    const m = modelOf(p);
-    if (m === "subscription") {
-      const count = p.pricing?.intervalCount || 1;
-      const interval = (p.pricing?.interval || "month") as string;
-      const pretty = count > 1 ? `${count} ${interval}s` : interval;
-      return { key: "subscription", label: `/${pretty}` };
-    }
-    if (m === "per_unit") {
-      const label = isPerPerson(p) ? "per person" : `per ${unitName(p)}`;
-      return { key: "per_unit", label };
-    }
-    return { key: "one_time", label: "one-time" };
-  };
+  const membersCount = Math.max(0, members?.length || 0); // excludes admin
+  const qtyMultiplier = Math.max(1, membersCount + 1); // includes admin
 
   /* ---------------------------- Categories ---------------------------- */
 
@@ -233,11 +185,11 @@ export default function CatalogPage({
       productType,
     })
       .then((data) => {
-        const products = (data?.data?.data?.products || []) as Product[];
+        const prods = (data?.data?.data?.products || []) as Product[];
         const map: Record<string, string> = {};
         const unique = [
           ...new Set(
-            products
+            prods
               .map((product) => {
                 if (
                   product.productSubcategoryName &&
@@ -265,6 +217,7 @@ export default function CatalogPage({
       .catch((err) => {
         safeConsole.error("Error fetching categories:", err);
         setCategories([]);
+        setCategoryMap({});
       })
       .finally(() => setCategoriesLoading(false));
   }, [productType]);
@@ -284,7 +237,6 @@ export default function CatalogPage({
       payload.total ??
       headersTotal ??
       0;
-
     const pages =
       pg.totalPages ??
       pg.pages ??
@@ -297,10 +249,8 @@ export default function CatalogPage({
   useEffect(() => {
     setLoading(true);
     setError(null);
-    const params: Record<string, any> = {
-      page,
-      limit: perPage,
-    };
+
+    const params: Record<string, any> = { page, limit: perPage };
     if (search) params.search = search;
     if (category) {
       if (categoryMap[category]) {
@@ -311,7 +261,6 @@ export default function CatalogPage({
         ) {
           params.productSubCategoryId = categoryId;
         } else {
-          safeConsole.warn("Invalid category ID format:", categoryId);
           params.productSubcategoryName = category;
         }
       } else {
@@ -324,27 +273,6 @@ export default function CatalogPage({
     if (difficulty) params.difficultyLevel = difficulty;
     if (sortBy !== "default") params.sortBy = sortBy;
     if (sortOrder) params.sortOrder = sortOrder;
-
-    // Additional filters
-    if (isRecurring !== null) params.isRecurring = isRecurring;
-    if (requiresBooking !== null) params.requiresBooking = requiresBooking;
-    if (hasCertificate !== null) params.hasCertificate = hasCertificate;
-    if (hasClassroom !== null) params.hasClassroom = hasClassroom;
-    if (hasSession !== null) params.hasSession = hasSession;
-    if (hasAssessment !== null) params.hasAssessment = hasAssessment;
-    if (isBookableService !== null)
-      params.isBookableService = isBookableService;
-    if (requiresEnrollment !== null)
-      params.requiresEnrollment = requiresEnrollment;
-    if (mode !== "all") params.mode = mode;
-    if (minPrice !== null) params.minPrice = minPrice;
-    if (maxPrice !== null) params.maxPrice = maxPrice;
-    if (minDiscount !== null) params.minDiscount = minDiscount;
-    if (maxDiscount !== null) params.maxDiscount = maxDiscount;
-    if (minDuration !== null) params.minDuration = minDuration;
-    if (maxDuration !== null) params.maxDuration = maxDuration;
-    if (minProgramLength !== null) params.minProgramLength = minProgramLength;
-    if (maxProgramLength !== null) params.maxProgramLength = maxProgramLength;
 
     getApiRequest<any>("/api/products/public", undefined, params)
       .then((resp) => {
@@ -372,66 +300,39 @@ export default function CatalogPage({
     difficulty,
     sortBy,
     sortOrder,
-    isRecurring,
-    requiresBooking,
-    hasCertificate,
-    hasClassroom,
-    hasSession,
-    hasAssessment,
-    isBookableService,
-    requiresEnrollment,
-    mode,
-    minPrice,
-    maxPrice,
-    minDiscount,
-    maxDiscount,
-    minDuration,
-    maxDuration,
-    minProgramLength,
-    maxProgramLength,
-    totalItems,
-    totalPages,
+    perPage,
   ]);
 
-  /* ------------------------ Add to cart (TS-safe) ------------------------ */
-
-  // Normalize tier type for cart (if your CartItem only allows "none" | "volume" | "graduated")
-  const normalizeTierType = (
-    t?: TierType
-  ): "none" | "volume" | "graduated" | undefined => {
-    if (!t) return undefined;
-    if (t === "stairstep") return "graduated";
-    if (t === "none" || t === "volume" || t === "graduated") return t;
-    return undefined;
-  };
-
-  const normalizedCartModel = (m: PricingModel | "one_time") =>
-    m === "subscription" ? "subscription" : "one_time"; // treat per_unit as one_time by default
+  /* ------------------------ Add to cart handle ------------------------ */
 
   const handleAddToCart = (product: Product, event: React.MouseEvent) => {
-    const requiresBooking =
-      product.requiresBooking || product.isBookableService || false;
+    event.stopPropagation();
 
-    // Flying animation origin/target
+    const requiresBooking = !!(
+      product.requiresBooking || product.isBookableService
+    );
+
+    // fly animation
     const button = event.currentTarget as HTMLElement;
     const buttonRect = button.getBoundingClientRect();
     const cartIcon = document.querySelector(
       '[aria-controls="cart-dropdown"]'
-    ) as HTMLElement;
-    let cartPos = { x: window.innerWidth - 80, y: 60 };
-    if (cartIcon) {
-      const cartRect = cartIcon.getBoundingClientRect();
-      cartPos = {
-        x: cartRect.left + cartRect.width / 2,
-        y: cartRect.top + cartRect.height / 2,
-      };
-    }
+    ) as HTMLElement | null;
+
+    const cartPos = cartIcon
+      ? (() => {
+          const cartRect = cartIcon.getBoundingClientRect();
+          return {
+            x: cartRect.left + cartRect.width / 2,
+            y: cartRect.top + cartRect.height / 2,
+          };
+        })()
+      : { x: window.innerWidth - 80, y: 60 };
+
     const startPos = {
       x: buttonRect.left + buttonRect.width / 2,
       y: buttonRect.top + buttonRect.height / 2,
     };
-
-    const pp = priceParts(product);
 
     setFlyingItem({
       id: product._id,
@@ -446,8 +347,8 @@ export default function CatalogPage({
         id: product._id,
         title: product.service,
         description: product.description || "",
-        price: pp.base, // snapshot; server preview will compute totals
-        currency: pp.cur, // NOTE: if your CartItem expects string, you can cast: pp.cur as unknown as string
+        price: product.pricing?.basePrice || 0, // snapshot; server will recompute
+        currency: (product.currency || "gbp").toUpperCase(),
         discountPercentage:
           typeof product.discountPercentage === "number"
             ? product.discountPercentage
@@ -456,30 +357,29 @@ export default function CatalogPage({
           product.productCategoryTitle || product.category || "Uncategorized",
         productType: product.productType,
         image: product.thumbnailUrl || "/assets/default-product.png",
-        duration: `${product.programLength} ${product.mode}`,
-        certificate: product.hasCertificate,
+        duration:
+          typeof product.programLength === "number" && product.mode
+            ? `${product.programLength} ${product.mode}`
+            : `${product.durationInMinutes}` || "",
+        certificate: !!product.hasCertificate,
         status: product.enabled ? "active" : "inactive",
         level: product.productSubcategoryName || "",
         requiresBooking,
 
-        // ➕ Pricing metadata for Cart; keep within Cart types
-        // ✅ AFTER (compiles cleanly)
         pricing: {
-          model: normalizedCartModel(modelOf(product)),
-          currency: pp.cur as unknown as string as any,
+          model: normalizeCartModel(product.pricing?.model),
+          currency: (product.currency || "gbp").toLowerCase(),
           allowQuantity: !!product.pricing?.allowQuantity,
           minQty:
             typeof product.pricing?.minQty === "number"
-              ? product.pricing!.minQty!
+              ? product.pricing.minQty
               : 1,
           maxQty:
             typeof product.pricing?.maxQty === "number"
-              ? product.pricing!.maxQty!
+              ? product.pricing.maxQty
               : 0,
-          tierType: normalizeTierType(product.pricing?.tierType),
+          tierType: normalizeTierType(product.pricing?.tierType) ?? "none",
           taxInclusive: !!product.pricing?.taxInclusive,
-          // interval: product.pricing?.interval,
-          // intervalCount: product.pricing?.intervalCount,
           installments: product.pricing?.installments?.enabled
             ? {
                 enabled: true,
@@ -493,9 +393,18 @@ export default function CatalogPage({
                   product.pricing?.installments?.allowEarlyPayoff,
               }
             : { enabled: false },
+
+          // optional subscription-ish
+          subscriptionPrice: product.pricing?.basePrice,
+          interval: product.pricing?.interval,
+          intervalCount: product.pricing?.intervalCount,
+          trialDays: product.pricing?.trialDays,
+          setupFee: product.pricing?.setupFee,
+          proration: product.pricing?.proration,
+          vatPercentage: product.pricing?.vatPercentage,
         },
 
-        // Booking-side metadata your Cart expects
+        // Booking metadata
         deliveryMode: product.deliveryMode,
         sessionType: product.sessionType,
         isRecurring: product.isRecurring,
@@ -509,7 +418,7 @@ export default function CatalogPage({
         hasCertificate: product.hasCertificate,
         requiresEnrollment: product.requiresEnrollment,
         isBookableService: product.isBookableService,
-        isAttachmentRequired: product.isAttachmentRequired || false,
+        isAttachmentRequired: !!product.isAttachmentRequired,
         instructorId: product.instructorId,
         instructorName: product.instructorName,
         virtualPlatform: product.virtualPlatform,
@@ -523,8 +432,11 @@ export default function CatalogPage({
               phone: "",
               preferredDate: undefined,
               preferredTime: "",
-              numberOfParticipants: 1,
-              participantType: "individual" as const,
+              // ⬇️ For volume, participants = members + admin; for others default to 1
+              numberOfParticipants: isVolume(product.pricing as Pricing)
+                ? qtyMultiplier
+                : 1,
+              participantType: "individual",
               userNotes: "",
               bookingId: "",
               bookingData: {
@@ -534,7 +446,11 @@ export default function CatalogPage({
                 bookingPurpose: product.service,
                 minutesPerSession: product.minutesPerSession,
                 durationInMinutes: product.durationInMinutes,
-                numberOfExpectedParticipants: 1,
+                numberOfExpectedParticipants: isVolume(
+                  product.pricing as Pricing
+                )
+                  ? qtyMultiplier
+                  : 1,
                 isClassroom: product.hasClassroom,
                 isSession: product.hasSession,
                 participantType: "individual",
@@ -549,6 +465,7 @@ export default function CatalogPage({
             }
           : undefined,
       };
+
       addToCart(cartItem);
       setFlyingItem(null);
     }, 800);
@@ -562,8 +479,8 @@ export default function CatalogPage({
     try {
       const data = await getApiRequest<any>(`/api/products/public/${id}`);
       setSelectedProduct((data?.data?.data || null) as Product | null);
-    } catch (error) {
-      safeConsole.error("Error fetching product details:", error);
+    } catch (err) {
+      safeConsole.error("Error fetching product details:", err);
       setSelectedProduct(null);
     } finally {
       setDetailsLoading(false);
@@ -610,12 +527,13 @@ export default function CatalogPage({
             >
               All Programs
             </button>
+
             {categoriesLoading ? (
               <div className="px-4 md:px-6 py-2.5 font-medium text-gray-400 border border-gray-200 rounded-full">
                 Loading categories...
               </div>
             ) : (
-              categories.map((cat: string) => (
+              categories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => {
@@ -638,7 +556,7 @@ export default function CatalogPage({
 
       {/* Search */}
       <div className="flex justify-center mb-8">
-        <div className="relative w-full max-w-md">
+        <div className="relative w/full max-w-md">
           <Input
             placeholder="Search for skills, topics, or courses..."
             value={search}
@@ -648,7 +566,10 @@ export default function CatalogPage({
             }}
             className="rounded-full pl-4 pr-12 py-3 text-lg"
           />
-          <button className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700">
+          <button
+            aria-label="Search"
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700"
+          >
             <svg
               className="w-4 h-4"
               fill="none"
@@ -666,13 +587,9 @@ export default function CatalogPage({
         </div>
       </div>
 
-      {/* Advanced Filters */}
-      {/* ... (unchanged UI from your last version; omitted here for brevity if desired) ... */}
-
       {/* Product Grid */}
       <main className="flex-1">
         {loading ? (
-          /* skeletons ... */
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <div
@@ -682,30 +599,36 @@ export default function CatalogPage({
             ))}
           </div>
         ) : error ? (
-          <p>Error loading products: {error.message}</p>
+          <div className="text-center text-red-600">{error.message}</div>
         ) : products.length === 0 ? (
-          /* empty state ... */
-          <div className="text-center py-16">No products.</div>
+          <div className="text-center py-16">
+            <h3 className="text-lg font-semibold text-gray-800">
+              {emptyStateTitle}
+            </h3>
+            <p className="text-gray-500 mt-1">{emptyStateDescription}</p>
+          </div>
         ) : (
           <>
             {/* Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {products.map((product) => {
-                const pp = priceParts(product);
-                const bill = describeBilling(product);
+                const displayAmount = teamAwareDisplayAmount(
+                  (product.pricing as Pricing) || null,
+                  membersCount
+                );
 
                 return (
                   <Card
                     key={product._id}
                     className="flex flex-col h-full bg-white border border-gray-200 rounded-[12px] shadow-sm hover:shadow-lg transition-all duration-200 group cursor-pointer"
                     onClick={(e) => {
+                      const origin = e.target as HTMLElement;
                       if (
-                        (e.target as HTMLElement).closest(
-                          "button[data-add-to-cart]"
-                        ) ||
-                        (e.target as HTMLElement).closest("svg")
+                        origin.closest("button[data-add-to-cart]") ||
+                        origin.closest("svg")
                       )
                         return;
+
                       if (product.slug) {
                         window.location.href = `/training/catalog/${product.slug}`;
                       } else {
@@ -724,9 +647,9 @@ export default function CatalogPage({
                         fill
                         className="object-cover transition-transform duration-200 group-hover:scale-105"
                       />
-                      {!!pp.pct && pp.pct > 0 && (
+                      {(product.pricing?.discountPercent || 0) > 0 && (
                         <span className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-amber-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow">
-                          -{pp.pct}%
+                          -{product.pricing?.discountPercent}%
                         </span>
                       )}
                     </div>
@@ -741,83 +664,72 @@ export default function CatalogPage({
 
                       <div className="flex flex-wrap gap-2 mb-3">
                         <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">
-                          {product.productCategoryTitle ||
-                            product.category ||
-                            "Uncategorized"}
+                          {product.productCategoryTitle || ""}
                         </span>
                         <span className="bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full">
                           {product.productType}
                         </span>
-                        <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">
-                          {product.sessionType}
-                        </span>
-                        {/* billing pill */}
+                        {product.sessionType && (
+                          <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">
+                            {product.sessionType}
+                          </span>
+                        )}
                         <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full">
-                          {bill.key === "subscription"
-                            ? "subscription"
-                            : bill.label}
+                          {product.pricing?.model || ""}
                         </span>
                       </div>
 
-                      <div className="flex items-end justify-between mt-auto">
-                        <div className="flex flex-col items-baseline gap-1">
+                      <div className="flex items-start justify-between mt-auto">
+                        <div className="flex flex-col items-start gap-1">
                           <div className="flex items-baseline gap-1">
                             <span className="text-lg font-bold text-blue-600">
-                              {pp.fmtFinal}
+                              {getCurrencySymbol(product.currency || "gbp")}{" "}
+                              {displayAmount}
+                              {showSlash(product.pricing as Pricing)
+                                ? " /"
+                                : ""}
                             </span>
-                            <span className="text-xs text-gray-500">
-                              {bill.label}
+                            <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full">
+                              {pricingBadgeLabel(product.pricing as Pricing)}
                             </span>
                           </div>
-                          {!!pp.pct && pp.pct > 0 && (
-                            <span className="text-xs text-gray-500 line-through">
-                              {pp.fmtBase}
+
+                          {isVolume(product.pricing as Pricing) && (
+                            <span className="text-xs text-gray-500">
+                              team total for {qtyMultiplier} persons (members +
+                              admin)
                             </span>
                           )}
-                        </div>
-
-                        <div className="flex gap-2">
-                          {isInCart(product._id) ? (
-                            <Button
-                              className="bg-green-500 hover:bg-green-600 rounded-[10px] text-white px-4 py-2"
-                              disabled
-                              data-add-to-cart
-                            >
-                              In Cart
-                            </Button>
-                          ) : (
-                            <Button
-                              className="bg-blue-600 hover:bg-blue-700 rounded-[10px] text-white px-4 py-2"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAddToCart(product, e);
-                              }}
-                              data-add-to-cart
-                            >
-                              {product.requiresBooking ||
-                              product.isBookableService
-                                ? "Book Now"
-                                : "Add to Cart"}
-                            </Button>
+                          {isStairstep(product.pricing as Pricing) && (
+                            <span className="text-xs text-gray-500">
+                              flat band picked by {membersCount} member(s)
+                            </span>
                           )}
                         </div>
                       </div>
 
-                      {/* Per-unit limits hint (covers per-person when unitName matches) */}
-                      {isPerUnit(product) && (
-                        <div className="mt-2 text-xs text-gray-500">
-                          {typeof product.pricing?.minQty === "number" &&
-                            product.pricing.minQty > 1 && (
-                              <span>Min: {product.pricing.minQty}</span>
-                            )}
-                          {typeof product.pricing?.maxQty === "number" &&
-                            product.pricing.maxQty > 0 && (
-                              <span className="ml-2">
-                                Max: {product.pricing.maxQty}
-                              </span>
-                            )}
-                        </div>
-                      )}
+                      <div className="flex gap-2 mt-4">
+                        {isInCart(product._id) ? (
+                          <Button
+                            className="bg-green-500 hover:bg-green-600 rounded-[10px] text-white px-4 py-2 w-full"
+                            disabled
+                            data-add-to-cart
+                          >
+                            In Cart
+                          </Button>
+                        ) : (
+                          <Button
+                            className="bg-blue-600 hover:bg-blue-700 rounded-[10px] text-white px-4 py-2 w-full"
+                            onClick={(e) => handleAddToCart(product, e)}
+                            data-add-to-cart
+                          >
+                            {product.requiresBooking ||
+                            product.isBookableService
+                              ? "Book Now"
+                              : "Add to Cart"}
+                          </Button>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 );
@@ -844,9 +756,7 @@ export default function CatalogPage({
                           <PaginationLink
                             onClick={() => setPage(1)}
                             isActive={page === 1}
-                            className={`cursor-pointer ${
-                              page === 1 ? "rounded-[10px]" : ""
-                            }`}
+                            className="cursor-pointer"
                           >
                             1
                           </PaginationLink>
@@ -887,9 +797,7 @@ export default function CatalogPage({
                           <PaginationLink
                             onClick={() => setPage(totalPages)}
                             isActive={page === totalPages}
-                            className={`cursor-pointer ${
-                              page === totalPages ? "rounded-[10px]" : ""
-                            }`}
+                            className="cursor-pointer"
                           >
                             {totalPages}
                           </PaginationLink>
@@ -899,7 +807,9 @@ export default function CatalogPage({
 
                     <PaginationItem>
                       <PaginationNext
-                        onClick={() => setPage((p) => p + 1)}
+                        onClick={() =>
+                          setPage((p) => Math.min(totalPages, p + 1))
+                        }
                         className={`cursor-pointer ${
                           page >= totalPages
                             ? "pointer-events-none opacity-50"
@@ -911,181 +821,6 @@ export default function CatalogPage({
                 </Pagination>
               </div>
             )}
-
-            {/* Product Details Modal */}
-            <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
-              <DialogContent className="max-w-lg w-full bg-white overflow-y-auto h-screen">
-                {detailsLoading ? (
-                  <div className="space-y-4 animate-pulse">
-                    <div
-                      className="w-full aspect-video bg-gray-200 rounded-[12px]"
-                      style={{ minHeight: 180 }}
-                    />
-                    <div className="h-6 bg-gray-200 rounded w-2/3 mx-auto" />
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto" />
-                  </div>
-                ) : selectedProduct ? (
-                  (() => {
-                    const ppSel = priceParts(selectedProduct);
-                    const billSel = describeBilling(selectedProduct);
-                    return (
-                      <div className="space-y-4">
-                        <div
-                          className="relative w-full aspect-video bg-gray-100 rounded-[12px] overflow-hidden"
-                          style={{ minHeight: 180 }}
-                        >
-                          <Image
-                            src={
-                              selectedProduct.thumbnailUrl ||
-                              selectedProduct.iconUrl ||
-                              "/assets/default-product.png"
-                            }
-                            alt={selectedProduct.service}
-                            fill
-                            className="object-cover rounded-[12px]"
-                          />
-                          {!!ppSel.pct && ppSel.pct > 0 && (
-                            <span className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-amber-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow">
-                              -{ppSel.pct}%
-                            </span>
-                          )}
-                        </div>
-
-                        <h2 className="text-2xl font-bold text-gray-900">
-                          {selectedProduct.service}
-                        </h2>
-                        <p className="text-gray-700">
-                          {selectedProduct.description || "No description."}
-                        </p>
-
-                        <div className="flex flex-wrap gap-2">
-                          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">
-                            {selectedProduct.productCategoryTitle ||
-                              selectedProduct.category ||
-                              "Training"}
-                          </span>
-                          <span className="bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full">
-                            {selectedProduct.productType}
-                          </span>
-                          {selectedProduct.hasCertificate && (
-                            <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">
-                              Certificate
-                            </span>
-                          )}
-                          <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full">
-                            {billSel.key === "subscription"
-                              ? "subscription"
-                              : billSel.label}
-                          </span>
-                        </div>
-
-                        <div className="space-y-3">
-                          <div className="text-xl font-bold text-blue-900 flex items-baseline gap-2">
-                            <span>{ppSel.fmtFinal}</span>
-                            <span className="text-xs text-gray-500">
-                              {billSel.label}
-                            </span>
-                            {!!ppSel.pct && ppSel.pct > 0 && (
-                              <>
-                                <span className="ml-2 text-xs text-green-600">
-                                  -{ppSel.pct}%
-                                </span>
-                                <span className="ml-2 text-xs text-gray-500 line-through">
-                                  {ppSel.fmtBase}
-                                </span>
-                              </>
-                            )}
-                          </div>
-
-                          {/* Friendly hint for team charging on per-unit/“per person” */}
-                          {isPerPerson(selectedProduct) && (
-                            <p className="text-xs text-gray-600">
-                              Team checkouts are charged for team members plus
-                              the team admin.
-                            </p>
-                          )}
-
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className="text-gray-600">Duration:</span>
-                              <p className="font-medium">
-                                {selectedProduct.programLength}{" "}
-                                {selectedProduct.mode}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Delivery:</span>
-                              <p className="font-medium capitalize">
-                                {selectedProduct.deliveryMode}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">
-                                Session Type:
-                              </span>
-                              <p className="font-medium">
-                                {selectedProduct.sessionType}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">
-                                Certificate:
-                              </span>
-                              <p className="font-medium">
-                                {selectedProduct.hasCertificate ? "Yes" : "No"}
-                              </p>
-                            </div>
-                          </div>
-
-                          {!!selectedProduct.pricing?.minQty ||
-                          !!selectedProduct.pricing?.maxQty ? (
-                            <div className="text-xs text-gray-500">
-                              {typeof selectedProduct.pricing?.minQty ===
-                                "number" &&
-                                selectedProduct.pricing.minQty > 1 && (
-                                  <span>
-                                    Min: {selectedProduct.pricing.minQty}
-                                  </span>
-                                )}
-                              {typeof selectedProduct.pricing?.maxQty ===
-                                "number" &&
-                                selectedProduct.pricing.maxQty > 0 && (
-                                  <span className="ml-2">
-                                    Max: {selectedProduct.pricing.maxQty}
-                                  </span>
-                                )}
-                            </div>
-                          ) : null}
-                        </div>
-
-                        <div className="pt-4 flex justify-end">
-                          {selectedProduct.slug ? (
-                            <Link
-                              href={`/training/catalog/${selectedProduct.slug}`}
-                            >
-                              <Button
-                                variant="outline"
-                                className="rounded-[10px] px-4 py-2"
-                              >
-                                View Full Details
-                              </Button>
-                            </Link>
-                          ) : (
-                            <span className="text-red-500">
-                              No details available
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })()
-                ) : (
-                  <div className="p-8 text-center text-gray-500">
-                    No product details found.
-                  </div>
-                )}
-              </DialogContent>
-            </Dialog>
           </>
         )}
       </main>

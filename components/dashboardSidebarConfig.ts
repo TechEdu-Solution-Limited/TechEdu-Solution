@@ -21,6 +21,7 @@ import {
   Clipboard,
   BarChart3,
   Award,
+  ShoppingBasket,
 } from "lucide-react";
 import { HiViewBoards } from "react-icons/hi";
 
@@ -378,6 +379,11 @@ export const dashboardSidebarConfig = {
                 label: "My Sessions",
                 icon: Calendar,
                 href: "/dashboard/sessions/my-sessions",
+              },
+              {
+                label: "Paid-for Product",
+                icon: ShoppingBasket,
+                href: "/dashboard/my-subscriptions",
               },
               // {
               //   label: "Company Status",

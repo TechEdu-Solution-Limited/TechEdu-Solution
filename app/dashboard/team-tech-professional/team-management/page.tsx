@@ -46,42 +46,7 @@ import { getTokenFromCookies } from "@/lib/cookies";
 import { toast } from "react-toastify";
 
 import { safeConsole } from "@/lib/console";
-interface TeamMember {
-  id: string;
-  fullName: string;
-  email: string;
-  role: string;
-  status: "pending" | "accepted" | "declined";
-  invitedAt: string;
-  joinedAt?: string;
-
-  invitedBy: {
-    id: string;
-    fullName: string;
-  };
-}
-
-interface TeamData {
-  teamId: string;
-  teamName: string;
-  teamSize: number;
-  contactPerson: {
-    name: string;
-    email: string;
-    phone: string;
-  };
-  location: {
-    country: string;
-    state: string;
-    city: string;
-  };
-  preferredTechStack: string[];
-  learningGoals: {
-    goalType: string;
-    priorityAreas: string[];
-    trainingTimeline: string;
-  };
-}
+import { TeamData, TeamMember } from "@/lib/team";
 
 export default function TeamManagementPage() {
   const { userData } = useRole();

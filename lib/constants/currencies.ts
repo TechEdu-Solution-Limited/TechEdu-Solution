@@ -1,3 +1,5 @@
+// /lib/constants/currencies.ts
+
 export interface CurrencyOption {
   value: string;
   label: string;
@@ -62,27 +64,77 @@ export const CURRENCY_OPTIONS: CurrencyOption[] = [
   { value: "xdr", label: "SDR XDR" },
 ];
 
-// Helper function to get currency symbol by code
-// /lib/constants/currencies.ts
-export function getCurrencySymbol(code?: string) {
-  const map: Record<string, string> = {
-    gbp: "£",
-    usd: "$",
-    eur: "€" /* ... */,
-  };
-  const key = (code ?? "gbp").toLowerCase();
-  return map[key] ?? "£";
-}
+/* ───────────────────────────── Helpers ───────────────────────────── */
 
-// Helper function to get currency label by code
+// Get a pretty label like "£ GBP" or "CHF" from a code
 export const getCurrencyLabel = (currencyCode: string): string => {
   const currency = CURRENCY_OPTIONS.find(
-    (c) => c.value === currencyCode.toLowerCase()
+    (c) => c.value === (currencyCode || "").toLowerCase()
   );
-  return currency ? currency.label : currencyCode.toUpperCase();
+  return currency ? currency.label : (currencyCode || "").toUpperCase();
 };
 
-// Helper function to check if currency is supported
-export const isSupportedCurrency = (currencyCode: string): boolean => {
-  return CURRENCY_OPTIONS.some((c) => c.value === currencyCode.toLowerCase());
-};
+// Check if a currency is supported by your list
+export const isSupportedCurrency = (currencyCode: string): boolean =>
+  CURRENCY_OPTIONS.some((c) => c.value === (currencyCode || "").toLowerCase());
+
+/**
+ * NEW: Return just the symbol for a currency code (e.g., "gbp" → "£", "usd" → "$").
+ * Strategy:
+ *   1) Look up in CURRENCY_OPTIONS and take the first token of the label.
+ *   2) Fallback to Intl.NumberFormat to extract the symbol.
+ *   3) Final fallback to a small map or the uppercased code.
+ */
+export function getCurrencySymbolFromValue(code?: string): string {
+  const fallbackDefault = "£";
+  if (!code) return fallbackDefault;
+
+  const lower = code.toLowerCase();
+
+  // 1) Try CURRENCY_OPTIONS (label’s first token is the symbol for this list)
+  const opt = CURRENCY_OPTIONS.find((c) => c.value === lower);
+  if (opt && opt.label) {
+    const firstToken = opt.label.split(" ")[0]; // e.g., "£" from "£ GBP", "CHF" from "CHF"
+    if (firstToken) return firstToken;
+  }
+
+  // 2) Try Intl extraction
+  try {
+    const formatted = new Intl.NumberFormat("en", {
+      style: "currency",
+      currency: code.toUpperCase(),
+      currencyDisplay: "symbol",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(0);
+    // Remove digits, punctuation, minus and whitespace to leave the symbol
+    const symbol = formatted.replace(/[\d\s.,-]/g, "");
+    if (symbol) return symbol;
+  } catch {
+    // ignore
+  }
+
+  // 3) Small fallback map for common ones, else the ISO code itself
+  const common: Record<string, string> = {
+    usd: "$",
+    gbp: "£",
+    eur: "€",
+    ngn: "₦",
+    jpy: "¥",
+    cny: "¥",
+    inr: "₹",
+    zar: "R",
+    brl: "R$",
+    aed: "د.إ",
+    sar: "﷼",
+  };
+  return common[lower] ?? code.toUpperCase();
+}
+
+/**
+ * Backward-compatible: keep your original name but delegate to the new logic.
+ * (You can delete this and replace calls if you prefer the new name.)
+ */
+export function getCurrencySymbol(code?: string) {
+  return getCurrencySymbolFromValue(code);
+}

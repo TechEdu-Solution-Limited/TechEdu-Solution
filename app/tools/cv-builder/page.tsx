@@ -56,10 +56,10 @@ const PRO_ONE_MONTH_PRODUCT_ID =
   process.env.NEXT_PUBLIC_PRO_ONE_MONTH_PRODUCT_ID || "prod_pro_one_month";
 const PRO_ONE_MONTH_PRICE_MAJOR = 29.99;
 
-// Scholarship Pro (one-time product)
-const SCHOLARSHIP_PRO_PRODUCT_ID =
-  process.env.NEXT_PUBLIC_SCHOLARSHIP_PRO_PRODUCT_ID || "prod_scholarship_pro";
-const SCHOLARSHIP_PRO_PRICE_MAJOR = 10.0;
+// Coaching (one-time product)
+const COACHING_PRODUCT_ID =
+  process.env.NEXT_PUBLIC_COACHING_PRODUCT_ID || "prod_coaching";
+const COACHING_PRICE_MAJOR = 10.0;
 
 // ───────────────────────────────────────────────────────────────────────────────
 // UI DATA
@@ -173,7 +173,7 @@ const GlobalTestimonials: Story[] = [
   },
 ];
 
-type PlanKey = "free" | "pro" | "scholarship";
+type PlanKey = "free" | "pro" | "coaching";
 
 export const PRICING_PLANS: Array<{
   key: PlanKey;
@@ -204,9 +204,9 @@ export const PRICING_PLANS: Array<{
     ariaLabel: "Subscribe to Pro Access Plan",
   },
   {
-    key: "scholarship",
-    title: "Scholarship Pro",
-    price: "£10 one-time",
+    key: "coaching",
+    title: "CV Builder Pro with Coaching",
+    price: "Subscription options",
     description: [
       "Strategy guides + templates",
       "Includes full coach feedback on 1–2 documents",
@@ -379,21 +379,21 @@ const page = () => {
     }
   };
 
-  // SCHOLARSHIP PRO (one-time product)
-  const handleScholarshipPro = async () => {
+  // COACHING (one-time product)
+  const handleCoaching = async () => {
     const token = requireAuth();
     if (!token) return;
 
     try {
       const resp = await PaymentService.createSimplePaymentIntent(
         {
-          productId: SCHOLARSHIP_PRO_PRODUCT_ID,
+          productId: COACHING_PRODUCT_ID,
           isTeam: false,
-          userNotes: "Scholarship Pro (one-time)",
+          userNotes: "Coaching (one-time)",
           participantType: "individual",
           numberOfExpectedParticipants: 1,
         },
-        SCHOLARSHIP_PRO_PRICE_MAJOR,
+        COACHING_PRICE_MAJOR,
         CURRENCY,
         token
       );
@@ -422,7 +422,7 @@ const page = () => {
   const planClick = (key: PlanKey) => {
     if (key === "free") handleFreeClick();
     else if (key === "pro") handleOpenPro();
-    else if (key === "scholarship") handleScholarshipPro();
+    else if (key === "coaching") handleCoaching();
   };
 
   const plansMemo = useMemo(() => PRICING_PLANS, []);

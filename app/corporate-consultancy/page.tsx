@@ -471,7 +471,7 @@ export default function CorporateConsultancy() {
           {/* Video Section with iframe */}
           <div className="relative z-10 md:w-1/2 w-full aspect-video bg-gray-300 rounded-[12px] shadow-md overflow-hidden">
             <iframe
-              src="https://www.youtube.com/embed/dQw4w9WgXcQ" // Replace with your actual video URL
+              src="https://www.youtube.com/embed/jw-i1qjAOt8?si=WqSU64tlXkMOqayJ" // Replace with your actual video URL
               title="Why Work With Us Video"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen

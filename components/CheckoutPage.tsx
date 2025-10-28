@@ -1,0 +1,970 @@
+// CheckoutPage.tsx
+"use client";
+
+import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
+
+import { useCart } from "@/contexts/CartContext";
+import { useRole } from "@/contexts/RoleContext";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+
+import StripePaymentForm from "@/components/StripePaymentForm";
+import { PaymentService } from "@/lib/api/paymentService";
+import { getTokenFromCookies } from "@/lib/cookies";
+import { safeConsole } from "@/lib/console";
+
+import { buildCheckoutRequests } from "@/lib/pricing/checkout";
+import type { CheckoutAction as ExternalCheckoutAction } from "@/lib/pricing/checkout";
+
+import type { BillingChoice, CartItem } from "@/types/cart";
+import { CreditCard, Loader2, Upload, X } from "lucide-react";
+
+/* ---------------- Currency utils ---------------- */
+const ZERO_DECIMAL = new Set([
+  "BIF",
+  "CLP",
+  "DJF",
+  "GNF",
+  "JPY",
+  "KMF",
+  "KRW",
+  "MGA",
+  "PYG",
+  "RWF",
+  "UGX",
+  "VND",
+  "VUV",
+  "XAF",
+  "XOF",
+  "XPF",
+]);
+const toMinor = (major: number, currency?: string) =>
+  ZERO_DECIMAL.has((currency ?? "USD").toUpperCase())
+    ? Math.round(major)
+    : Math.round(major * 100);
+const formatCurrency = (amount: number, currency?: string) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: (currency ?? "USD").toUpperCase(),
+  }).format(amount);
+
+/* ---------------- Selection payload from Cart ---------------- */
+type CheckoutSelection = Array<{
+  itemId: string;
+  mode: BillingChoice;
+  quantity: number;
+  booking?: {
+    userNotes?: string;
+    attachments?: string[];
+    participantType?: "individual" | "team";
+    isTeam?: boolean;
+  };
+}>;
+
+/* ---------------- Use the canonical PricingBlock ---------------- */
+import type { PricingBlock as PricingInput } from "@/lib/pricing/calculators";
+
+function toPricingBlock(
+  item: CartItem,
+  mode: BillingChoice,
+  _quantity: number
+): PricingInput {
+  const p: any = item.pricing || {};
+  const currency = (p.currency || item.currency || "usd").toLowerCase();
+
+  // Subscription rule
+  if (
+    mode === "subscription" ||
+    p?.model === "subscription" ||
+    item.isRecurring
+  ) {
+    return {
+      model: "subscription",
+      currency,
+      subscriptionPrice: p.subscriptionPrice ?? item.price ?? 0,
+      interval: p.interval ?? "month",
+      intervalCount: p.intervalCount ?? 1,
+      trialDays: p.trialDays ?? 0,
+      setupFee: p.setupFee ?? 0,
+      autoRenew: p.autoRenew ?? true,
+      proration: p.proration ?? true,
+      taxInclusive: p.taxInclusive ?? true,
+      vatPercentage: p.vatPercentage ?? 0,
+      discountPercentage: p.discountPercent ?? p.discountPercentage ?? 0,
+    } as PricingInput;
+  }
+
+  // Per-unit rule (keep tiers & quantity)
+  if (p?.model === "per_unit" || p?.tierType) {
+    const tierType: "none" | "volume" | "graduated" | "stairstep" =
+      p.tierType ?? "none";
+    return {
+      model: "per_unit",
+      currency,
+      quantity: Math.max(1, Number(_quantity || 1)),
+      unitName: p.unitName || "team",
+      taxInclusive: p.taxInclusive ?? true,
+      vatPercentage: p.vatPercentage ?? 0,
+      discountPercentage: p.discountPercent ?? p.discountPercentage ?? 0,
+      tierType,
+      basePrice: p.basePrice, // used if tierType === "none"
+      tiers: Array.isArray(p.tiers)
+        ? p.tiers.map((t: any) => ({
+            upTo:
+              typeof t?.upTo === "number"
+                ? t.upTo
+                : typeof t?.upto === "number"
+                ? t.upto
+                : t?.cap ?? t?.limit ?? 0,
+            unitPrice: Number(t?.unitPrice || 0),
+          }))
+        : undefined,
+    } as PricingInput;
+  }
+
+  // Fallback one-time
+  return {
+    model: "one_time",
+    currency,
+    basePrice: p.basePrice ?? item.price ?? 0,
+    taxInclusive: p.taxInclusive ?? true,
+    vatPercentage: p.vatPercentage ?? 0,
+    discountPercentage: p.discountPercent ?? p.discountPercentage ?? 0,
+  } as PricingInput;
+}
+
+/* ---------------- Type guards + narrowed clones ---------------- */
+type CA = ExternalCheckoutAction;
+
+const asFree = (a: CA | null) =>
+  a && a.flow === "free"
+    ? (a as CA & { flow: "free"; amounts: { totalMajor: 0 } })
+    : null;
+
+const asPayment = (a: CA | null) =>
+  a && a.flow === "payment_intent"
+    ? (a as CA & { flow: "payment_intent"; amounts: { totalMajor: number } })
+    : null;
+
+const asInstallments = (a: CA | null) =>
+  a && a.flow === "billing" && (a as any).purpose === "installments"
+    ? (a as CA & {
+        flow: "billing";
+        purpose: "installments";
+        amounts: { perInstallmentMajor: number; downPaymentMajor: number };
+      })
+    : null;
+
+const asSubscription = (a: CA | null) =>
+  a && a.flow === "billing" && (a as any).purpose === "subscription"
+    ? (a as CA & {
+        flow: "billing";
+        purpose: "subscription";
+        amounts: { periodAmountMajor: number; setupFeeMajor?: number };
+      })
+    : null;
+
+/* ================================================================= */
+export default function CheckoutPage() {
+  const router = useRouter();
+  const { cartItems, removeFromCart } = useCart();
+  const { isAuthenticated, userData } = useRole();
+
+  const [selected, setSelected] = useState<CheckoutSelection>([]);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [mode, setMode] = useState<"payment" | "setup" | null>(null);
+  const [currency, setCurrency] = useState<string>("USD");
+  const [amountMinor, setAmountMinor] = useState<number | undefined>(undefined);
+
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  /* ------------- TEAM CONTEXT (added) ------------- */
+  const [teamData, setTeamData] = useState<any>(null);
+  const [members, setMembers] = useState<any[]>([]);
+  const [teamLoading, setTeamLoading] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated && (userData as any)?.role === "teamTechProfessional") {
+      fetchTeamData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, (userData as any)?.role]);
+
+  const fetchTeamData = async () => {
+    setTeamLoading(true);
+    try {
+      const token = getTokenFromCookies();
+      const res = await fetch("/api/teams/me", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`Team fetch failed (${res.status})`);
+      const json = await res.json();
+      const team = json?.data?.team ?? json?.team ?? json ?? null;
+      setTeamData(team);
+      setMembers(Array.isArray(team?.members) ? team.members : []);
+    } catch (err) {
+      safeConsole.error?.("Team fetch error:", err);
+      // toast.error("Couldn't load team info");
+    } finally {
+      setTeamLoading(false);
+    }
+  };
+  /* ----------------------------------------------- */
+
+  /* Booking modal (moved here from Cart) */
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [bookingFormData, setBookingFormData] = useState<{
+    userNotes: string;
+    attachments: string[];
+  }>({ userNotes: "", attachments: [] });
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+
+  /* Load selection */
+  useEffect(() => {
+    try {
+      const raw =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("checkout.selection")
+          : null;
+      if (raw) {
+        const parsed = JSON.parse(raw) as CheckoutSelection;
+        setSelected(Array.isArray(parsed) ? parsed : []);
+        // prefill existing booking info (if any)
+        const b =
+          (Array.isArray(parsed) ? parsed[0]?.booking : undefined) || {};
+        setBookingFormData({
+          userNotes: b.userNotes || "",
+          attachments: b.attachments || [],
+        });
+      } else {
+        router.push("/cart");
+      }
+    } catch {
+      router.push("/cart");
+    }
+  }, [router]);
+
+  const selectedItem: CartItem | undefined = useMemo(() => {
+    if (selected.length === 0) return undefined;
+    return cartItems.find((ci) => ci.id === selected[0].itemId);
+  }, [selected, cartItems]);
+
+  const selectedMode: BillingChoice | null = selected[0]?.mode ?? null;
+  const quantity: number = selected[0]?.quantity ?? 1;
+  const booking = selected[0]?.booking;
+
+  /* Build the action using the external type */
+  const action = useMemo<ExternalCheckoutAction | null>(() => {
+    if (!selectedItem || !selectedMode) return null;
+
+    const pricing: PricingInput = toPricingBlock(
+      selectedItem,
+      selectedMode,
+      quantity
+    );
+
+    const user = {
+      id:
+        (userData as any)?.id ||
+        (userData as any)?._id ||
+        (userData as any)?.userId ||
+        "",
+      email: (userData as any)?.email || "",
+      name: (userData as any)?.fullName || (userData as any)?.name || "",
+      ...((userData as any)?.stripeCustomerId
+        ? { stripeCustomerId: (userData as any).stripeCustomerId }
+        : {}),
+    };
+
+    const ctx = {
+      user,
+      productId: selectedItem.id,
+      productName: selectedItem.title || "Product",
+      isTeam: !!booking?.isTeam,
+      numberOfExpectedParticipants: quantity,
+      userNotes: booking?.userNotes,
+      attachments: booking?.attachments?.[0],
+      installments:
+        selectedMode === "installments" &&
+        selectedItem.pricing?.installments?.enabled
+          ? {
+              enabled: true,
+              count: selectedItem.pricing?.installments?.count ?? 6,
+              interval: selectedItem.pricing?.installments?.interval ?? "month",
+              intervalCount:
+                selectedItem.pricing?.installments?.intervalCount ?? 1,
+              downPaymentType:
+                selectedItem.pricing?.installments?.downPaymentType ??
+                "percent",
+              downPaymentValue:
+                selectedItem.pricing?.installments?.downPaymentValue ?? 20,
+            }
+          : { enabled: false },
+    } as const;
+
+    try {
+      return buildCheckoutRequests(
+        pricing as any,
+        ctx as any
+      ) as ExternalCheckoutAction;
+    } catch (e) {
+      console.error("Failed to build checkout requests", e);
+      return null;
+    }
+  }, [selectedItem, selectedMode, quantity, booking, userData]);
+
+  /* Narrowed clones to avoid 'never' in JSX */
+  const A_FREE = asFree(action);
+  const A_PAYMENT = asPayment(action);
+  const A_INST = asInstallments(action);
+  const A_SUB = asSubscription(action);
+
+  /* Due today */
+  const dueTodayMajor = useMemo(() => {
+    if (A_FREE) return 0;
+    if (A_PAYMENT) return A_PAYMENT.amounts.totalMajor;
+    if (A_INST) {
+      const a = A_INST.amounts;
+      return a.downPaymentMajor > 0
+        ? a.downPaymentMajor
+        : a.perInstallmentMajor;
+    }
+    if (A_SUB) {
+      const trial = (A_SUB.requests?.[1] as any)?.body?.pricing?.trialDays ?? 0;
+      const firstPeriod = trial > 0 ? 0 : A_SUB.amounts.periodAmountMajor;
+      return (A_SUB.amounts.setupFeeMajor || 0) + firstPeriod;
+    }
+    return 0;
+  }, [A_FREE, A_PAYMENT, A_INST, A_SUB]);
+
+  /* ---- Booking requirements & validation ---- */
+  const needsBooking = !!(
+    selectedItem?.requiresBooking || selectedItem?.isAttachmentRequired
+  );
+
+  const requiresNotes = !!selectedItem?.requiresBooking;
+  const requiresAttachment = !!selectedItem?.isAttachmentRequired;
+
+  const canContinue = !(
+    (requiresNotes && bookingFormData.userNotes.trim().length === 0) ||
+    (requiresAttachment && bookingFormData.attachments.length === 0)
+  );
+
+  const bookingSatisfied =
+    !needsBooking ||
+    !!(
+      selected[0]?.booking &&
+      (!requiresAttachment ||
+        (selected[0]?.booking?.attachments?.length || 0) > 0) &&
+      (!requiresNotes ||
+        (selected[0]?.booking?.userNotes || "").trim().length > 0)
+    );
+
+  const openBookingModal = () => setBookingModalOpen(true);
+  const closeBookingModal = () => setBookingModalOpen(false);
+
+  /* -------- Example upload function -------- */
+  const handleAttachmentUpload = async (file: File) => {
+    setIsUploadingAttachment(true);
+    try {
+      // TODO: replace with your uploader
+      const downloadURL = URL.createObjectURL(file);
+      setBookingFormData((prev) => ({
+        ...prev,
+        attachments: [...prev.attachments, downloadURL],
+      }));
+      toast.success("File uploaded successfully");
+    } catch (error) {
+      safeConsole.error("Upload error:", error);
+      toast.error("Failed to upload file");
+    } finally {
+      setIsUploadingAttachment(false);
+    }
+  };
+  const removeAttachment = (index: number) => {
+    setBookingFormData((prev) => ({
+      ...prev,
+      attachments: prev.attachments.filter((_, i) => i !== index),
+    }));
+  };
+
+  const applyBookingAndProceed = () => {
+    if (!selectedItem) return;
+
+    if (requiresAttachment && bookingFormData.attachments.length === 0) {
+      toast.error("At least one attachment is required for this service");
+      return;
+    }
+    if (requiresNotes && bookingFormData.userNotes.trim().length === 0) {
+      toast.error("Please add notes for this booking");
+      return;
+    }
+
+    const next = [...selected];
+    if (next[0]) {
+      next[0] = {
+        ...next[0],
+        booking: {
+          ...(next[0].booking || {}),
+          userNotes: bookingFormData.userNotes,
+          attachments: bookingFormData.attachments,
+        },
+      };
+    }
+    setSelected(next);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("checkout.selection", JSON.stringify(next));
+    }
+
+    closeBookingModal();
+    setTimeout(() => beginCheckout(), 0);
+  };
+
+  /* ---- Core checkout starter ---- */
+  const beginCheckout = async () => {
+    if (!action || !selectedItem) return;
+    setBusy(true);
+    setError(null);
+    const token = getTokenFromCookies();
+
+    try {
+      // FREE
+      if (A_FREE) {
+        toast.success("No payment required — access granted.");
+        removeFromCart(selectedItem.id);
+        router.push("/dashboard");
+        return;
+      }
+
+      // ONE-TIME → Payment Intent
+      if (A_PAYMENT) {
+        const req = A_PAYMENT.requests[0];
+        const curr = (selectedItem.currency || "usd").toLowerCase();
+        const amtMinor = toMinor(A_PAYMENT.amounts.totalMajor, curr);
+
+        const resp = await PaymentService.createSimplePaymentIntent(
+          (req as any).body,
+          amtMinor,
+          curr,
+          token || ""
+        );
+        const payload: any = resp?.data;
+
+        const redirectUrl = payload?.data?.redirectUrl;
+        const secret = payload?.data?.clientSecret || payload?.clientSecret;
+
+        if (redirectUrl) {
+          window.location.href = redirectUrl;
+          return;
+        }
+        if (!secret || !String(secret).includes("_secret_")) {
+          throw new Error("Invalid PaymentIntent response");
+        }
+
+        setClientSecret(secret);
+        setMode("payment");
+        setCurrency((selectedItem.currency || "USD").toUpperCase());
+        setAmountMinor(amtMinor);
+        toast.success("Secure payment initialized");
+        return;
+      }
+
+      // BILLING (installments/subscription) → SetupIntent
+      if (A_INST || A_SUB) {
+        const START = (A_INST ?? A_SUB)!.requests[0];
+        const startResp = await PaymentService.startInstallmentsSetup(
+          (START as any).body,
+          token || ""
+        );
+        const startPayload: any = startResp?.data;
+        const setupSecret =
+          startPayload?.data?.clientSecret || startPayload?.clientSecret;
+
+        if (!setupSecret || !String(setupSecret).includes("_secret_")) {
+          throw new Error("Invalid SetupIntent response");
+        }
+
+        setClientSecret(setupSecret);
+        setMode("setup");
+        setCurrency((selectedItem.currency || "USD").toUpperCase());
+        setAmountMinor(undefined);
+        toast.success("Add a payment method to continue");
+        return;
+      }
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message || "Unable to start checkout");
+      toast.error(e?.message || "Unable to start checkout");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Public handler used by the primary button
+  const startCheckout = () => {
+    if (needsBooking && !bookingSatisfied) {
+      openBookingModal();
+      return;
+    }
+    beginCheckout();
+  };
+
+  /* After SetupIntent succeeds (billing only) */
+  const handleSetupSuccess = async (_setupIntentId: string) => {
+    if (!A_INST && !A_SUB) return;
+    const token = getTokenFromCookies();
+
+    try {
+      const CONFIRM = (A_INST ?? A_SUB)!.requests[1];
+      const resp = await PaymentService.confirmInstallments(
+        (CONFIRM as any).body,
+        token || ""
+      );
+      const out: any = resp?.data;
+      const ok =
+        typeof out?.ok === "boolean"
+          ? out.ok
+          : typeof out?.success === "boolean"
+          ? out.success
+          : false;
+      if (!ok)
+        throw new Error(
+          out?.message || out?.error || "Failed to finalize billing"
+        );
+
+      toast.success(
+        A_INST ? "Installment plan activated" : "Subscription started"
+      );
+      if (selectedItem) removeFromCart(selectedItem.id);
+      router.push("/dashboard");
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message || "Failed to finalize");
+      toast.error(e?.message || "Failed to finalize");
+    }
+  };
+
+  /* After PaymentIntent succeeds (one-time) */
+  const handlePaymentSuccess = () => {
+    toast.success("Payment successful");
+    if (selectedItem) removeFromCart(selectedItem.id);
+    router.push("/dashboard");
+  };
+
+  const handleClose = () => {
+    setClientSecret(null);
+    setMode(null);
+    setAmountMinor(undefined);
+  };
+
+  /* Guards */
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center">
+        <Card className="max-w-lg w-full">
+          <CardHeader>
+            <CardTitle>Sign in required</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-600">
+              Please log in to complete your purchase.
+            </p>
+            <div className="mt-4">
+              <Button onClick={() => router.push("/login?redirect=/checkout")}>
+                Go to Login
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  if (!selectedItem || !action) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center">
+        <Card className="max-w-lg w-full">
+          <CardHeader>
+            <CardTitle>Nothing to checkout</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-600">
+              Go back to your cart and choose an item to purchase.
+            </p>
+            <div className="mt-4 flex gap-2">
+              <Button variant="outline" onClick={() => router.push("/cart")}>
+                Back to Cart
+              </Button>
+              <Button onClick={() => router.push("/pricing")}>
+                Browse Catalog
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-[5rem] px-4 py-10 bg-gray-50 min-h-screen">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left: Details & Stripe */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Checkout</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-start gap-4">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg">
+                    {selectedItem.title || "Product"}
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                    {selectedItem.description}
+                  </p>
+
+                  <div className="mt-3 text-xs text-gray-600">
+                    {A_INST && (
+                      <p>
+                        Due today:{" "}
+                        <strong>
+                          {formatCurrency(dueTodayMajor, selectedItem.currency)}
+                        </strong>
+                        . Future payments will be charged automatically
+                        according to your plan.
+                      </p>
+                    )}
+                    {A_SUB && (
+                      <p>
+                        {(A_SUB.requests?.[1] as any)?.body?.pricing
+                          ?.trialDays ? (
+                          <>
+                            Trial active — nothing due today. Your subscription
+                            renews{" "}
+                            {(A_SUB.requests?.[1] as any)?.body?.pricing
+                              ?.intervalCount || 1}{" "}
+                            {
+                              (A_SUB.requests?.[1] as any)?.body?.pricing
+                                ?.interval
+                            }
+                            (s) at{" "}
+                            {formatCurrency(
+                              A_SUB.amounts.periodAmountMajor,
+                              selectedItem.currency
+                            )}
+                            .
+                          </>
+                        ) : (
+                          <>
+                            Due today:{" "}
+                            <strong>
+                              {formatCurrency(
+                                dueTodayMajor,
+                                selectedItem.currency
+                              )}
+                            </strong>
+                            {A_SUB.amounts.setupFeeMajor
+                              ? ` (includes setup fee ${formatCurrency(
+                                  A_SUB.amounts.setupFeeMajor,
+                                  selectedItem.currency
+                                )})`
+                              : ""}
+                            .
+                          </>
+                        )}
+                      </p>
+                    )}
+                    {A_PAYMENT && (
+                      <p>
+                        Due today:{" "}
+                        <strong>
+                          {formatCurrency(dueTodayMajor, selectedItem.currency)}
+                        </strong>
+                        .
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <Separator className="my-6" />
+
+              {!clientSecret && (
+                <div className="flex items-center justify-between">
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push("/cart")}
+                  >
+                    Back to Cart
+                  </Button>
+                  <Button
+                    onClick={startCheckout}
+                    disabled={busy}
+                    className="w-full md:w-48 bg-[#0D1140] hover:bg-blue-700 text-white text-base py-3 px-6 rounded-[10px] font-semibold shadow-lg hover:shadow-xl transition-all"
+                  >
+                    <CreditCard size={20} className="mr-2" />
+                    {busy
+                      ? "Preparing…"
+                      : A_INST || A_SUB
+                      ? "Continue"
+                      : "Pay Now"}
+                  </Button>
+                </div>
+              )}
+
+              {clientSecret && (
+                <div className="mt-4">
+                  {error && (
+                    <div className="mb-3 text-sm text-red-600 bg-red-50 rounded p-2">
+                      {error}
+                    </div>
+                  )}
+                  <StripePaymentForm
+                    mode={mode === "setup" ? "setup" : "payment"}
+                    clientSecret={clientSecret}
+                    amount={mode === "payment" ? amountMinor : undefined}
+                    currency={(currency || "USD").toUpperCase()}
+                    onSuccess={handlePaymentSuccess}
+                    onSetupSuccess={handleSetupSuccess}
+                    onError={(e) => setError(e)}
+                    onClose={handleClose}
+                    productName={selectedItem.title || "Product"}
+                    bookingId={undefined}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right: Order Summary */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Order Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span>Item</span>
+                <span className="font-medium text-right max-w-[60%] line-clamp-2">
+                  {selectedItem.title || "Product"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span>Billing</span>
+                <span className="font-medium capitalize">
+                  {selectedMode?.replace("_", " ")}
+                </span>
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600 text-sm">Due today</span>
+                <span className="text-base font-semibold">
+                  {formatCurrency(dueTodayMajor, selectedItem.currency)}
+                </span>
+              </div>
+
+              {A_INST && (
+                <div className="text-xs text-gray-600">
+                  Future:{" "}
+                  {(A_INST.requests?.[1] as any)?.body?.plan?.count || 0} ×{" "}
+                  {formatCurrency(
+                    A_INST.amounts.perInstallmentMajor,
+                    selectedItem.currency
+                  )}{" "}
+                  every{" "}
+                  {(A_INST.requests?.[1] as any)?.body?.plan?.intervalCount ||
+                    1}{" "}
+                  {(A_INST.requests?.[1] as any)?.body?.plan?.interval}(s)
+                </div>
+              )}
+              {A_SUB && (
+                <div className="text-xs text-gray-600">
+                  Then{" "}
+                  {formatCurrency(
+                    A_SUB.amounts.periodAmountMajor,
+                    selectedItem.currency
+                  )}{" "}
+                  every{" "}
+                  {(A_SUB.requests?.[1] as any)?.body?.pricing?.intervalCount ||
+                    1}{" "}
+                  {(A_SUB.requests?.[1] as any)?.body?.pricing?.interval}(s)
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Booking Modal */}
+      {bookingModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[10px] max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Additional Booking Details
+                </h2>
+                <button
+                  onClick={closeBookingModal}
+                  className="text-gray-400 hover:text-gray-600"
+                  aria-label="Close booking details"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Notes */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    User Notes{" "}
+                    <span className="ml-1 text-gray-500">
+                      ({selectedItem?.requiresBooking ? "Required" : "Optional"}
+                      )
+                    </span>
+                  </label>
+                  <textarea
+                    value={bookingFormData.userNotes}
+                    onChange={(e) =>
+                      setBookingFormData((p) => ({
+                        ...p,
+                        userNotes: e.target.value,
+                      }))
+                    }
+                    className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:border-transparent ${
+                      selectedItem?.requiresBooking &&
+                      bookingFormData.userNotes.trim().length === 0
+                        ? "border-red-400 focus:ring-red-300"
+                        : "border-gray-300 focus:ring-blue-500"
+                    }`}
+                    rows={4}
+                    placeholder="Any special requirements, questions, or additional information..."
+                  />
+                  {selectedItem?.requiresBooking &&
+                    bookingFormData.userNotes.trim().length === 0 && (
+                      <p className="mt-1 text-xs text-red-600">
+                        Please provide notes for this booking.
+                      </p>
+                    )}
+                </div>
+
+                {/* Attachments */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Attachments{" "}
+                    <span className="ml-1 text-gray-500">
+                      (
+                      {selectedItem?.isAttachmentRequired
+                        ? "Required"
+                        : "Optional"}
+                      )
+                    </span>
+                  </label>
+                  <div
+                    className={`border-2 border-dashed rounded-[10px] p-6 text-center ${
+                      selectedItem?.isAttachmentRequired &&
+                      bookingFormData.attachments.length === 0
+                        ? "border-red-400"
+                        : "border-gray-300"
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      id="attachment-upload"
+                      multiple
+                      accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        files.forEach((file) => handleAttachmentUpload(file));
+                      }}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="attachment-upload"
+                      className="cursor-pointer flex flex-col items-center"
+                    >
+                      <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                      <span className="text-sm text-gray-600">
+                        Click to upload files or drag and drop
+                      </span>
+                      <span className="text-xs text-gray-500 mt-1">
+                        PDF, DOC, DOCX, TXT, JPG, PNG
+                      </span>
+                    </label>
+                  </div>
+
+                  {selectedItem?.isAttachmentRequired &&
+                    bookingFormData.attachments.length === 0 && (
+                      <p className="mt-1 text-xs text-red-600">
+                        At least one attachment is required.
+                      </p>
+                    )}
+
+                  {bookingFormData.attachments.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      {bookingFormData.attachments.map((attachment, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md"
+                        >
+                          <span className="text-sm text-gray-700 truncate">
+                            {attachment.split("/").pop()}
+                          </span>
+                          <button
+                            onClick={() => removeAttachment(index)}
+                            className="text-red-500 hover:text-red-700"
+                            aria-label="Remove attachment"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {isUploadingAttachment && (
+                    <div className="mt-2 flex items-center text-sm text-blue-600">
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Uploading...
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-8">
+                <Button
+                  variant="outline"
+                  onClick={closeBookingModal}
+                  className="px-6"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={applyBookingAndProceed}
+                  disabled={!canContinue || isUploadingAttachment}
+                  className={`px-6 ${
+                    !canContinue || isUploadingAttachment
+                      ? "bg-gray-300 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  }`}
+                >
+                  {isUploadingAttachment ? "Uploading…" : "Continue to Payment"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

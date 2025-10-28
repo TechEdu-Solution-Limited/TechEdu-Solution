@@ -4,7 +4,7 @@ import CartPage from "@/components/CartPage";
 import { Suspense } from "react";
 import Link from "next/link";
 
-export default function GoogleCallbackPage() {
+export default function CartPageWrapper() {
   return (
     <Suspense>
       <CartPage />

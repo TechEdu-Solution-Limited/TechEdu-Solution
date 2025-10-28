@@ -269,7 +269,7 @@ export default function CareerDevelopment() {
           <div className="aspect-video w-full md:max-w-[60vw] md:h-[400px] rounded-[12px] overflow-hidden flex items-center justify-center">
             <iframe
               className="w-full h-full"
-              src="https://www.youtube.com/embed/BPcDx2767nU?si=8gN4fk4yvX7KAB66"
+              src="https://www.youtube.com/embed/9uZK7zWObdY?si=C7Co6gQwi3cQ_MWU"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               title="TechEdu Solution Explainer Video"
               frameBorder="0"
