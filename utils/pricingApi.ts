@@ -11,8 +11,8 @@ export const validatePricing = (pricing: Pricing): string | null => {
     if (!pricing.interval) return "Subscription interval is required.";
     if ((pricing.intervalCount ?? 1) < 1)
       return "Subscription interval count must be at least 1.";
-  } else if (pricing.model === "per_unit") {
-    if (pricing.tierType === "none") {
+  } else if (pricing.model === "free") {
+    if (pricing.tierType === "volume") {
       if ((pricing.basePrice ?? 0) < 0) return "Unit price cannot be negative.";
     } else {
       if (!pricing.tiers || pricing.tiers.length === 0)

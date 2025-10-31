@@ -59,13 +59,13 @@ export function formatMoneySafe(amount: unknown, currency?: Currency): string {
 }
 
 export function isTiered(p: Partial<Pricing>): boolean {
-  return p.model === "per_unit" && (p.tierType ?? "none") !== "none";
+  return p.model === "one_time" && (p.tierType ?? "volume") !== "volume";
 }
 
 export function getPrimaryPrice(input: WithPricing): number {
   const p = asPricing(input);
   if (p.model === "subscription") return Number(p.subscriptionPrice || 0);
-  if (p.model === "per_unit") {
+  if (p.model === "one_time") {
     if (isTiered(p)) {
       const tiers = (p.tiers || []).slice().sort((a, b) => a.upTo - b.upTo);
       return Number(tiers[0]?.unitPrice || 0);
@@ -90,7 +90,7 @@ export function getPriceLabel(input: WithPricing): string {
     return `${cost} / ${ic} ${interval}${ic > 1 ? "s" : ""}`;
   }
 
-  if (p.model === "per_unit") {
+  if (p.model === "one_time") {
     if (isTiered(p)) return "Tiered pricing";
     const cost = formatMoneySafe(p.basePrice, cur);
     const unit = p.unitName || "participant";
@@ -106,7 +106,7 @@ export function getPriceLabel(input: WithPricing): string {
 export function getDiscountPercent(input: WithPricing): number {
   const p = asPricing(input);
   const root = (input as any).discountPercentage;
-  const internal = p.discountPercent;
+  const internal = p.discountPercentage;
   const val = root ?? internal ?? 0;
   const num = Number(val);
   return Number.isFinite(num) ? Math.max(0, Math.min(100, num)) : 0;
@@ -129,7 +129,7 @@ export function getDiscountedPriceLabel(input: WithPricing): string {
     }`;
   }
 
-  if (p.model === "per_unit") {
+  if (p.model === "one_time") {
     if (isTiered(p)) return getPriceLabel(input); // ambiguous for tiered
     const base = Number(p.basePrice || 0);
     const unit = p.unitName || "participant";
