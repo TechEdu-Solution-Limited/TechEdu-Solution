@@ -60,6 +60,10 @@ export interface CartItem {
     taxInclusive?: boolean;
     basePrice?: number; // major
     tierType?: "volume" | "stairstep";
+    tiers?: Array<{
+      upTo: number;
+      unitPrice: number;
+    }>;
     minQty?: number;
     maxQty?: number;
     installments?: {
@@ -81,6 +85,7 @@ export interface CartItem {
     setupFee?: number;
     proration?: boolean;
     vatPercentage?: number;
+    discountPercentage?: number;
   };
 }
 

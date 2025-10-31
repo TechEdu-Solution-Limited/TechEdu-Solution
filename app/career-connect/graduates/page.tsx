@@ -197,7 +197,7 @@ export default function ForGraduates() {
 
             <div className="">
               <Link
-                href="/contact#discovery-call"
+                href="/free-consultation"
                 className="bg-[#0D1140] hover:text-blue-400 text-white text-center px-6 py-4 rounded text-[1rem] font-medium transition "
               >
                 Book a Free Discovery Call
@@ -455,7 +455,7 @@ export default function ForGraduates() {
                 { text: "Try the CV Builder", href: "/create-resume" },
                 {
                   text: "Book a Discovery Call",
-                  href: "/contact#discovery-call",
+                  href: "/free-consultation",
                 },
               ].map((item, idx) => (
                 <Link

@@ -231,7 +231,7 @@ export default function ForEmployers() {
         steps={jobPosting}
         resultLink={{
           text: "Book a Free Discovery Call",
-          href: "/contact#discovery-call",
+          href: "/free-consultation",
         }}
         primaryColor="green-600"
         secondaryColor="[#011F72]"
@@ -273,7 +273,7 @@ export default function ForEmployers() {
                 },
                 {
                   text: "Talk to Our Recruit Team",
-                  href: "/contact#discovery-call",
+                  href: "/free-consultation",
                 },
                 {
                   text: "See Talent you could Reach",

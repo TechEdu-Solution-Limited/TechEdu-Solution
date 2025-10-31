@@ -451,7 +451,7 @@ const Page = () => {
                 View Sample CVs
               </Link>
               <Link
-                href="/contact#discovery-call"
+                href="/free-consultation"
                 className="bg-[#0D1140] hover:bg-blue-700 text-white text-center px-3 py-4 rounded text-[1rem] font-medium transition"
               >
                 Book a CV Review Session
@@ -660,7 +660,7 @@ const Page = () => {
             { text: "Upload My SOP for Review →", href: "#" },
             {
               text: "Book a 1-on-1 Scholarship Strategy Call →",
-              href: "/contact#discovery-call",
+              href: "/free-consultation",
             },
             { text: "Join Our Global Scholars Forum →", href: "#" },
           ].map((item, idx) => (

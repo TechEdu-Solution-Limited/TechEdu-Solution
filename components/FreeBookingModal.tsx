@@ -23,6 +23,15 @@ import { postApiRequest } from "@/lib/apiFetch";
 import { toast } from "react-toastify";
 import { Loader2 } from "lucide-react";
 
+interface FieldErrors {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  category?: string;
+  userType?: string;
+  preferredDateTime?: string;
+}
+
 interface FreeBookingModalProps {
   open: boolean;
   onClose: () => void;
@@ -37,7 +46,6 @@ interface BookingFormData {
   phone: string;
   category: string;
   userType: string;
-  preferredDateTime: string;
   notes: string;
 }
 
@@ -51,10 +59,10 @@ const CONSULTATION_CATEGORIES = [
 
 const USER_TYPES = [
   { value: "student", label: "Student" },
-  { value: "tech_professional", label: "Tech Professional" },
-  { value: "team_leader", label: "Team Leader" },
-  { value: "entrepreneur", label: "Entrepreneur" },
-  { value: "researcher", label: "Researcher" },
+  { value: "individualTechProfessional", label: "Individual Professional" },
+  { value: "teamTechProfessional", label: "Team Professionals" },
+  { value: "recruiter", label: "Recruiter" },
+  { value: "visitor", label: "Visitor" },
 ];
 
 export default function FreeBookingModal({
@@ -65,6 +73,7 @@ export default function FreeBookingModal({
 }: FreeBookingModalProps) {
   const [loading, setLoading] = useState(false);
   const [bookingUrl, setBookingUrl] = useState<string | null>(null);
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [formData, setFormData] = useState<BookingFormData>({
     productId,
     fullName: "",
@@ -72,7 +81,6 @@ export default function FreeBookingModal({
     phone: "",
     category: "",
     userType: "",
-    preferredDateTime: "",
     notes: "",
   });
 
@@ -81,41 +89,50 @@ export default function FreeBookingModal({
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    // Clear error when user starts typing
+    if (errors[name as keyof FieldErrors]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
   };
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
+    // Clear error when user selects a value
+    if (errors[name as keyof FieldErrors]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
+    // Validation with field-level errors
+    const newErrors: FieldErrors = {};
     if (!formData.fullName.trim()) {
-      toast.error("Please enter your full name");
-      return;
+      newErrors.fullName = "Please enter your full name";
     }
     if (!formData.email.trim()) {
-      toast.error("Please enter your email address");
-      return;
+      newErrors.email = "Please enter your email address";
     }
     if (!formData.phone.trim()) {
-      toast.error("Please enter your phone number");
-      return;
+      newErrors.phone = "Please enter your phone number";
     }
     if (!formData.category) {
-      toast.error("Please select a consultation category");
-      return;
+      newErrors.category = "Please select a consultation category";
     }
     if (!formData.userType) {
-      toast.error("Please select your user type");
-      return;
+      newErrors.userType = "Please select your user type";
     }
-    if (!formData.preferredDateTime) {
-      toast.error("Please select your preferred date and time");
+    
+
+    // If there are validation errors, show them and stop
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
+    // Clear any previous errors
+    setErrors({});
     setLoading(true);
 
     try {
@@ -132,7 +149,6 @@ export default function FreeBookingModal({
           phone: "",
           category: "",
           userType: "",
-          preferredDateTime: "",
           notes: "",
         });
       } else {
@@ -151,6 +167,7 @@ export default function FreeBookingModal({
 
   const handleClose = () => {
     setBookingUrl(null);
+    setErrors({});
     setFormData({
       productId,
       fullName: "",
@@ -158,7 +175,6 @@ export default function FreeBookingModal({
       phone: "",
       category: "",
       userType: "",
-      preferredDateTime: "",
       notes: "",
     });
     onClose();
@@ -166,7 +182,7 @@ export default function FreeBookingModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-gray-900">
             Book Your Free Consultation
@@ -212,7 +228,7 @@ export default function FreeBookingModal({
             </div>
             <Button
               onClick={() => window.open(bookingUrl, "_blank")}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg rounded-lg font-semibold shadow-lg"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg rounded-[10px] font-semibold shadow-lg"
               size="lg"
             >
               Click here to book freely
@@ -232,9 +248,11 @@ export default function FreeBookingModal({
                 value={formData.fullName}
                 onChange={handleInputChange}
                 placeholder="John Doe"
-                required
-                className="w-full"
+                className={`w-full rounded-[10px] ${errors.fullName ? "border-red-500 focus:border-red-500" : ""}`}
               />
+              {errors.fullName && (
+                <p className="text-sm text-red-600">{errors.fullName}</p>
+              )}
             </div>
 
             {/* Email */}
@@ -249,9 +267,11 @@ export default function FreeBookingModal({
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder="john.doe@example.com"
-                required
-                className="w-full"
+                className={`w-full rounded-[10px] ${errors.email ? "border-red-500 focus:border-red-500" : ""}`}
               />
+              {errors.email && (
+                <p className="text-sm text-red-600">{errors.email}</p>
+              )}
             </div>
 
             {/* Phone */}
@@ -266,9 +286,11 @@ export default function FreeBookingModal({
                 value={formData.phone}
                 onChange={handleInputChange}
                 placeholder="+1234567890"
-                required
-                className="w-full"
+                className={`w-full rounded-[10px] ${errors.phone ? "border-red-500 focus:border-red-500" : ""}`}
               />
+              {errors.phone && (
+                <p className="text-sm text-red-600">{errors.phone}</p>
+              )}
             </div>
 
             {/* Consultation Category */}
@@ -279,12 +301,11 @@ export default function FreeBookingModal({
               <Select
                 value={formData.category}
                 onValueChange={(value) => handleSelectChange("category", value)}
-                required
               >
-                <SelectTrigger id="category" className="w-full">
+                <SelectTrigger id="category" className={`w-full rounded-[10px] ${errors.category ? "border-red-500 focus:border-red-500" : ""}`}>
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-[10px] bg-white">
                   {CONSULTATION_CATEGORIES.map((cat) => (
                     <SelectItem key={cat.value} value={cat.value}>
                       {cat.label}
@@ -292,6 +313,9 @@ export default function FreeBookingModal({
                   ))}
                 </SelectContent>
               </Select>
+              {errors.category && (
+                <p className="text-sm text-red-600">{errors.category}</p>
+              )}
             </div>
 
             {/* User Type */}
@@ -304,12 +328,11 @@ export default function FreeBookingModal({
                 onValueChange={(value) =>
                   handleSelectChange("userType", value)
                 }
-                required
               >
-                <SelectTrigger id="userType" className="w-full">
+                <SelectTrigger id="userType" className={`w-full rounded-[10px] ${errors.userType ? "border-red-500 focus:border-red-500" : ""}`}>
                   <SelectValue placeholder="Select your user type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white rounded-[10px]">
                   {USER_TYPES.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
                       {type.label}
@@ -317,22 +340,9 @@ export default function FreeBookingModal({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            {/* Preferred Date & Time */}
-            <div className="space-y-2">
-              <Label htmlFor="preferredDateTime" className="text-sm font-medium">
-                Preferred Date & Time <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="preferredDateTime"
-                name="preferredDateTime"
-                type="datetime-local"
-                value={formData.preferredDateTime}
-                onChange={handleInputChange}
-                required
-                className="w-full"
-              />
+              {errors.userType && (
+                <p className="text-sm text-red-600">{errors.userType}</p>
+              )}
             </div>
 
             {/* Notes */}

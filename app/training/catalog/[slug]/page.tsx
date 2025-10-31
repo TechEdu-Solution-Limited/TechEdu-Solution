@@ -8,6 +8,9 @@ import { CartItem } from "@/types/cart";
 import { Product } from "@/types/product";
 import { useParams, notFound } from "next/navigation";
 import type { Currency, Pricing } from "@/lib/constants/pricing";
+import { normalizeCartModel } from "@/utils/helpers";
+import { getCurrencySymbol } from "@/lib/constants/currencies";
+import { teamFetcher } from "@/utils/teamFetcher";
 import {
   getPrimaryPrice,
   getDiscountedPriceLabel,
@@ -16,11 +19,114 @@ import {
 
 import { safeConsole } from "@/lib/console";
 
+/* ----------------------------- Pricing helpers ----------------------------- */
+
+const getUpTo = (t: any): number | undefined =>
+  typeof t?.upTo === "number"
+    ? t.upTo
+    : typeof t?.upto === "number"
+    ? t.upto
+    : undefined;
+
+const pickTier = (tiers: any[] = [], qty: number) => {
+  if (!tiers.length) return { tier: undefined, index: -1 };
+  const idx = tiers.findIndex((t) => {
+    const upTo = getUpTo(t);
+    return typeof upTo === "number" ? qty <= upTo : false;
+  });
+  const index = idx >= 0 ? idx : tiers.length - 1;
+  return { tier: tiers[index], index };
+};
+
+const isPerUnit = (pricing?: Partial<Pricing> | null): boolean => {
+  if (!pricing) return false;
+  // Support both legacy (model: "per_unit") and new structure (priceBasis: "per_unit")
+  return (
+    pricing.priceBasis === "per_unit" ||
+    (pricing.model as any) === "per_unit"
+  );
+};
+
+const isStairstep = (pricing: Partial<Pricing> | null): boolean =>
+  pricing ? isPerUnit(pricing) && (pricing.tierType ?? "volume") === "stairstep" : false;
+
+const isVolume = (pricing?: Partial<Pricing> | null): boolean =>
+  pricing ? isPerUnit(pricing) && (pricing.tierType ?? "volume") !== "stairstep" : false;
+
+/**
+ * Display amount rules:
+ * - one_time → basePrice
+ * - subscription → subscriptionPrice
+ * - per_unit / volume → (per-unit price at tier picked by membersCount) × (membersCount + 1 admin)
+ * - per_unit / stairstep → flat band price (tier picked by membersCount), no multiplication
+ */
+const teamAwareDisplayAmount = (
+  pricing: Partial<Pricing> | null,
+  membersCount: number // ← number of team members (EXCLUDING admin)
+): number => {
+  if (!pricing) return 0;
+  const toNum = (v: any): number => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  // Handle per_unit pricing (legacy: model="per_unit", new: priceBasis="per_unit")
+  if (isPerUnit(pricing)) {
+    // Tier selection based on total count (members + admin)
+    const tierQty = Math.max(1, membersCount + 1);
+    const { tier } = pickTier(pricing.tiers ?? [], tierQty);
+      const unitOrFlat = toNum(tier?.unitPrice ?? pricing.basePrice ?? 0);
+
+    if (isStairstep(pricing)) {
+      // flat band total
+        return unitOrFlat;
+    }
+    // volume → multiply by (members + admin)
+    const qtyMultiplier = Math.max(1, membersCount + 1);
+      return toNum(unitOrFlat * qtyMultiplier);
+  }
+
+  switch (pricing.model) {
+    case "one_time":
+      return toNum(pricing.basePrice ?? (pricing as any)?.price ?? 0);
+
+    case "subscription":
+      // Fallback to basePrice if subscriptionPrice missing in API
+      return toNum(
+        (pricing as any)?.subscriptionPrice ?? pricing.basePrice ?? 0
+      );
+
+    default:
+      return 0;
+  }
+};
+
+const pricingBadgeLabel = (pricing: Pricing | undefined): string => {
+  if (!pricing) return "unit";
+  if (isPerUnit(pricing)) {
+    return isStairstep(pricing) ? "flat" : pricing.unitName || "unit";
+  }
+  if (pricing.model === "one_time") return "person";
+  if (pricing.model === "subscription") return "team";
+  return "unit";
+};
+
+/** For our totals view, we never append "/". Keep slash only for one_time. */
+const showSlash = (pricing: Pricing | undefined): boolean =>
+  pricing?.model === "one_time";
+
+
 export default function ProductPage() {
   const { slug } = useParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const { addToCart, isInCart } = useCart();
+  const { members, fetchTeamData } = teamFetcher();
+
+  useEffect(() => {
+    fetchTeamData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -76,6 +182,13 @@ export default function ProductPage() {
       ? priceFromPricing
       : Number(product.price ?? 0); // ensure numeric
 
+  const membersCount = Math.max(0, members?.length || 0);
+  const qtyMultiplier = Math.max(1, membersCount + 1);
+  const displayAmount = teamAwareDisplayAmount(
+    (product.pricing as Partial<Pricing>) || null,
+    membersCount
+  );
+
   const handleEnroll = () => {
     // Check if product requires booking
     const requiresBooking =
@@ -101,6 +214,66 @@ export default function ProductPage() {
       status: product.enabled ? "active" : "inactive",
       level: product.productSubcategoryName || "",
       requiresBooking: requiresBooking,
+      pricing: product.pricing
+        ? {
+            model: normalizeCartModel(product.pricing?.model),
+            priceBasis: (product.pricing as any)?.priceBasis,
+            unitName: (product.pricing as any)?.unitName || "team",
+            currency: (product.currency || "usd").toLowerCase(),
+            allowQuantity: !!product.pricing?.allowQuantity,
+            minQty:
+              typeof product.pricing?.minQty === "number"
+                ? product.pricing.minQty
+                : 1,
+            maxQty:
+              typeof product.pricing?.maxQty === "number"
+                ? product.pricing.maxQty
+                : 0,
+            tierType: product.pricing?.tierType,
+            taxInclusive: !!product.pricing?.taxInclusive,
+            // per-unit tiers (if present)
+            tiers: Array.isArray((product.pricing as any)?.tiers)
+              ? (product.pricing as any).tiers
+              : undefined,
+            // base one-time price (treat free as 0)
+            basePrice:
+              product.pricing?.model === "free"
+                ? 0
+                : product.pricing?.basePrice ?? Number(product.price ?? 0),
+            vatPercentage: product.pricing?.vatPercentage,
+            discountPercentage:
+              typeof product.pricing?.discountPercentage === "number"
+                ? product.pricing.discountPercentage
+                : product.discountPercentage || 0,
+            // installments (support hour/day/week/month/year)
+            installments: product.pricing?.installments?.enabled
+              ? {
+                  enabled: true,
+                  count: product.pricing?.installments?.count || 2,
+                  downPaymentType:
+                    product.pricing?.installments?.downPaymentType,
+                  downPaymentValue:
+                    product.pricing?.installments?.downPaymentValue || 0,
+                  interval:
+                    (product.pricing?.installments as any)?.interval || "month",
+                  intervalCount:
+                    product.pricing?.installments?.intervalCount || 1,
+                  allowEarlyPayoff:
+                    product.pricing?.installments?.allowEarlyPayoff,
+                }
+              : { enabled: false },
+            // subscription-like
+            subscriptionPrice:
+              product.pricing?.model === "subscription"
+                ? product.pricing?.basePrice
+                : undefined,
+            interval: (product.pricing as any)?.interval,
+            intervalCount: product.pricing?.intervalCount,
+            trialDays: product.pricing?.trialDays,
+            setupFee: product.pricing?.setupFee,
+            proration: product.pricing?.proration,
+          }
+        : undefined,
 
       // Product details for booking
       deliveryMode: product.deliveryMode,
@@ -251,48 +424,35 @@ export default function ProductPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 mb-4">
-            {product.pricing ? (
-              // Structured pricing label (e.g., “£79.99 per session”, “£29.00 / 1 month”)
-              <span className="text-2xl font-bold text-blue-900">
-                {getDiscountedPriceLabel({
-                  pricing: product.pricing as Partial<Pricing>,
-                  discountPercentage: product.discountPercentage ?? 0,
-                })}
-              </span>
-            ) : (
-              // Legacy/fallback: number + currency with optional discount
-              (() => {
-                const cur = (product.currency || "USD") as Currency;
-                const raw = Number(product.price ?? 0); // make sure it’s numeric
-                const pct = Math.max(
-                  0,
-                  Number(product.discountPercentage || 0)
-                );
-                if (pct > 0) {
-                  const discounted = raw * (1 - pct / 100);
-                  return (
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl font-bold text-blue-900">
-                        {formatMoneySafe(discounted, cur)}
-                      </span>
-                      <span className="text-green-600 font-semibold text-lg">
-                        -{pct}%
-                      </span>
-                      <span className="text-lg text-gray-500 line-through">
-                        {formatMoneySafe(raw, cur)}
-                      </span>
-                    </div>
-                  );
-                }
-                return (
-                  <span className="text-2xl font-bold text-blue-900">
-                    {formatMoneySafe(raw, cur)}
-                  </span>
-                );
-              })()
-            )}
-          </div>
+          
+          <div className="flex items-start justify-between mt-auto">
+                        <div className="flex flex-col items-start gap-1">
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-lg font-bold text-blue-600">
+                              {getCurrencySymbol(product.currency || "gbp")}{" "}
+                              {displayAmount}
+                              {showSlash(product.pricing as Pricing)
+                                ? " /"
+                                : ""}
+                            </span>
+                            <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full">
+                              {pricingBadgeLabel(product.pricing as Pricing)}
+                            </span>
+                          </div>
+
+                          {isVolume(product.pricing as Pricing) && (
+                            <span className="text-xs text-gray-500">
+                              team total for {qtyMultiplier} persons (members +
+                              admin)
+                            </span>
+                          )}
+                          {isStairstep(product.pricing as Pricing) && (
+                            <span className="text-xs text-gray-500">
+                              flat band picked by {membersCount} member(s)
+                            </span>
+                          )}
+                        </div>
+                      </div>
 
           {product.tags && product.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-4">

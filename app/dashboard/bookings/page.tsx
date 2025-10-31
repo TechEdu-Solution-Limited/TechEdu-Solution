@@ -685,7 +685,7 @@ export default function UserBookingsPage() {
                       <div className="flex items-center gap-2 mb-2">
                         <User className="w-4 h-4 text-slate-500" />
                         <span className="text-sm text-slate-600">
-                          {booking.fullName || "No name provided"}
+                          {booking.bookingSchedulerFullName || "No name provided"}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mb-2">
@@ -873,21 +873,19 @@ export default function UserBookingsPage() {
                   {booking.bookingUrl &&
                     booking.status !== "cancelled" &&
                     booking.schedulingStatus !== "canceled" && (
-                      <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-[10px]">
-                        <p className="font-medium mb-2">Links:</p>
-                        <div className="space-y-2">
+                      <div>
                           {booking.bookingUrl && (
-                            <div className="flex items-center gap-2">
-                              <Video className="w-4 h-4 text-blue-600" />
+                            <Button className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 rounded-[5px] w-full">
+                              <Video size={30} />
                               <Link
                                 href={booking.bookingUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 underline text-xs"
+                                className="text-white text-lg md:text-sm font-medium"
                               >
-                                Schedule your time
+                               Click here to Schedule your time
                               </Link>
-                            </div>
+                            </Button>
                           )}
                           {booking.calendlyUrl && (
                             <div className="flex items-center gap-2">
@@ -903,7 +901,6 @@ export default function UserBookingsPage() {
                             </div>
                           )}
                         </div>
-                      </div>
                     )}
 
                   <div className="flex items-center gap-2 pt-3 border-t border-slate-200">

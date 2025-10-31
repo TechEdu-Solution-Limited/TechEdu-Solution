@@ -89,28 +89,36 @@ const teamAwareDisplayAmount = (
   membersCount: number // ← number of team members (EXCLUDING admin)
 ): number => {
   if (!pricing) return 0;
+  const toNum = (v: any): number => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
 
   // Handle per_unit pricing (legacy: model="per_unit", new: priceBasis="per_unit")
   if (isPerUnit(pricing)) {
-    const tierQty = Math.max(1, membersCount);
+    // Tier selection based on total count (members + admin)
+    const tierQty = Math.max(1, membersCount + 1);
     const { tier } = pickTier(pricing.tiers ?? [], tierQty);
-    const unitOrFlat = tier?.unitPrice ?? pricing.basePrice ?? 0;
+      const unitOrFlat = toNum(tier?.unitPrice ?? pricing.basePrice ?? 0);
 
     if (isStairstep(pricing)) {
       // flat band total
-      return Number(unitOrFlat);
+        return unitOrFlat;
     }
     // volume → multiply by (members + admin)
     const qtyMultiplier = Math.max(1, membersCount + 1);
-    return Number(unitOrFlat * qtyMultiplier);
+      return toNum(unitOrFlat * qtyMultiplier);
   }
 
   switch (pricing.model) {
     case "one_time":
-      return Number(pricing.basePrice) ?? 0;
+      return toNum(pricing.basePrice ?? (pricing as any)?.price ?? 0);
 
     case "subscription":
-      return Number(pricing.subscriptionPrice) ?? 0;
+      // Fallback to basePrice if subscriptionPrice missing in API
+      return toNum(
+        (pricing as any)?.subscriptionPrice ?? pricing.basePrice ?? 0
+      );
 
     default:
       return 0;
@@ -429,6 +437,15 @@ export default function CatalogPage({
               : 0,
           tierType: product.pricing?.tierType,
           taxInclusive: !!product.pricing?.taxInclusive,
+          // include tiers for per-unit pricing
+          tiers: Array.isArray((product.pricing as any)?.tiers)
+            ? (product.pricing as any).tiers
+            : undefined,
+          // include basePrice; treat free as 0
+          basePrice:
+            product.pricing?.model === "free"
+              ? 0
+              : product.pricing?.basePrice ?? Number(product.price ?? 0),
           installments: product.pricing?.installments?.enabled
             ? {
                 enabled: true,
@@ -436,17 +453,8 @@ export default function CatalogPage({
                 downPaymentType: product.pricing?.installments?.downPaymentType,
                 downPaymentValue:
                   product.pricing?.installments?.downPaymentValue || 0,
-                // CartItem.installments.interval doesn't support "hour", filter it out
-                interval:
-                  product.pricing?.installments?.interval &&
-                  product.pricing.installments.interval !== "hour"
-                    ? (product.pricing.installments.interval === "day" ||
-                      product.pricing.installments.interval === "week" ||
-                      product.pricing.installments.interval === "month" ||
-                      product.pricing.installments.interval === "year"
-                        ? product.pricing.installments.interval
-                        : undefined)
-                    : undefined,
+                // Allow hour/day/week/month/year for installments
+                interval: (product.pricing?.installments as any)?.interval,
                 intervalCount: product.pricing?.installments?.intervalCount,
                 allowEarlyPayoff:
                   product.pricing?.installments?.allowEarlyPayoff,
@@ -469,6 +477,13 @@ export default function CatalogPage({
           setupFee: product.pricing?.setupFee,
           proration: product.pricing?.proration,
           vatPercentage: product.pricing?.vatPercentage,
+          // keep discount at pricing level for calculators
+          discountPercentage:
+            typeof product.pricing?.discountPercentage === "number"
+              ? product.pricing.discountPercentage
+              : typeof product.discountPercentage === "number"
+              ? product.discountPercentage
+              : 0,
         },
 
         // Booking metadata

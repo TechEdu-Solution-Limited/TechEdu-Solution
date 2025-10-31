@@ -34,7 +34,7 @@ const page = () => {
             { text: "View Pricing Options", urlpath: "/pricing" },
             {
               text: "Contact for Group Access",
-              urlpath: "/contact#discovery-call",
+              urlpath: "/free-consultation",
             },
           ].map((item: PageLink, idx) => (
             <Link

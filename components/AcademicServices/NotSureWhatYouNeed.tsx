@@ -28,7 +28,7 @@ export default function NotSureWhatYouNeed() {
       </div>
       <div className="flex justify-start md:justify-end">
         <Link
-          href="/contact#discovery-call"
+          href="/free-consultation"
           className="inline-block text-center bg-gray-200 text-[#011F72] font-semibold px-6 py-3 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-800 hover:bg-gray-300 transition"
         >
           Book a Free Discovery Call

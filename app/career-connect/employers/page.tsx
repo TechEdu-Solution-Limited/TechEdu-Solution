@@ -137,7 +137,7 @@ export default function ForEmployers() {
 
             <div className="xl:pt-6">
               <Link
-                href="/contact#discovery-call"
+                href="/free-consultation"
                 className="bg-[#0D1140] hover:bg-green-400 text-white text-center px-6 py-4 rounded text-[1rem] font-medium transition "
               >
                 Book a Free Discovery Call
@@ -370,7 +370,7 @@ export default function ForEmployers() {
                 { text: "Create Employer Account", href: "/get-started" },
                 {
                   text: "Book a Recruiter Discovery Call",
-                  href: "/contact#discovery-call",
+                  href: "/free-consultation",
                 },
                 {
                   text: "Browse Verified Talent",

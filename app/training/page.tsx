@@ -195,7 +195,7 @@ const page = () => {
                 Browse Training Catalog
               </Link>
               <Link
-                href="/contact#discovery-call"
+                href="/free-consultation"
                 className="bg-[#0D1140] hover:bg-blue-700 text-white text-center px-3 py-4 rounded text-[1rem] font-medium transition"
               >
                 Book a Free Discovery Call
@@ -445,13 +445,13 @@ const page = () => {
 
         <div className="flex gap-3 w-fit mt-8">
           <Link
-            href="/contact#discovery-call"
+            href="/free-consultation"
             className="inline-block text-center bg-gray-200 text-[#011F72] font-semibold px-6 py-3 rounded-[10px] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-800 hover:bg-gray-300 transition"
           >
             View Full Schedule →
           </Link>
           <Link
-            href="/contact#discovery-call"
+            href="/free-consultation"
             className="inline-block text-center bg-gray-200 text-[#011F72] font-semibold px-6 py-3 rounded-[10px] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-800 hover:bg-gray-300 transition"
           >
             Enroll in a Program →
@@ -497,13 +497,13 @@ const page = () => {
           </div>
           <div className="flex flex-col justify-start md:justify-end gap-3 w-full md:w-fit ml-auto">
             <Link
-              href="/contact#discovery-call"
+              href="/free-consultation"
               className="inline-block text-center bg-gray-200 text-[#011F72] font-semibold px-6 py-3 rounded-[10px] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-800 hover:bg-gray-300 transition"
             >
               Book a Free Discovery Call →
             </Link>
             <Link
-              href="/contact#discovery-call"
+              href="/free-consultation"
               className="inline-block text-center bg-gray-200 text-[#011F72] font-semibold px-6 py-3 rounded-[10px] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-800 hover:bg-gray-300 transition"
             >
               Explore FAQs →

@@ -654,7 +654,7 @@ export default function CartPage() {
 
     const choice =
       paymentModeById[productId] || getDefaultModeForItem(productId);
-    const qty = item?.bookingDetails?.numberOfParticipants || 1;
+    const qty = calculateQuantity(item); // Use calculateQuantity to get correct qty (includes admin for team)
 
     // Build price-preview payload to send to server (then navigate)
     const p: any = item.pricing || {};
@@ -663,9 +663,9 @@ export default function CartPage() {
     const payload: any = {
       productId: item.id,
       quantity: qty,
-      priceModel: (p.model === "subscription" || item.isRecurring) ? "subscription" : "one-time",
+      pricingModel: (p.model === "subscription" || item.isRecurring) ? "subscription" : "one_time",
       allowInstallment: choice === "installments",
-      unitPrice: Number(unitPriceComputed ?? p.basePrice ?? item.price ?? 0),
+      price: Number(unitPriceComputed ?? p.basePrice ?? item.price ?? 0),
       priceBasis,
       unitName: (p.unitName || (userData?.role === "teamTechProfessional" ? "team" : "person")) as any,
       tierType: p.tierType,
@@ -677,6 +677,15 @@ export default function CartPage() {
       setIsCheckingOutById((prev) => ({ ...prev, [productId]: true }));
       // Send preview request and persist response + chosen mode for Checkout page
       const token = getTokenFromCookies() || "";
+      
+      // Store checkout selection BEFORE making API call
+      const selection: CheckoutSelection = [
+        { itemId: productId, mode: choice, quantity: qty },
+      ];
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("checkout.selection", JSON.stringify(selection));
+      }
+
       try {
         const resp = await PaymentService.postPricePreview(payload, token);
         const preview = resp?.data;
@@ -684,16 +693,19 @@ export default function CartPage() {
           sessionStorage.setItem("checkout.preview", JSON.stringify(preview));
           sessionStorage.setItem("checkout.mode", choice);
         }
-      } catch (e) {
-        // Non-fatal: proceed to checkout; page can handle missing preview
-      }
-      // Navigate
-      router.push("/checkout");
-    } finally {
-      // Keep loading true briefly to avoid flicker if navigation is instant.
-      setTimeout(() => {
+        
+        // Navigate only after successful preview response
+        router.push("/checkout");
+      } catch (e: any) {
+        safeConsole.error("Price preview error:", e);
+        toast.error(e?.message || "Failed to get price preview");
+        // Don't navigate if preview fails
         setIsCheckingOutById((prev) => ({ ...prev, [productId]: false }));
-      }, 500);
+      }
+    } catch (error: any) {
+      safeConsole.error("Checkout error:", error);
+      toast.error(error?.message || "Failed to initiate checkout");
+      setIsCheckingOutById((prev) => ({ ...prev, [productId]: false }));
     }
   };
 

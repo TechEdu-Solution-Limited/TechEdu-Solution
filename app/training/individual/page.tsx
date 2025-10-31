@@ -119,7 +119,7 @@ const page = () => {
                 Browse Courses
               </Link>
               <Link
-                href="/contact#discovery-call"
+                href="/free-consultation"
                 className="bg-[#0D1140] hover:bg-blue-700 text-white text-center px-3 py-4 rounded text-[1rem] font-medium transition"
               >
                 Book a Call With a Coach
@@ -321,7 +321,7 @@ const page = () => {
             Book Full Catalog →
           </Link>
           <Link
-            href="/contact#discovery-call"
+            href="/free-consultation"
             className="inline-block text-center bg-gray-200 text-[#011F72] font-semibold px-6 py-3 rounded-[10px] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-800 hover:bg-gray-300 transition"
           >
             Book Free Consultation →

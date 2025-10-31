@@ -43,7 +43,7 @@ const StickyCTA: React.FC = () => {
       <div className="relative">
         {/* CTA Expansion Wrapper */}
         <Link
-          href="/contact#discovery-call"
+          href="/free-consultation"
           onClick={() => isMobile && setIsExpanded(false)}
           className={`flex items-center bg-amber-600 text-white shadow-lg rounded-full transition-all duration-300 ease-in-out overflow-hidden 
             ${isExpanded || isMobile ? "w-64 px-5" : "w-12 px-3"} py-3`}

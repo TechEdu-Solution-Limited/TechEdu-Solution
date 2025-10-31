@@ -110,7 +110,7 @@ const Home: NextPage = () => {
               and smart tools—so you grow faster, smarter, and stronger.
             </p>
             <Link
-              href="/contact#discovery-call"
+              href="/free-consultation"
               className="bg-[#0D1140] hover:bg-blue-700 text-white px-6 py-4 text-center rounded text-[1rem] font-medium transition lg:mt-8"
             >
               Book a Free Discovery Call

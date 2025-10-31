@@ -90,7 +90,7 @@ export default function AcademicServices() {
             </p>
             <div>
               <Link
-                href="/contact#discovery-call"
+                href="/free-consultation"
                 className="bg-[#0D1140] hover:bg-blue-700 text-white text-center px-6 py-4 rounded text-[1rem] font-medium transition "
               >
                 Book a Free Discovery Call

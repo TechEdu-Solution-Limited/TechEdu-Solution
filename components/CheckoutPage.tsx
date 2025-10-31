@@ -43,7 +43,8 @@ type ExternalCheckoutAction =
     };
 
 function buildCheckoutRequests(pricing: any, ctx: any): ExternalCheckoutAction {
-  if ((pricing?.basePrice ?? pricing?.subscriptionPrice ?? 0) <= 0) {
+  // Free booking is determined explicitly by model
+  if (pricing?.model === "free") {
     return { flow: "free", amounts: { totalMajor: 0 }, requests: [] };
   }
   if (pricing?.model === "subscription") {
@@ -591,7 +592,8 @@ export default function CheckoutPage() {
       if (A_PAYMENT) {
         const req = A_PAYMENT.requests[0];
         const curr = (selectedItem.currency || "usd").toLowerCase();
-        const amountMajor = A_PAYMENT.amounts.totalMajor;
+        // Use server preview total if available, otherwise fallback to calculated
+        const amountMajor = serverPricePreview?.total ?? A_PAYMENT.amounts.totalMajor;
 
         const resp = await PaymentService.createSimplePaymentIntent(
           (req as any).body,
@@ -614,7 +616,7 @@ export default function CheckoutPage() {
 
         setClientSecret(secret);
         setMode("payment");
-        setCurrency((selectedItem.currency || "USD").toUpperCase());
+        setCurrency(serverPricePreview?.currency || (selectedItem.currency || "USD").toUpperCase());
         setAmountMinor(toMinor(amountMajor, curr));
         toast.success("Secure payment initialized");
         return;

@@ -102,7 +102,7 @@ const Footer = () => {
             </li>
             <li role="listitem">
               <Link
-                href="/contact#discovery-call"
+                href="/free-consultation"
                 className="hover:text-white focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
               >
                 Book Consultation

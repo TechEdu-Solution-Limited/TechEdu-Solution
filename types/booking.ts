@@ -153,6 +153,7 @@ export interface UserBooking {
   discountPercentage?: number;
   instructorName?: string;
   instructorEmail?: string;
+  bookingSchedulerFullName?: string;
   scheduleAt?: string; // Legacy field - use scheduledStart instead
   endAt?: string; // Legacy field - use scheduledEnd instead
   scheduledStart?: string; // Actual scheduled start time from Calendly

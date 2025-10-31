@@ -58,7 +58,7 @@ export default function HowAcademicWorks() {
         steps={academicSteps}
         resultLink={{
           text: "Book a Free Discovery Call",
-          href: "/contact#discovery-call",
+          href: "/free-consultation",
         }}
         primaryColor="green-600"
         secondaryColor="[#011F72]"

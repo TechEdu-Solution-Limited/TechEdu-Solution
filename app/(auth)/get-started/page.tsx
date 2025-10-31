@@ -240,7 +240,7 @@ const page = () => {
             </p>
             <div className="mt-6 md:mt-12 space-y-4 flex flex-col w-fit">
               <Link
-                href="/contact#discovery-call"
+                href="/free-consultation"
                 className="inline-flex items-center bg-gray-300 shadow-md text-[#011F72] font-semibold px-6 py-3 rounded-[10px] hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition"
                 aria-label="Enter Certificate ID to verify"
               >
