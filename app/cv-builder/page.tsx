@@ -258,157 +258,157 @@ const Page = () => {
   };
 
   // PRO SUBSCRIPTIONS (modal)
-  const handleOpenPro = () => setProOpen(true);
+  // const handleOpenPro = () => setProOpen(true);
 
-  const handleSubscribe = async (plan: "monthly" | "one-time") => {
-    const token = requireAuth();
-    if (!token) return;
+  // const handleSubscribe = async (plan: "monthly" | "one-time") => {
+  //   const token = requireAuth();
+  //   if (!token) return;
 
-    setSubscribeLoading(true);
-    try {
-      if (plan === "monthly") {
-        await PaymentService.getInstallmentsPreview(
-          PRO_MONTHLY_PRODUCT_ID,
-          1,
-          token,
-          {
-            count: 12,
-            interval: "month",
-            intervalCount: 1,
-            downPaymentType: "percent",
-            downPaymentValue: 0,
-          }
-        );
+  //   setSubscribeLoading(true);
+  //   try {
+  //     if (plan === "monthly") {
+  //       await PaymentService.getInstallmentsPreview(
+  //         PRO_MONTHLY_PRODUCT_ID,
+  //         1,
+  //         token,
+  //         {
+  //           count: 12,
+  //           interval: "month",
+  //           intervalCount: 1,
+  //           downPaymentType: "percent",
+  //           downPaymentValue: 0,
+  //         }
+  //       );
 
-        const startRes = await PaymentService.startInstallmentsSetup(
-          {
-            user: {
-              id: "current-user-id", // TODO: plug real user id
-              email: "user@example.com", // TODO
-              name: "TechEdu User", // TODO
-            },
-          },
-          token
-        );
+  //       const startRes = await PaymentService.startInstallmentsSetup(
+  //         {
+  //           user: {
+  //             id: "current-user-id", // TODO: plug real user id
+  //             email: "user@example.com", // TODO
+  //             name: "TechEdu User", // TODO
+  //           },
+  //         },
+  //         token
+  //       );
 
-        const clientSecret = startRes?.data?.clientSecret;
-        if (!clientSecret) {
-          toast.error("Could not initiate payment setup.");
-          return;
-        }
+  //       const clientSecret = startRes?.data?.clientSecret;
+  //       if (!clientSecret) {
+  //         toast.error("Could not initiate payment setup.");
+  //         return;
+  //       }
 
-        // TODO: confirm setup with Stripe.js using clientSecret
+  //       // TODO: confirm setup with Stripe.js using clientSecret
 
-        const confirmRes = await PaymentService.confirmInstallments(
-          {
-            user: {
-              id: "current-user-id",
-              email: "user@example.com",
-              name: "TechEdu User",
-            },
-            productId: PRO_MONTHLY_PRODUCT_ID,
-            quantity: 1,
-            plan: {
-              count: 12,
-              interval: "month",
-              intervalCount: 1,
-              downPaymentType: "percent",
-              downPaymentValue: 0,
-            },
-          },
-          token
-        );
+  //       const confirmRes = await PaymentService.confirmInstallments(
+  //         {
+  //           user: {
+  //             id: "current-user-id",
+  //             email: "user@example.com",
+  //             name: "TechEdu User",
+  //           },
+  //           productId: PRO_MONTHLY_PRODUCT_ID,
+  //           quantity: 1,
+  //           plan: {
+  //             count: 12,
+  //             interval: "month",
+  //             intervalCount: 1,
+  //             downPaymentType: "percent",
+  //             downPaymentValue: 0,
+  //           },
+  //         },
+  //         token
+  //       );
 
-        if ((confirmRes?.data as any)?.ok === true) {
-          toast.success("Pro Access subscription activated.");
-          setProOpen(false);
-        } else {
-          toast.info("Payment method saved. Complete checkout to activate.");
-        }
-      } else {
-        // one-time (1-month access): simple payment intent
-        const resp = await PaymentService.createSimplePaymentIntent(
-          {
-            productId: PRO_ONE_MONTH_PRODUCT_ID,
-            isTeam: false,
-            userNotes: "Pro Access — 1 month",
-            participantType: "individual",
-            numberOfExpectedParticipants: 1,
-          },
-          PRO_ONE_MONTH_PRICE_MAJOR,
-          CURRENCY,
-          token
-        );
+  //       if ((confirmRes?.data as any)?.ok === true) {
+  //         toast.success("Pro Access subscription activated.");
+  //         setProOpen(false);
+  //       } else {
+  //         toast.info("Payment method saved. Complete checkout to activate.");
+  //       }
+  //     } else {
+  //       // one-time (1-month access): simple payment intent
+  //       const resp = await PaymentService.createSimplePaymentIntent(
+  //         {
+  //           productId: PRO_ONE_MONTH_PRODUCT_ID,
+  //           isTeam: false,
+  //           userNotes: "Pro Access — 1 month",
+  //           participantType: "individual",
+  //           numberOfExpectedParticipants: 1,
+  //         },
+  //         PRO_ONE_MONTH_PRICE_MAJOR,
+  //         CURRENCY,
+  //         token
+  //       );
 
-        const payload = resp?.data as any; // PaymentResponse
-        const redirectUrl = payload?.data?.redirectUrl;
-        const clientSecret = payload?.data?.clientSecret;
+  //       const payload = resp?.data as any; // PaymentResponse
+  //       const redirectUrl = payload?.data?.redirectUrl;
+  //       const clientSecret = payload?.data?.clientSecret;
 
-        if (redirectUrl) {
-          window.location.href = redirectUrl;
-          return;
-        }
-        if (clientSecret) {
-          toast.success("Payment initialized. Complete checkout to finish.");
-        } else if (payload?.success) {
-          toast.success("Payment created.");
-        } else {
-          toast.error(payload?.message || "Could not initialize payment.");
-        }
-        setProOpen(false);
-      }
-    } catch (err: any) {
-      console.error(err);
-      toast.error("Subscription failed. Please try again.");
-    } finally {
-      setSubscribeLoading(false);
-    }
-  };
+  //       if (redirectUrl) {
+  //         window.location.href = redirectUrl;
+  //         return;
+  //       }
+  //       if (clientSecret) {
+  //         toast.success("Payment initialized. Complete checkout to finish.");
+  //       } else if (payload?.success) {
+  //         toast.success("Payment created.");
+  //       } else {
+  //         toast.error(payload?.message || "Could not initialize payment.");
+  //       }
+  //       setProOpen(false);
+  //     }
+  //   } catch (err: any) {
+  //     console.error(err);
+  //     toast.error("Subscription failed. Please try again.");
+  //   } finally {
+  //     setSubscribeLoading(false);
+  //   }
+  // };
 
-  // SCHOLARSHIP PRO (one-time product)
-  const handleScholarshipPro = async () => {
-    const token = requireAuth();
-    if (!token) return;
+  // // SCHOLARSHIP PRO (one-time product)
+  // const handleScholarshipPro = async () => {
+  //   const token = requireAuth();
+  //   if (!token) return;
 
-    try {
-      const resp = await PaymentService.createSimplePaymentIntent(
-        {
-          productId: SCHOLARSHIP_PRO_PRODUCT_ID,
-          isTeam: false,
-          userNotes: "Scholarship Pro (one-time)",
-          participantType: "individual",
-          numberOfExpectedParticipants: 1,
-        },
-        SCHOLARSHIP_PRO_PRICE_MAJOR,
-        CURRENCY,
-        token
-      );
+  //   try {
+  //     const resp = await PaymentService.createSimplePaymentIntent(
+  //       {
+  //         productId: SCHOLARSHIP_PRO_PRODUCT_ID,
+  //         isTeam: false,
+  //         userNotes: "Scholarship Pro (one-time)",
+  //         participantType: "individual",
+  //         numberOfExpectedParticipants: 1,
+  //       },
+  //       SCHOLARSHIP_PRO_PRICE_MAJOR,
+  //       CURRENCY,
+  //       token
+  //     );
 
-      const payload = resp?.data as any; // PaymentResponse
-      const redirectUrl = payload?.data?.redirectUrl;
-      const clientSecret = payload?.data?.clientSecret;
+  //     const payload = resp?.data as any; // PaymentResponse
+  //     const redirectUrl = payload?.data?.redirectUrl;
+  //     const clientSecret = payload?.data?.clientSecret;
 
-      if (redirectUrl) {
-        window.location.href = redirectUrl;
-        return;
-      }
-      if (clientSecret) {
-        toast.success("Payment initialized. Complete checkout to finish.");
-      } else if (payload?.success) {
-        toast.success("Payment created.");
-      } else {
-        toast.error(payload?.message || "Could not initialize payment.");
-      }
-    } catch (err: any) {
-      console.error(err);
-      toast.error("Upgrade failed. Please try again.");
-    }
-  };
+  //     if (redirectUrl) {
+  //       window.location.href = redirectUrl;
+  //       return;
+  //     }
+  //     if (clientSecret) {
+  //       toast.success("Payment initialized. Complete checkout to finish.");
+  //     } else if (payload?.success) {
+  //       toast.success("Payment created.");
+  //     } else {
+  //       toast.error(payload?.message || "Could not initialize payment.");
+  //     }
+  //   } catch (err: any) {
+  //     console.error(err);
+  //     toast.error("Upgrade failed. Please try again.");
+  //   }
+  // };
 
   const planClick = (key: PlanKey) => {
     if (key === "free") handleFreeClick();
-    else if (key === "pro") handleOpenPro();
-    else if (key === "scholarship") handleScholarshipPro();
+    // else if (key === "pro") handleOpenPro();
+    // else if (key === "scholarship") handleScholarshipPro();
   };
 
   const plansMemo = useMemo(() => PRICING_PLANS, []);
@@ -687,7 +687,7 @@ const Page = () => {
       <ProAccessModal
         isOpen={proOpen}
         onClose={() => setProOpen(false)}
-        onSubscribe={handleSubscribe}
+        onSubscribe={() => {}}
         loading={subscribeLoading}
       />
 
