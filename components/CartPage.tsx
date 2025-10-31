@@ -457,12 +457,13 @@ export default function CartPage() {
     item: CartItem,
     preview?: PricePreview
   ): BillingChoice[] => {
-    const model =
-      (preview?.model as "one_time" | "subscription" | undefined) ||
-      item.pricing?.model ||
+    const rawModel =
+      (preview as any)?.model ??
+      (item.pricing as any)?.model ??
       (item.isRecurring ? "subscription" : "one_time");
 
-    if (model === "subscription") return ["subscription"];
+    if (rawModel === "subscription") return ["subscription"];
+    if (rawModel === "free") return ["pay_in_full"];
 
     const installmentsEnabled = !!item.pricing?.installments?.enabled;
     return installmentsEnabled

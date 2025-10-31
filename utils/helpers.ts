@@ -88,11 +88,11 @@ export const normalizeTierType = (
   return undefined;
 };
 
-// Map product.PricingModel → cart's allowed model union
+// Map product.PricingModel → cart's allowed model union (treat "free" as one_time)
 export const normalizeCartModel = (
   m?: PriceModel
-): "one_time" | "subscription" | "free" =>
-  m === "subscription" ? "subscription" : m === "one_time" ? "one_time" : "free";
+): "one_time" | "subscription" =>
+  m === "subscription" ? "subscription" : "one_time";
 
 type Tier = { upTo: number; unitPrice: number };
 
