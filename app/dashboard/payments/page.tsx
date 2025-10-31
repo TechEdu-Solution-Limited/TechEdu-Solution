@@ -946,7 +946,7 @@ export default function PaymentsPage() {
                             <TableCell>
                               {(() => {
                                 const paymentMethod =
-                                  payment.metadata?.webhookEvent?.charges
+                                  (payment.metadata?.webhookEvent as any)?.charges
                                     ?.data?.[0]?.payment_method_details;
                                 if (paymentMethod?.card) {
                                   return (

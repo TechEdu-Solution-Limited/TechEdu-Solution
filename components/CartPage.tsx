@@ -33,6 +33,7 @@ import {
   AlertCircle,
   Calendar,
   CreditCard,
+  Loader2,
 } from "lucide-react";
 
 import {
@@ -55,14 +56,19 @@ import { safeConsole } from "@/lib/console";
 
 import type { BillingChoice, CartItem, PricePreview } from "@/types/cart";
 
-// Local calculators for robust fallback (no tiers required)
+// Use calculator functions from calculators.ts
 import {
-  calcOneTimeAmount,
-  calcPerUnitAmount,
-  calcSubscriptionAmount,
-  PerUnitResult,
+  computeInstallmentsDetails,
+  perUnitPriceCalculator,
 } from "@/lib/pricing/calculators";
-import { Currency, PricingModel, TierType } from "@/lib/constants/pricing";
+import {
+  Currency,
+  PriceModel,
+  TierType,
+  Pricing,
+  PriceBasis,
+} from "@/lib/constants/pricing";
+import { teamFetcher } from "@/utils/teamFetcher";
 
 export type PricingData = {
   currency: Currency;
@@ -71,7 +77,7 @@ export type PricingData = {
   vat: number;
   total: number; // correct final total
   unitPrice: number;
-  model: PricingModel;
+  model: PriceModel;
   tierType: TierType;
 };
 /* ---------------- Currency helpers (display only) ---------------- */
@@ -112,6 +118,9 @@ export default function CartPage() {
   const [paymentModeById, setPaymentModeById] = useState<
     Record<string, BillingChoice>
   >({});
+  const [isCheckingOutById, setIsCheckingOutById] = useState<
+    Record<string, boolean>
+  >({});
 
   /* ---------------- Auth box ---------------- */
   const [authEmail, setAuthEmail] = useState("");
@@ -120,7 +129,59 @@ export default function CartPage() {
   const [authError, setAuthError] = useState("");
   const [isLoginMode, setIsLoginMode] = useState(false);
 
+  /* ---------------- Team members for quantity calculation ---------------- */
+  const [teamMembersCount, setTeamMembersCount] = useState<number>(0);
+  const { members, fetchTeamData } = teamFetcher();
+
+  // Trigger team fetch via shared teamFetcher
+  useEffect(() => {
+    if (isAuthenticated && userData?.role === "teamTechProfessional") {
+      fetchTeamData().catch(() => undefined);
+    }
+  }, [isAuthenticated, userData?.role, fetchTeamData]);
+
+  // Derive quantity from fetched members
+  useEffect(() => {
+    if (userData?.role === "teamTechProfessional") {
+      const active = Array.isArray(members)
+        ? members.filter((m: any) => m?.status === "active").length
+        : 0;
+      setTeamMembersCount(Math.max(1, active + 1));
+    } else {
+      setTeamMembersCount(0);
+    }
+  }, [members, userData?.role]);
+
   /* ---------------- Helpers ---------------- */
+  /**
+   * Calculate quantity based on role and product pricing:
+   * - team role + per_unit pricing: members + admin
+   * - others or flat pricing: 1 (or booking numberOfParticipants if available)
+   */
+  const calculateQuantity = (item: CartItem): number => {
+    // If booking details specify numberOfParticipants, use that
+    if (item?.bookingDetails?.numberOfParticipants) {
+      return Math.max(1, item.bookingDetails.numberOfParticipants);
+    }
+
+    const pricing = item.pricing;
+    if (!pricing) return 1;
+
+    // For per_unit pricing with unitName === "team" and teamTechProfessional role
+    if (
+      (pricing.priceBasis === "per_unit" ||
+        (pricing as any).model === "per_unit") &&
+      pricing.unitName === "team" &&
+      userData?.role === "teamTechProfessional" &&
+      teamMembersCount > 0
+    ) {
+      return teamMembersCount; // members + admin
+    }
+
+    // Default: quantity = 1
+    return 1;
+  };
+
   const calculateCartTotal = () =>
     cartItems.reduce(
       (sum, item) =>
@@ -153,11 +214,11 @@ export default function CartPage() {
         return true;
     }
   };
+  
   const getRoleRestrictionMessage = (productType: string) => {
     if (
       productType === "Academic Support Services" ||
-      productType === "Career Development & Mentorship" ||
-      productType === "Training & Certification"
+      productType === "Career Development & Mentorship"
     ) {
       return "Only students can purchase";
     } else if (
@@ -169,180 +230,198 @@ export default function CartPage() {
     return "";
   };
 
-  /* ---------------- Normalizers (server + local fallback) ---------------- */
+  /* ---------------- Local preview (no server GET) ---------------- */
+  const computeLocalUnitOrTotal = (item: CartItem, qty: number) => {
+    const p: any = item.pricing || {};
+    if (
+      (p.priceBasis || (p.model === "per_unit" ? "per_unit" : "flat")) ===
+      "per_unit"
+    ) {
+      const ti = (p.tierType as "volume" | "stairstep") || "volume";
+      const tiers = Array.isArray(p.tiers)
+        ? p.tiers.map((t: any) => ({
+            upTo: Number(t?.upTo ?? t?.upto ?? t?.cap ?? 0),
+            unitPrice: Number(t?.unitPrice || 0),
+          }))
+        : [];
+      const total = perUnitPriceCalculator(tiers, ti, Math.max(1, qty));
+      return {
+        unitOrFlat: tiers.length
+          ? tiers[0]?.unitPrice ?? 0
+          : Number(p.basePrice || item.price || 0),
+        total,
+      };
+    }
+    const base = Number(p.basePrice ?? item.price ?? 0);
+    return { unitOrFlat: base, total: base };
+  };
 
-  // Server response → normalized preview that respects pricingModel/tierType semantics.
-  function normalizeServerPreview(
-    data: any,
-    item: CartItem,
-    qty: number
-  ): PricePreview {
-    const model =
-      (data?.model as "one_time" | "subscription" | "per_unit") ||
-      (item.isRecurring ? "subscription" : "one_time");
-    const tierType =
-      (data?.tierType as "none" | "volume" | "graduated" | "stairstep") ||
-      "none";
-
-    const currency = (data?.currency || item.currency || "USD")
-      .toString()
-      .toUpperCase();
-    const quantity = Math.max(1, Number(data?.quantity ?? qty ?? 1));
-
-    // Pick correct total per model/tier
-    // - subscription: prefer period/unit amount fields
-    // - per_unit: server usually returns total; for stairstep it's the flat band total
-    // - one_time: total or tax.totalMajor
-    const periodLike =
-      data?.periodAmountMajor ?? data?.unitAmountMajor ?? data?.tax?.totalMajor;
-    const genericTotal =
-      data?.total ?? data?.totalMajor ?? data?.tax?.totalMajor ?? 0;
-
-    const total =
-      model === "subscription"
-        ? Number(periodLike ?? genericTotal ?? 0)
-        : Number(genericTotal ?? 0);
-
-    // unitPrice meaning:
-    // - subscription: unitAmountMajor (per period)
-    // - per_unit volume/graduated: per-unit price (if provided)
-    // - per_unit stairstep: flat tier price == total
-    const unitPrice =
-      data?.unitPrice ??
-      data?.unitAmountMajor ??
-      data?.effectiveUnitPriceMajor ??
-      (tierType === "stairstep" ? total : undefined) ??
-      0;
-
-    return {
-      ok: true,
-      currency,
-      quantity,
-      subtotal: Number(data?.subtotal ?? data?.tax?.subtotalMajor ?? 0),
-      vat: Number(data?.vat ?? data?.tax?.vatMajor ?? 0),
-      total, // already correct for each model/tier per rules above
-      unitPrice,
-      model,
-      tierType,
-    };
-  }
-
-  // Fallback preview (no tiers required). Stairstep without tiers can’t be computed locally,
-  // so we treat unknown tiering as "none".
   function localPricePreview(item: CartItem, qty: number): PricePreview {
     const p: any = item.pricing || {};
-    const currency = (p.currency || item.currency || "usd").toLowerCase();
-    const discountPercentage = p.discountPercent ?? p.discountPercentage ?? 0;
-    const vatPercentage = p.vatPercentage ?? 0;
+    const currency = (p.currency || item.currency || "usd").toUpperCase();
+    const discountPercentage = Number(
+      p.discountPercentage ?? p.discountPercent ?? item.discountPercentage ?? 0
+    );
+    const vatPercentage = Number(p.vatPercentage ?? 0);
     const taxInclusive = p.taxInclusive ?? true;
 
-    if (p?.model === "subscription" || item.isRecurring) {
-      const r = calcSubscriptionAmount({
-        currency,
-        subscriptionPrice: p.subscriptionPrice ?? item.price ?? 0,
-        interval: p.interval ?? "month",
-        intervalCount: p.intervalCount ?? 1,
-        trialDays: p.trialDays ?? 0,
-        setupFee: p.setupFee ?? 0,
-        autoRenew: p.autoRenew ?? true,
-        proration: p.proration ?? true,
-        taxInclusive,
-        vatPercentage,
-        discountPercentage,
-      });
+    // model/tier awareness
+    const model: "one_time" | "subscription" =
+      p.model === "subscription" || item.isRecurring
+        ? "subscription"
+        : "one_time";
+    const qtySafe = Math.max(1, Number(qty || 1));
+
+    if (model === "subscription") {
+      const period = Number(p.subscriptionPrice ?? item.price ?? 0);
+      const subtotal = period;
+      const discount = Math.max(0, subtotal * (discountPercentage / 100));
+      const afterDisc = Math.max(0, subtotal - discount);
+      const vat = taxInclusive
+        ? 0
+        : Math.max(0, afterDisc * (vatPercentage / 100));
+      const total = afterDisc + vat;
       return {
         ok: true,
-        currency: r.currency.toUpperCase(),
+        currency,
         quantity: 1,
-        subtotal: r.tax.subtotalMajor,
-        vat: r.tax.vatMajor,
-        total: r.tax.totalMajor, // per period
-        unitPrice: r.unitAmountMajor, // per period
+        subtotal,
+        vat,
+        total,
+        unitPrice: period,
         model: "subscription",
-        tierType: "none",
+        tierType: "volume",
       };
     }
 
-    if (p?.model === "per_unit" || p?.tierType) {
-      // No tiers on cart item → treat as simple per-unit "none"
-      const baseUnit = item.price ?? 0;
-      const r: PerUnitResult = calcPerUnitAmount({
-        currency,
-        quantity: Math.max(1, Number(qty || 1)),
-        unitName: p.unitName || "team",
-        discountPercentage,
-        taxInclusive,
-        vatPercentage,
-        tierType: p.tierType ?? "volume",
-        basePrice: baseUnit,
-      });
-      return {
-        ok: true,
-        currency: r.currency.toUpperCase(),
-        quantity: r.orderSnapshot.quantityPaid ?? Math.max(1, qty),
-        subtotal: r.subtotalMajor,
-        vat: r.vatMajor,
-        total: r.totalMajor, // correct final total
-        unitPrice: r.effectiveUnitPriceMajor,
-        model: "per_unit",
-        tierType: r.ti,
-      };
+    const { unitOrFlat, total: basisTotal } = computeLocalUnitOrTotal(
+      item,
+      qtySafe
+    );
+    const subtotal = basisTotal;
+    const discount = Math.max(0, subtotal * (discountPercentage / 100));
+    const afterDisc = Math.max(0, subtotal - discount);
+    let vat = 0;
+    let total = afterDisc;
+    if (!taxInclusive) {
+      vat = Math.max(0, afterDisc * (vatPercentage / 100));
+      total = afterDisc + vat;
     }
-
-    // one-time
-    const r = calcOneTimeAmount({
-      currency,
-      basePrice: p.basePrice ?? item.price ?? 0,
-      taxInclusive,
-      vatPercentage,
-      discountPercentage,
-    });
     return {
       ok: true,
-      currency: r.currency.toUpperCase(),
-      quantity: 1,
-      subtotal: r.subtotalMajor,
-      vat: r.vatMajor,
-      total: r.totalMajor,
-      unitPrice:
-        (r as any).orderSnapshot?.unitPriceMajor ??
-        p.basePrice ??
-        item.price ??
-        0,
+      currency,
+      quantity: qtySafe,
+      subtotal,
+      vat,
+      total,
+      unitPrice: unitOrFlat,
       model: "one_time",
-      tierType: "none",
+      tierType: p.tierType as any,
     };
   }
 
   /* ---------------- Price previews ---------------- */
   const refreshPricePreview = async (item: CartItem, qty: number) => {
-    try {
-      const token = getTokenFromCookies() || "";
-      const resp = await PaymentService.getPricePreview(item.id, qty, token);
-      const data = resp?.data;
-
-      if (data?.ok) {
-        const normalized = normalizeServerPreview(data, item, qty);
-        // If server sent 0 (weird edge), fall back to local
-        const finalPreview =
-          typeof normalized.total === "number" && normalized.total > 0
-            ? normalized
-            : localPricePreview(item, qty);
-
-        setPricePreviewById((prev) => ({
-          ...prev,
-          [item.id]: finalPreview,
-        }));
-        return true;
-      }
-    } catch (e) {
-      safeConsole.warn("Price preview (refresh) failed:", e);
-    }
-
-    // Fallback if server didn’t return a valid preview
     const local = localPricePreview(item, qty);
     setPricePreviewById((prev) => ({ ...prev, [item.id]: local }));
     return true;
+  };
+
+  /* ---------------- Installments preview ---------------- */
+  const fetchInstallmentsPreview = async (item: CartItem) => {
+    const itemId = item.id;
+    if (!item.pricing?.installments?.enabled) {
+      setInstallmentsPreviewById((prev) => ({ ...prev, [itemId]: null }));
+      return;
+    }
+
+    setIsFetchingInstallmentsById((prev) => ({ ...prev, [itemId]: true }));
+
+    try {
+      const qty = calculateQuantity(item);
+      const preview = pricePreviewById[itemId];
+
+      if (!preview || !preview.total) {
+        setIsFetchingInstallmentsById((prev) => ({ ...prev, [itemId]: false }));
+        return;
+      }
+
+      // Build product object for computeInstallmentsDetails
+      const installmentsConfig = item.pricing?.installments;
+      if (!installmentsConfig?.enabled) {
+        setIsFetchingInstallmentsById((prev) => ({ ...prev, [itemId]: false }));
+        return;
+      }
+
+      // Access properties that may exist in runtime data but not in type
+      const itemPricingAny = item.pricing as any;
+
+      const pricing: Pricing = {
+        model: (item.pricing?.model ||
+          (item.isRecurring ? "subscription" : "one_time")) as PriceModel,
+        priceBasis: (item.pricing?.priceBasis || "flat") as PriceBasis,
+        currency: item.currency || "usd",
+        basePrice: item.pricing?.basePrice ?? item.price ?? 0,
+        unitName: item.pricing?.unitName,
+        tierType: item.pricing?.tierType,
+        tiers: itemPricingAny?.tiers, // tiers may exist in runtime data
+        minQty: item.pricing?.minQty,
+        maxQty: item.pricing?.maxQty,
+        taxInclusive: item.pricing?.taxInclusive ?? true,
+        vatPercentage: item.pricing?.vatPercentage ?? 0,
+        discountPercentage:
+          itemPricingAny?.discountPercentage ?? item.discountPercentage ?? 0,
+        allowInstallments: true,
+        installments: {
+          enabled: true,
+          count: installmentsConfig.count ?? 6,
+          interval: installmentsConfig.interval || "hour",
+          intervalCount: installmentsConfig.intervalCount ?? 1,
+          downPaymentType: installmentsConfig.downPaymentType || "percent",
+          downPaymentValue: installmentsConfig.downPaymentValue ?? 0,
+        },
+      };
+
+      // Calculate effective unit price from preview
+      const effectiveUnitPrice =
+        preview.unitPrice ?? preview.total / Math.max(1, qty);
+
+      // Use computeInstallmentsDetails from calculators.ts
+      // installments is guaranteed to exist because we checked installmentsConfig.enabled
+      const installments = pricing.installments!;
+      const installmentsDetails = computeInstallmentsDetails(
+        installments.count - 1, // count AFTER down payment
+        qty,
+        effectiveUnitPrice,
+        { pricing }
+      );
+
+      const plan = {
+        count: installments.count,
+        interval: installments.interval,
+        intervalCount: installments.intervalCount,
+        downPaymentType: installments.downPaymentType,
+        downPaymentValue: installments.downPaymentValue,
+      };
+
+      setInstallmentsPreviewById((prev) => ({
+        ...prev,
+        [itemId]: {
+          plan,
+          downPaymentAmount: installmentsDetails.downPayment,
+          installmentAmount: installmentsDetails.schedule[0]?.amount ?? 0,
+          schedule: installmentsDetails.schedule,
+          totalFinanced: installmentsDetails.totalFinanced,
+          vat: installmentsDetails.vat,
+          discount: installmentsDetails.discount,
+        },
+      }));
+    } catch (error) {
+      safeConsole.error("Error computing installments:", error);
+      setInstallmentsPreviewById((prev) => ({ ...prev, [itemId]: null }));
+    } finally {
+      setIsFetchingInstallmentsById((prev) => ({ ...prev, [itemId]: false }));
+    }
   };
 
   useEffect(() => {
@@ -351,45 +430,17 @@ export default function CartPage() {
       const token = getTokenFromCookies();
       await Promise.all(
         cartItems.map(async (item) => {
-          const qty =
-            item?.bookingDetails?.numberOfParticipants &&
-            item.bookingDetails.numberOfParticipants > 0
-              ? item.bookingDetails.numberOfParticipants
-              : 1;
+          if (cancelled) return;
 
-          let didSet = false;
-          try {
-            const resp = await PaymentService.getPricePreview(
-              item.id,
-              qty,
-              token || ""
-            );
-            const data = resp?.data;
-            if (data?.ok && !cancelled) {
-              const normalized = normalizeServerPreview(data, item, qty);
-              const finalPreview =
-                typeof normalized.total === "number" && normalized.total > 0
-                  ? normalized
-                  : localPricePreview(item, qty);
+          const qty = calculateQuantity(item);
 
-              setPricePreviewById((prev) => ({
-                ...prev,
-                [item.id]: finalPreview,
-              }));
-              ensureDefaultMode(item.id);
-              didSet = true;
-            }
-          } catch (e) {
-            safeConsole.warn("Price preview failed:", e);
-          }
-
-          if (!cancelled && !didSet) {
-            const local = localPricePreview(item, qty);
-            setPricePreviewById((prev) => ({
-              ...prev,
-              [item.id]: local,
-            }));
+          const local = localPricePreview(item, qty);
+          if (!cancelled) {
+            setPricePreviewById((prev) => ({ ...prev, [item.id]: local }));
             ensureDefaultMode(item.id);
+            if (item.pricing?.installments?.enabled) {
+              fetchInstallmentsPreview(item);
+            }
           }
         })
       );
@@ -399,7 +450,7 @@ export default function CartPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cartItems]);
+  }, [cartItems, teamMembersCount]);
 
   /* ---------------- Billing modes ---------------- */
   const getSupportedModesForItem = (
@@ -482,6 +533,7 @@ export default function CartPage() {
       setAuthEmail("");
       setAuthPassword("");
       setAuthError("");
+      router.replace("/cart");
     } catch (err: any) {
       safeConsole.error("Sign-up error:", err);
       setAuthError(err?.message || "Failed to create account");
@@ -537,6 +589,7 @@ export default function CartPage() {
       setAuthEmail("");
       setAuthPassword("");
       setAuthError("");
+      router.replace("/cart");
     } catch (err: any) {
       safeConsole.error("Login error:", err);
       setAuthError(err?.message || "Failed to login");
@@ -602,12 +655,45 @@ export default function CartPage() {
       paymentModeById[productId] || getDefaultModeForItem(productId);
     const qty = item?.bookingDetails?.numberOfParticipants || 1;
 
-    // Booking is handled on /checkout now.
-    const selection: CheckoutSelection = [
-      { itemId: productId, mode: choice, quantity: qty },
-    ];
-    sessionStorage.setItem("checkout.selection", JSON.stringify(selection));
-    router.push("/checkout");
+    // Build price-preview payload to send to server (then navigate)
+    const p: any = item.pricing || {};
+    const priceBasis: "flat" | "per-unit" = (p.priceBasis || (p.model === "per_unit" ? "per-unit" : "flat")) as any;
+    const { unitOrFlat: unitPriceComputed } = computeLocalUnitOrTotal(item, qty);
+    const payload: any = {
+      productId: item.id,
+      quantity: qty,
+      priceModel: (p.model === "subscription" || item.isRecurring) ? "subscription" : "one-time",
+      allowInstallment: choice === "installments",
+      unitPrice: Number(unitPriceComputed ?? p.basePrice ?? item.price ?? 0),
+      priceBasis,
+      unitName: (p.unitName || (userData?.role === "teamTechProfessional" ? "team" : "person")) as any,
+      tierType: p.tierType,
+      ...(Array.isArray((p as any).tiers)
+        ? { tiers: (p as any).tiers.map((t: any) => ({ upTo: Number(t?.upTo ?? t?.upto ?? t?.cap ?? 0), unitPrice: Number(t?.unitPrice || 0) })) }
+        : {}),
+    };
+    try {
+      setIsCheckingOutById((prev) => ({ ...prev, [productId]: true }));
+      // Send preview request and persist response + chosen mode for Checkout page
+      const token = getTokenFromCookies() || "";
+      try {
+        const resp = await PaymentService.postPricePreview(payload, token);
+        const preview = resp?.data;
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("checkout.preview", JSON.stringify(preview));
+          sessionStorage.setItem("checkout.mode", choice);
+        }
+      } catch (e) {
+        // Non-fatal: proceed to checkout; page can handle missing preview
+      }
+      // Navigate
+      router.push("/checkout");
+    } finally {
+      // Keep loading true briefly to avoid flicker if navigation is instant.
+      setTimeout(() => {
+        setIsCheckingOutById((prev) => ({ ...prev, [productId]: false }));
+      }, 500);
+    }
   };
 
   /* ---------------- UI: Empty cart ---------------- */
@@ -698,11 +784,11 @@ export default function CartPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {isAuthenticated && (
+              {/* {isAuthenticated && (
                 <Button variant="outline" onClick={handleSignOut}>
                   Sign out
                 </Button>
-              )}
+              )} */}
               <Button
                 variant="outline"
                 onClick={clearCart}
@@ -910,12 +996,16 @@ export default function CartPage() {
                               className={`px-3 py-1 rounded-none ${
                                 choice === "installments" ? "" : "bg-white"
                               }`}
-                              onClick={() =>
+                              onClick={() => {
                                 setPaymentModeById((prev) => ({
                                   ...prev,
                                   [item.id]: "installments",
-                                }))
-                              }
+                                }));
+                                // Fetch installments preview when user selects installments
+                                if (item.pricing?.installments?.enabled) {
+                                  fetchInstallmentsPreview(item);
+                                }
+                              }}
                             >
                               Pay in 6 months
                             </Button>
@@ -943,27 +1033,48 @@ export default function CartPage() {
                       )}
 
                       {choice === "installments" && (
-                        <div className="text-xs text-gray-600">
-                          {isLoadingPlan && <span>Fetching plan…</span>}
+                        <div className="text-xs text-gray-600 space-y-1">
+                          {isLoadingPlan && <span>Calculating plan…</span>}
                           {!isLoadingPlan &&
-                            installmentsPreviewById[item.id]?.plan && (
-                              <span>
-                                Pay today:{" "}
-                                {formatCurrency(
-                                  installmentsPreviewById[item.id]?.plan
-                                    ?.downPaymentAmount || 0,
-                                  displayCurrency
-                                )}
-                                {" · "}
-                                Then{" "}
-                                {installmentsPreviewById[item.id]?.plan
-                                  ?.count ?? 5}
-                                ×{" "}
-                                {formatCurrency(
-                                  installmentsPreviewById[item.id]?.plan
-                                    ?.installmentAmount || 0,
-                                  displayCurrency
-                                )}
+                            installmentsPreviewById[item.id] && (
+                              <div className="space-y-1">
+                                <div>
+                                  <span className="font-medium">
+                                    Down Payment:{" "}
+                                  </span>
+                                  {formatCurrency(
+                                    installmentsPreviewById[item.id]
+                                      ?.downPaymentAmount || 0,
+                                    displayCurrency
+                                  )}
+                                </div>
+                                <div>
+                                  <span className="font-medium">
+                                    Then{" "}
+                                    {installmentsPreviewById[item.id]?.plan
+                                      ?.count ?? 0}{" "}
+                                    payments of:{" "}
+                                  </span>
+                                  {formatCurrency(
+                                    installmentsPreviewById[item.id]
+                                      ?.installmentAmount || 0,
+                                    displayCurrency
+                                  )}
+                                </div>
+                                <div className="text-gray-500">
+                                  Total:{" "}
+                                  {formatCurrency(
+                                    installmentsPreviewById[item.id]
+                                      ?.totalFinanced || 0,
+                                    displayCurrency
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          {!isLoadingPlan &&
+                            !installmentsPreviewById[item.id] && (
+                              <span className="text-amber-600">
+                                Installment plan not available
                               </span>
                             )}
                         </div>
@@ -996,20 +1107,30 @@ export default function CartPage() {
                         onClick={() => handleProductCheckout(item.id)}
                         className="w-full lg:w-48 bg-[#0D1140] hover:bg-blue-700 text-white text-base py-3 px-6 rounded-[10px] font-semibold shadow-lg hover:shadow-xl transition-all"
                         disabled={
+                          !!isCheckingOutById[item.id] ||
                           !canPurchaseProductType(
                             item.productType,
                             userData?.role
                           )
                         }
                       >
-                        <CreditCard size={20} className="mr-2" />
-                        {!isAuthenticated
-                          ? "Login to Continue"
-                          : choice === "subscription"
-                          ? "Subscribe"
-                          : choice === "installments"
-                          ? "Start Plan"
-                          : "Checkout"}
+                        {isCheckingOutById[item.id] ? (
+                          <>
+                            <Loader2 size={18} className="mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <CreditCard size={20} className="mr-2" />
+                            {!isAuthenticated
+                              ? "Login to Continue"
+                              : choice === "subscription"
+                              ? "Subscribe"
+                              : choice === "installments"
+                              ? "Start Plan"
+                              : "Checkout"}
+                          </>
+                        )}
                       </Button>
 
                       <Button
@@ -1019,7 +1140,7 @@ export default function CartPage() {
                           removeFromCart(item.id);
                           toast.success(`${item.title} removed from cart`);
                         }}
-                        className="w-full lg:w-48 text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200"
+                        className="w-full lg:w-48 text-white bg-red-500 hover:bg-red-300 border border-red-200 rounded-[10px]"
                       >
                         <Trash2 size={16} className="mr-2" />
                         Remove

@@ -569,7 +569,7 @@ export default function PaymentDetailsPage() {
             </Card>
 
             {/* Payment Method Details */}
-            {payment.metadata?.webhookEvent?.charges?.data?.[0]
+            {(payment.metadata?.webhookEvent as any)?.charges?.data?.[0]
               ?.payment_method_details && (
               <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                 <CardHeader>
@@ -583,7 +583,7 @@ export default function PaymentDetailsPage() {
                 <CardContent className="space-y-4">
                   {(() => {
                     const paymentMethod =
-                      payment.metadata?.webhookEvent?.charges?.data?.[0]
+                      (payment.metadata?.webhookEvent as any)?.charges?.data?.[0]
                         ?.payment_method_details;
                     if (paymentMethod?.card) {
                       return (
@@ -651,9 +651,11 @@ export default function PaymentDetailsPage() {
                 <CardContent className="space-y-4">
                   {(() => {
                     try {
-                      const bookingData = JSON.parse(
-                        payment.metadata.bookingData
-                      );
+                      const rawBooking = payment.metadata?.bookingData as any;
+                      const bookingData =
+                        typeof rawBooking === "string"
+                          ? JSON.parse(rawBooking)
+                          : rawBooking || null;
                       return (
                         <div className="space-y-4">
                           {bookingData.attachments && (
@@ -719,7 +721,7 @@ export default function PaymentDetailsPage() {
             )}
 
             {/* Webhook Event Details (for debugging) */}
-            {payment.metadata?.webhookEvent && (
+            {/* {payment.metadata?.webhookEvent && (
               <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -824,7 +826,7 @@ export default function PaymentDetailsPage() {
                   )}
                 </CardContent>
               </Card>
-            )}
+            )} */}
           </div>
 
           {/* Sidebar */}

@@ -110,11 +110,11 @@ export const dashboardSidebarConfig = {
             icon: BookOpen,
             href: "/dashboard/bookings",
           },
-          // {
-          //   label: "Book Services",
-          //   icon: BookOpen,
-          //   href: "/dashboard/bookings/academic/new",
-          // },
+          {
+            label: "Non Booked Services",
+            icon: BookOpen,
+            href: "/dashboard/non-booked-services",
+          },
           {
             label: "Upload Documents",
             icon: FileCheck,
@@ -194,26 +194,6 @@ export const dashboardSidebarConfig = {
             icon: Home,
             href: "/dashboard/individual-tech-professional",
           },
-          // {
-          //   label: "Skill Graph",
-          //   icon: BarChart3,
-          //   href: "/dashboard/skill-graph",
-          // },
-          // {
-          //   label: "Career Snapshot",
-          //   icon: Target,
-          //   href: "/dashboard/career-snapshot",
-          // },
-          // {
-          //   label: "My Bookings",
-          //   icon: BookOpen,
-          //   href: "/dashboard/bookings",
-          // },
-          // {
-          //   label: "My Attendance",
-          //   icon: FileText,
-          //   href: "/dashboard/attendance/my-attendance",
-          // },
           {
             label: "Training Programs",
             icon: BookOpen,
@@ -223,6 +203,11 @@ export const dashboardSidebarConfig = {
             label: "My Bookings",
             icon: BookOpen,
             href: "/dashboard/bookings",
+          },
+          {
+            label: "Non Booked Services",
+            icon: BookOpen,
+            href: "/dashboard/non-booked-services",
           },
           {
             label: "Classroom",
@@ -369,7 +354,12 @@ export const dashboardSidebarConfig = {
                 label: "My Bookings",
                 icon: BookOpen,
                 href: "/dashboard/bookings",
-              },
+              },              
+          {
+            label: "Non Booked Services",
+            icon: BookOpen,
+            href: "/dashboard/non-booked-services",
+          },
               {
                 label: "Classroom",
                 icon: HiViewBoards,
@@ -591,21 +581,6 @@ export const dashboardSidebarConfig = {
             icon: BookOpen,
             href: "/dashboard/bookings",
           },
-          // {
-          //   label: "Candidate Pipeline",
-          //   icon: Layers,
-          //   href: "/dashboard/recruiter/pipeline",
-          // },
-          // {
-          //   label: "CV Matching",
-          //   icon: Search,
-          //   href: "/dashboard/cv-matching",
-          // },
-          // {
-          //   label: "Notes & Feedback",
-          //   icon: MessageCircle,
-          //   href: "/dashboard/notes-feedback",
-          // },
           {
             label: "Company Profile",
             icon: Building2,
@@ -640,16 +615,6 @@ export const dashboardSidebarConfig = {
             icon: Users,
             href: "/dashboard/talent-management",
           },
-          // {
-          //   label: "Uploads & Verification",
-          //   icon: FileCheck,
-          //   href: "/dashboard/uploads",
-          // },
-          // {
-          //   label: "Academic Services",
-          //   icon: UserCheck,
-          //   href: "/dashboard/services",
-          // },
           {
             label: "Reports & Analytics",
             icon: BarChart3,
@@ -670,11 +635,11 @@ export const dashboardSidebarConfig = {
             icon: BookOpen,
             href: "/dashboard/bookings",
           },
-          // {
-          //   label: "Courses",
-          //   icon: BookOpen,
-          //   href: "/dashboard/courses-management",
-          // },
+          {
+            label: "Non Booked Services",
+            icon: BookOpen,
+            href: "/dashboard/non-booked-services",
+          },
           {
             label: "Orders & Payments",
             icon: ShoppingCart,

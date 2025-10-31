@@ -307,36 +307,26 @@ export class PaymentService {
    * NEW: Pricing previews
    * -------------------------------------------------------------- */
 
-  static async getPricePreview(
-    productId: string,
-    quantity: number,
+  // POST /api/payment/price-preview per new flow
+  static async postPricePreview(
+    payload: {
+      productId: string;
+      quantity: number;
+      pricingModel: "one-time" | "subscription";
+      allowInstallment?: boolean;
+      price: number; // MAJOR units
+      priceBasis?: "flat" | "per-unit";
+      unitName?: "person" | "team";
+      tierType?: "volume" | "stairstep";
+    },
     token?: string
   ): Promise<ApiResponse<PricePreviewResponse>> {
-    const query = this.buildQuery({ quantity });
-    return getApiRequest(
-      `/api/products/${productId}/price-preview${query}`,
-      token
-    );
+    return postApiRequest(`/api/payments/price-preview`, payload, {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    });
   }
 
-  static async getInstallmentsPreview(
-    productId: string,
-    quantity: number,
-    token?: string,
-    planOverrides?: {
-      count?: number;
-      interval?: "day" | "week" | "month" | "year";
-      intervalCount?: number;
-      downPaymentType?: "percent" | "amount";
-      downPaymentValue?: number;
-    }
-  ): Promise<ApiResponse<InstallmentsPreviewResponse>> {
-    const query = this.buildQuery({ quantity, ...planOverrides });
-    return getApiRequest(
-      `/api/products/${productId}/installments-preview${query}`,
-      token
-    );
-  }
+  // No separate GET installments preview in the new flow
 
   /* -------------------------------------------------------------- *
    * NEW: Installments lifecycle (Stripe SetupIntent + Schedule)

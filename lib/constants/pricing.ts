@@ -10,67 +10,71 @@ export type Currency =
   | "jpy"
   | "inr"
   | "ngn";
-export type PricingModel =
-  | "one_time"
-  | "subscription"
-  | "per_unit"
-  | "installments";
-export type Interval = "day" | "week" | "month" | "year";
-export type TierType = "none" | "volume" | "graduated" | "stairstep";
+export type PriceModel = "one_time" | "subscription";
+export type PriceBasis = "flat" | "per_unit";
+export type Interval = "hour" | "day" | "week" | "month" | "year";
+export type TierType = "volume" | "stairstep";
 export type DownPaymentType = "percent" | "amount";
+export type UnitType = "team" | "person";
 
 export interface Tier {
-  upTo: number; // inclusive cap
-  unitPrice: number; // price per unit in this tier
+  upTo: number; // cap for this band
+  unitPrice: number; // volume: per-unit price; stairstep: flat band total
 }
 
 export interface InstallmentsConfig {
-  enabled: boolean;
-  count: number; // e.g., 3
-  downPaymentType: DownPaymentType; // 'percent' | 'amount'
-  downPaymentValue: number; // value (percent 0–100 or absolute)
-  interval?: Interval; // e.g. "month"
-  intervalCount?: number; // e.g. 1
-  allowEarlyPayoff?: boolean; // e.g. true
-  provider?: "in_house" | "stripe" | "other" | string; // default "in_house"
+  enabled: true; // installments are only meaningful when enabled
+  count: number;
+  interval: Interval;
+  intervalCount: number;
+  downPaymentType: DownPaymentType;
+  downPaymentValue: number;
+  allowEarlyPayoff?: boolean;
+  provider?: "in_house" | string;
 }
 
 export interface Pricing {
-  model: PricingModel;
-  currency: Currency;
+  model: PriceModel;
+  priceBasis: PriceBasis;
+  currency: string;
 
-  // Shared helpers
-  taxInclusive?: boolean; // default true
-  vatPercentage?: number; // default 0
-  discountPercent?: number; // NEW: global discount 0–100
+  // flat only
+  basePrice?: number; // required if priceBasis === "flat"
 
-  // One-time + per-unit (simple)
-  basePrice?: number; // one_time total OR per-unit price when tierType === "none"
+  // per_unit only (tiers required)
+  unitName?: "person" | "team";
+  tierType?: TierType; // required if priceBasis === "per_unit"
+  tiers?: Tier[]; // sorted ascending
 
-  // Per-unit extras
-  unitName?: string; // UI label for quantity (default: "participant")
-  allowQuantity?: boolean; // default false
-  minQty?: number; // default 1
-  maxQty?: number; // default 1000
-  tierType?: TierType; // default "none"
-  tiers?: Tier[]; // tier rows (if tiered)
+  // quantity constraints (cart sends actual quantity)
+  allowQuantity?: number;
+  minQty?: number;
+  maxQty?: number;
 
-  // Subscription only
-  subscriptionPrice?: number; // price per billing interval
-  interval?: Interval; // required for subscription
-  intervalCount?: number; // default 1
-  trialDays?: number; // default 0
-  setupFee?: number; // default 0
-  autoRenew?: boolean; // default true
-  minTermMonths?: number; // default 0
-  proration?: boolean; // default true
+  // tax/discount flags (outer layers will use these)
+  taxInclusive?: boolean;
+  vatPercentage?: number;
+  discountPercentage?: number;
 
-  // In-house installments (for one_time & per_unit)
-  installments?: InstallmentsConfig;
+  // cadence (required if subscription)
+  interval?: Interval;
+  intervalCount?: number;
+
+  // subscription-specific fields
+  subscriptionPrice?: number; // subscription price (if using separate field from basePrice)
+  trialDays?: number; // number of trial days (default: 0)
+  setupFee?: number; // one-time setup fee (default: 0)
+  autoRenew?: boolean; // whether subscription auto-renews (default: true)
+  minTermMonths?: number; // minimum term in months (default: 0)
+  proration?: boolean; // whether to prorate changes (default: true)
+
+  // installment availability (only for one_time)
+  allowInstallments?: boolean; // default false
+  installments?: InstallmentsConfig; // only used if allowInstallments===true
 }
 
 export interface PriceBreakdown {
-  model: PricingModel;
+  model: PriceModel;
   quantity: number;
   unitPrice?: number; // for per-unit (volume) or one-time reference
   subtotal: number; // before discount & tax
@@ -82,7 +86,6 @@ export interface PriceBreakdown {
   intervalCount?: number;
   setupFee?: number;
   tierType?: TierType;
-  graduatedDetail?: Array<{ qty: number; unitPrice: number; line: number }>; // for graduated/stairstep
 }
 
 export const currencySymbols: Record<Currency, string> = {
@@ -112,11 +115,12 @@ export const defaultPricing: Pricing = {
   taxInclusive: true,
   vatPercentage: 0,
   basePrice: 0,
-  unitName: "participant",
-  allowQuantity: false,
+  priceBasis: "flat",
+  unitName: "team",
+  allowQuantity: 1,
   minQty: 1,
   maxQty: 1000,
-  tierType: "none",
+  tierType: "volume",
   tiers: [],
   subscriptionPrice: undefined,
   interval: "month",
@@ -144,6 +148,8 @@ export function normalizePricingForApi(p: Pricing): Pricing {
     out.installments = {
       enabled: true,
       count: Math.max(2, Number(out.installments.count || 2)),
+      interval: out.installments.interval || "month",
+      intervalCount: Math.max(1, Number(out.installments.intervalCount || 1)),
       downPaymentType: out.installments.downPaymentType,
       downPaymentValue: Math.max(
         0,

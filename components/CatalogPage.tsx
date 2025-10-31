@@ -37,6 +37,10 @@ interface CatalogPageProps {
   description?: string;
   emptyStateTitle?: string;
   emptyStateDescription?: string;
+  category?: string;
+  subcategory?: string;
+  service?: string;
+  onBookNow?: (productId: string, productName: string) => void;
 }
 
 /* ----------------------------- Pricing helpers ----------------------------- */
@@ -58,13 +62,20 @@ const pickTier = (tiers: any[] = [], qty: number) => {
   return { tier: tiers[index], index };
 };
 
-const isStairstep = (pricing: Pricing) =>
-  pricing?.model === "per_unit" &&
-  (pricing.tierType ?? "volume") === "stairstep";
+const isPerUnit = (pricing?: Partial<Pricing> | null): boolean => {
+  if (!pricing) return false;
+  // Support both legacy (model: "per_unit") and new structure (priceBasis: "per_unit")
+  return (
+    pricing.priceBasis === "per_unit" ||
+    (pricing.model as any) === "per_unit"
+  );
+};
 
-const isVolume = (pricing?: Pricing) =>
-  pricing?.model === "per_unit" &&
-  (pricing.tierType ?? "volume") !== "stairstep";
+const isStairstep = (pricing: Partial<Pricing> | null): boolean =>
+  pricing ? isPerUnit(pricing) && (pricing.tierType ?? "volume") === "stairstep" : false;
+
+const isVolume = (pricing?: Partial<Pricing> | null): boolean =>
+  pricing ? isPerUnit(pricing) && (pricing.tierType ?? "volume") !== "stairstep" : false;
 
 /**
  * Display amount rules:
@@ -79,26 +90,27 @@ const teamAwareDisplayAmount = (
 ): number => {
   if (!pricing) return 0;
 
+  // Handle per_unit pricing (legacy: model="per_unit", new: priceBasis="per_unit")
+  if (isPerUnit(pricing)) {
+    const tierQty = Math.max(1, membersCount);
+    const { tier } = pickTier(pricing.tiers ?? [], tierQty);
+    const unitOrFlat = tier?.unitPrice ?? pricing.basePrice ?? 0;
+
+    if (isStairstep(pricing)) {
+      // flat band total
+      return Number(unitOrFlat);
+    }
+    // volume → multiply by (members + admin)
+    const qtyMultiplier = Math.max(1, membersCount + 1);
+    return Number(unitOrFlat * qtyMultiplier);
+  }
+
   switch (pricing.model) {
     case "one_time":
       return Number(pricing.basePrice) ?? 0;
 
     case "subscription":
       return Number(pricing.subscriptionPrice) ?? 0;
-
-    case "per_unit": {
-      const tierQty = Math.max(1, membersCount);
-      const { tier } = pickTier(pricing.tiers ?? [], tierQty);
-      const unitOrFlat = tier?.unitPrice ?? pricing.basePrice ?? 0;
-
-      if (isStairstep(pricing as Pricing)) {
-        // flat band total
-        return Number(unitOrFlat);
-      }
-      // volume → multiply by (members + admin)
-      const qtyMultiplier = Math.max(1, membersCount + 1);
-      return Number(unitOrFlat * qtyMultiplier);
-    }
 
     default:
       return 0;
@@ -107,7 +119,7 @@ const teamAwareDisplayAmount = (
 
 const pricingBadgeLabel = (pricing: Pricing | undefined): string => {
   if (!pricing) return "unit";
-  if (pricing.model === "per_unit") {
+  if (isPerUnit(pricing)) {
     return isStairstep(pricing) ? "flat" : pricing.unitName || "unit";
   }
   if (pricing.model === "one_time") return "person";
@@ -125,6 +137,10 @@ export default function CatalogPage({
   description = "Discover comprehensive training programs and certifications to advance your career",
   emptyStateTitle = "No Training Programs Found",
   emptyStateDescription = "We couldn't find any training programs matching your current filters. Try adjusting your search criteria or browse our complete catalog.",
+  category,
+  subcategory,
+  service,
+  onBookNow,
 }: CatalogPageProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -135,7 +151,7 @@ export default function CatalogPage({
   const [totalItems, setTotalItems] = useState(0);
 
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
 
   // Basic filters
   const [deliveryMode, setDeliveryMode] = useState("all");
@@ -252,6 +268,7 @@ export default function CatalogPage({
 
     const params: Record<string, any> = { page, limit: perPage };
     if (search) params.search = search;
+    // Handle passed-in category from props (for filtering)
     if (category) {
       if (categoryMap[category]) {
         const categoryId = categoryMap[category];
@@ -267,6 +284,25 @@ export default function CatalogPage({
         params.productSubcategoryName = category;
       }
     }
+    // Handle selected category from UI
+    if (selectedCategory) {
+      if (categoryMap[selectedCategory]) {
+        const categoryId = categoryMap[selectedCategory];
+        if (
+          typeof categoryId === "string" &&
+          /^[0-9a-fA-F]{24}$/.test(categoryId)
+        ) {
+          params.productSubCategoryId = categoryId;
+        } else {
+          params.productSubcategoryName = selectedCategory;
+        }
+      } else {
+        params.productSubcategoryName = selectedCategory;
+      }
+    }
+    // Handle subcategory and service from props
+    if (subcategory) params.subcategory = subcategory;
+    if (service) params.service = service;
     if (productType) params.productType = productType;
     if (deliveryMode !== "all") params.deliveryMode = deliveryMode;
     if (sessionType !== "all") params.sessionType = sessionType;
@@ -293,6 +329,7 @@ export default function CatalogPage({
     page,
     search,
     category,
+    selectedCategory,
     categoryMap,
     productType,
     deliveryMode,
@@ -301,6 +338,8 @@ export default function CatalogPage({
     sortBy,
     sortOrder,
     perPage,
+    subcategory,
+    service,
   ]);
 
   /* ------------------------ Add to cart handle ------------------------ */
@@ -311,6 +350,12 @@ export default function CatalogPage({
     const requiresBooking = !!(
       product.requiresBooking || product.isBookableService
     );
+
+    // If onBookNow callback is provided and product requires booking, use the callback instead
+    if (onBookNow && requiresBooking) {
+      onBookNow(product._id, product.service);
+      return;
+    }
 
     // fly animation
     const button = event.currentTarget as HTMLElement;
@@ -350,7 +395,9 @@ export default function CatalogPage({
         price: product.pricing?.basePrice || 0, // snapshot; server will recompute
         currency: (product.currency || "gbp").toUpperCase(),
         discountPercentage:
-          typeof product.discountPercentage === "number"
+          typeof product.pricing?.discountPercentage === "number"
+            ? product.pricing.discountPercentage
+            : typeof product.discountPercentage === "number"
             ? product.discountPercentage
             : 0,
         category:
@@ -368,6 +415,8 @@ export default function CatalogPage({
 
         pricing: {
           model: normalizeCartModel(product.pricing?.model),
+          priceBasis: (product.pricing as any)?.priceBasis,
+          unitName: (product.pricing as any)?.unitName || "team",
           currency: (product.currency || "gbp").toLowerCase(),
           allowQuantity: !!product.pricing?.allowQuantity,
           minQty:
@@ -378,7 +427,7 @@ export default function CatalogPage({
             typeof product.pricing?.maxQty === "number"
               ? product.pricing.maxQty
               : 0,
-          tierType: normalizeTierType(product.pricing?.tierType) ?? "none",
+          tierType: product.pricing?.tierType,
           taxInclusive: !!product.pricing?.taxInclusive,
           installments: product.pricing?.installments?.enabled
             ? {
@@ -387,7 +436,17 @@ export default function CatalogPage({
                 downPaymentType: product.pricing?.installments?.downPaymentType,
                 downPaymentValue:
                   product.pricing?.installments?.downPaymentValue || 0,
-                interval: product.pricing?.installments?.interval,
+                // CartItem.installments.interval doesn't support "hour", filter it out
+                interval:
+                  product.pricing?.installments?.interval &&
+                  product.pricing.installments.interval !== "hour"
+                    ? (product.pricing.installments.interval === "day" ||
+                      product.pricing.installments.interval === "week" ||
+                      product.pricing.installments.interval === "month" ||
+                      product.pricing.installments.interval === "year"
+                        ? product.pricing.installments.interval
+                        : undefined)
+                    : undefined,
                 intervalCount: product.pricing?.installments?.intervalCount,
                 allowEarlyPayoff:
                   product.pricing?.installments?.allowEarlyPayoff,
@@ -396,7 +455,15 @@ export default function CatalogPage({
 
           // optional subscription-ish
           subscriptionPrice: product.pricing?.basePrice,
-          interval: product.pricing?.interval,
+          interval:
+            product.pricing?.interval && product.pricing.interval !== "hour"
+              ? (product.pricing.interval === "day" ||
+                product.pricing.interval === "week" ||
+                product.pricing.interval === "month" ||
+                product.pricing.interval === "year"
+                  ? product.pricing.interval
+                  : undefined)
+              : undefined,
           intervalCount: product.pricing?.intervalCount,
           trialDays: product.pricing?.trialDays,
           setupFee: product.pricing?.setupFee,
@@ -516,11 +583,11 @@ export default function CatalogPage({
           >
             <button
               onClick={() => {
-                setCategory("");
+                setSelectedCategory("");
                 setPage(1);
               }}
               className={`px-4 md:px-6 py-2.5 font-medium transition-all whitespace-nowrap flex-shrink-0 rounded-full border ${
-                category === ""
+                selectedCategory === ""
                   ? "text-white bg-[#0D1140] border-[#0D1140] shadow-md"
                   : "text-gray-600 hover:text-gray-900 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
               }`}
@@ -537,11 +604,11 @@ export default function CatalogPage({
                 <button
                   key={cat}
                   onClick={() => {
-                    setCategory(cat);
+                    setSelectedCategory(cat);
                     setPage(1);
                   }}
                   className={`px-4 md:px-6 py-2.5 font-medium transition-all whitespace-nowrap flex-shrink-0 rounded-full border ${
-                    category === cat
+                    selectedCategory === cat
                       ? "text-white bg-[#0D1140] border-[#0D1140] shadow-md"
                       : "text-gray-600 hover:text-gray-900 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                   }`}
@@ -647,9 +714,9 @@ export default function CatalogPage({
                         fill
                         className="object-cover transition-transform duration-200 group-hover:scale-105"
                       />
-                      {(product.pricing?.discountPercent || 0) > 0 && (
+                      {((product.pricing?.discountPercentage ?? product.discountPercentage) || 0) > 0 && (
                         <span className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-amber-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow">
-                          -{product.pricing?.discountPercent}%
+                          -{product.pricing?.discountPercentage ?? product.discountPercentage}%
                         </span>
                       )}
                     </div>

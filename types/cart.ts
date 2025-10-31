@@ -53,18 +53,20 @@ export interface CartItem {
 
   pricing?: {
     model: "one_time" | "subscription";
+    priceBasis?: "flat" | "per_unit";
+    unitName?: "person" | "team";
     currency?: string;
     allowQuantity?: boolean;
     taxInclusive?: boolean;
     basePrice?: number; // major
-    tierType?: "none" | "volume" | "graduated";
+    tierType?: "volume" | "stairstep";
     minQty?: number;
     maxQty?: number;
     installments?: {
       enabled: boolean;
-      interval?: "day" | "week" | "month" | "year";
+      interval?: "hour" | "day" | "week" | "month" | "year";
       intervalCount?: number;
-      downPaymentType?: "none" | "percent" | "amount";
+      downPaymentType?: "percent" | "amount";
       downPaymentValue?: number;
       count?: number;
       allowEarlyPayoff?: boolean;

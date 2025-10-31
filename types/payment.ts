@@ -4,8 +4,8 @@
 export type CurrencyCode = "gbp" | "usd" | "eur" | (string & {});
 
 /** Pricing models & tiering helpers (for captured snapshots) */
-export type PricingModel = "one_time" | "per_unit" | "subscription";
-export type TierType = "none" | "volume" | "graduated";
+export type PricingModel = "one_time" | "subscription";
+export type TierType = "volume" | "stairstep";
 
 /** Participant type shared across API */
 export type ParticipantType = "individual" | "team";
@@ -74,7 +74,7 @@ export interface PaymentIntent {
 
 export interface Payment {
   _id: string;
-  provider: "stripe" | "flutterwave" | "paystack";
+  provider: "stripe";
   transactionId: string;
 
   /** Recommend: MINOR units for consistency with Stripe */
@@ -86,6 +86,7 @@ export interface Payment {
   currency: string;
   userId: string;
   productId: string;
+  charges: string;
 
   jobApplicationId?: string;
   bookingId?: string;

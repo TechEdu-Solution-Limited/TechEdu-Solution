@@ -16,10 +16,109 @@ import { PaymentService } from "@/lib/api/paymentService";
 import { getTokenFromCookies } from "@/lib/cookies";
 import { safeConsole } from "@/lib/console";
 
-import { buildCheckoutRequests } from "@/lib/pricing/checkout";
-import type { CheckoutAction as ExternalCheckoutAction } from "@/lib/pricing/checkout";
-
 import type { BillingChoice, CartItem } from "@/types/cart";
+// Local minimal checkout builder (keeps this page self-contained)
+type ExternalCheckoutAction =
+  | {
+      flow: "free";
+      amounts: { totalMajor: 0 };
+      requests: [];
+    }
+  | {
+      flow: "payment_intent";
+      amounts: { totalMajor: number };
+      requests: Array<{ body: Record<string, any> }>;
+    }
+  | {
+      flow: "billing";
+      purpose: "installments";
+      amounts: { perInstallmentMajor: number; downPaymentMajor: number };
+      requests: Array<{ body: Record<string, any> }>;
+    }
+  | {
+      flow: "billing";
+      purpose: "subscription";
+      amounts: { periodAmountMajor: number; setupFeeMajor?: number };
+      requests: Array<{ body: Record<string, any> }>;
+    };
+
+function buildCheckoutRequests(pricing: any, ctx: any): ExternalCheckoutAction {
+  if ((pricing?.basePrice ?? pricing?.subscriptionPrice ?? 0) <= 0) {
+    return { flow: "free", amounts: { totalMajor: 0 }, requests: [] };
+  }
+  if (pricing?.model === "subscription") {
+    const periodAmountMajor = Number(pricing?.subscriptionPrice || 0) || 0;
+    const setupFeeMajor = Number(pricing?.setupFee || 0) || 0;
+    return {
+      flow: "billing",
+      purpose: "subscription",
+      amounts: { periodAmountMajor, ...(setupFeeMajor ? { setupFeeMajor } : {}) },
+      requests: [
+        {
+          body: {
+            user: ctx?.user,
+            productId: ctx?.productId,
+            pricing: {
+              model: "subscription",
+              subscriptionPrice: periodAmountMajor,
+              interval: pricing?.interval || "month",
+              intervalCount: pricing?.intervalCount || 1,
+              trialDays: pricing?.trialDays || 0,
+              setupFee: setupFeeMajor || 0,
+            },
+            purpose: "subscription",
+          },
+        },
+        { body: { purpose: "subscription", productId: ctx?.productId } },
+      ],
+    };
+  }
+  if (ctx?.installments?.enabled) {
+    const downPaymentMajor = Number(ctx?.installments?.downPaymentValue || 0) || 0;
+    const count = Math.max(1, Number(ctx?.installments?.count || 6));
+    const base = Number(pricing?.basePrice || 0) || 0;
+    const remainder = Math.max(0, base - downPaymentMajor);
+    const perInstallmentMajor = count > 0 ? remainder / count : 0;
+    return {
+      flow: "billing",
+      purpose: "installments",
+      amounts: { perInstallmentMajor, downPaymentMajor },
+      requests: [
+        {
+          body: {
+            user: ctx?.user,
+            productId: ctx?.productId,
+            plan: {
+              count,
+              interval: ctx?.installments?.interval || "month",
+              intervalCount: ctx?.installments?.intervalCount || 1,
+              downPaymentType: ctx?.installments?.downPaymentType || "percent",
+              downPaymentValue: ctx?.installments?.downPaymentValue || 0,
+            },
+            purpose: "installments",
+          },
+        },
+        { body: { purpose: "installments", productId: ctx?.productId } },
+      ],
+    };
+  }
+  const totalMajor = Number(pricing?.basePrice || 0) || 0;
+  return {
+    flow: "payment_intent",
+    amounts: { totalMajor },
+    requests: [
+      {
+        body: {
+          productId: ctx?.productId,
+          userNotes: ctx?.userNotes,
+          attachments: ctx?.attachments,
+          isTeam: !!ctx?.isTeam,
+          numberOfExpectedParticipants: ctx?.numberOfExpectedParticipants,
+        },
+      },
+    ],
+  };
+}
 import { CreditCard, Loader2, Upload, X } from "lucide-react";
 
 /* ---------------- Currency utils ---------------- */
@@ -64,14 +163,13 @@ type CheckoutSelection = Array<{
   };
 }>;
 
-/* ---------------- Use the canonical PricingBlock ---------------- */
-import type { PricingBlock as PricingInput } from "@/lib/pricing/calculators";
+/* ---------------- Build pricing block (loosely typed) ---------------- */
 
 function toPricingBlock(
   item: CartItem,
   mode: BillingChoice,
   _quantity: number
-): PricingInput {
+): any {
   const p: any = item.pricing || {};
   const currency = (p.currency || item.currency || "usd").toLowerCase();
 
@@ -94,7 +192,7 @@ function toPricingBlock(
       taxInclusive: p.taxInclusive ?? true,
       vatPercentage: p.vatPercentage ?? 0,
       discountPercentage: p.discountPercent ?? p.discountPercentage ?? 0,
-    } as PricingInput;
+    } as any;
   }
 
   // Per-unit rule (keep tiers & quantity)
@@ -122,7 +220,7 @@ function toPricingBlock(
             unitPrice: Number(t?.unitPrice || 0),
           }))
         : undefined,
-    } as PricingInput;
+    } as any;
   }
 
   // Fallback one-time
@@ -133,7 +231,7 @@ function toPricingBlock(
     taxInclusive: p.taxInclusive ?? true,
     vatPercentage: p.vatPercentage ?? 0,
     discountPercentage: p.discountPercent ?? p.discountPercentage ?? 0,
-  } as PricingInput;
+  } as any;
 }
 
 /* ---------------- Type guards + narrowed clones ---------------- */
@@ -182,43 +280,39 @@ export default function CheckoutPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /* ------------- TEAM CONTEXT (added) ------------- */
-  const [teamData, setTeamData] = useState<any>(null);
-  const [members, setMembers] = useState<any[]>([]);
-  const [teamLoading, setTeamLoading] = useState(false);
+  /* ---------------- Server price previews ---------------- */
+  const [serverPricePreview, setServerPricePreview] = useState<
+    | {
+        currency: string;
+        quantity: number;
+        subtotal: number;
+        vat: number;
+        total: number;
+        unitPrice?: number;
+        model?: string;
+        tierType?: string;
+      }
+    | null
+  >(null);
+  const [preview, setPreview] = useState<any>(null);
+  const [selectedModeFromCart, setSelectedModeFromCart] = useState<"pay_in_full" | "installments" | "subscription" | null>(null);
+  const [serverInstallmentsPreview, setServerInstallmentsPreview] = useState<
+    | {
+        total: number;
+        downPayment: number;
+        installments: number[];
+        plan?: {
+          count: number;
+          interval: "day" | "week" | "month" | "year";
+          intervalCount: number;
+          downPaymentType: "percent" | "amount";
+          downPaymentValue: number;
+        };
+      }
+    | null
+  >(null);
 
-  useEffect(() => {
-    if (isAuthenticated && (userData as any)?.role === "teamTechProfessional") {
-      fetchTeamData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, (userData as any)?.role]);
-
-  const fetchTeamData = async () => {
-    setTeamLoading(true);
-    try {
-      const token = getTokenFromCookies();
-      const res = await fetch("/api/teams/me", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        cache: "no-store",
-      });
-      if (!res.ok) throw new Error(`Team fetch failed (${res.status})`);
-      const json = await res.json();
-      const team = json?.data?.team ?? json?.team ?? json ?? null;
-      setTeamData(team);
-      setMembers(Array.isArray(team?.members) ? team.members : []);
-    } catch (err) {
-      safeConsole.error?.("Team fetch error:", err);
-      // toast.error("Couldn't load team info");
-    } finally {
-      setTeamLoading(false);
-    }
-  };
-  /* ----------------------------------------------- */
+  // No data fetching on this page; preview is supplied by Cart via sessionStorage
 
   /* Booking modal (moved here from Cart) */
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
@@ -228,26 +322,22 @@ export default function CheckoutPage() {
   }>({ userNotes: "", attachments: [] });
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
 
-  /* Load selection */
+  /* Load selection + preview from sessionStorage */
   useEffect(() => {
     try {
-      const raw =
-        typeof window !== "undefined"
-          ? sessionStorage.getItem("checkout.selection")
-          : null;
-      if (raw) {
-        const parsed = JSON.parse(raw) as CheckoutSelection;
+      const selRaw = typeof window !== "undefined" ? sessionStorage.getItem("checkout.selection") : null;
+      if (selRaw) {
+        const parsed = JSON.parse(selRaw) as CheckoutSelection;
         setSelected(Array.isArray(parsed) ? parsed : []);
-        // prefill existing booking info (if any)
-        const b =
-          (Array.isArray(parsed) ? parsed[0]?.booking : undefined) || {};
-        setBookingFormData({
-          userNotes: b.userNotes || "",
-          attachments: b.attachments || [],
-        });
-      } else {
-        router.push("/cart");
+        const b = (Array.isArray(parsed) ? parsed[0]?.booking : undefined) || {};
+        setBookingFormData({ userNotes: b.userNotes || "", attachments: b.attachments || [] });
       }
+
+      const previewRaw = typeof window !== "undefined" ? sessionStorage.getItem("checkout.preview") : null;
+      const modeRaw = typeof window !== "undefined" ? sessionStorage.getItem("checkout.mode") : null;
+      if (previewRaw) setPreview(JSON.parse(previewRaw));
+      if (modeRaw) setSelectedModeFromCart(modeRaw as any);
+      if (!previewRaw) router.push("/cart");
     } catch {
       router.push("/cart");
     }
@@ -266,7 +356,7 @@ export default function CheckoutPage() {
   const action = useMemo<ExternalCheckoutAction | null>(() => {
     if (!selectedItem || !selectedMode) return null;
 
-    const pricing: PricingInput = toPricingBlock(
+    const pricing = toPricingBlock(
       selectedItem,
       selectedMode,
       quantity
@@ -317,7 +407,7 @@ export default function CheckoutPage() {
         ctx as any
       ) as ExternalCheckoutAction;
     } catch (e) {
-      console.error("Failed to build checkout requests", e);
+      safeConsole.error("Failed to build checkout requests", e);
       return null;
     }
   }, [selectedItem, selectedMode, quantity, booking, userData]);
@@ -328,15 +418,67 @@ export default function CheckoutPage() {
   const A_INST = asInstallments(action);
   const A_SUB = asSubscription(action);
 
+  // Map preview response into presentational state
+  useEffect(() => {
+    try {
+      if (!preview) {
+        setServerPricePreview(null);
+        setServerInstallmentsPreview(null);
+        return;
+      }
+      const mode = (selectedModeFromCart || "pay_in_full") as any;
+      const opt = preview?.data?.options?.[mode];
+      if (!opt) {
+        setServerPricePreview(null);
+        setServerInstallmentsPreview(null);
+        return;
+      }
+      setServerPricePreview({
+        currency: (opt.currency || "USD").toString().toUpperCase(),
+        quantity: Number(opt.quantity || 1),
+        subtotal: Number(opt.breakdown?.subtotal || 0),
+        vat: Number(opt.breakdown?.vatAmount || 0),
+        total: Number(opt.breakdown?.total || 0),
+        unitPrice: typeof opt.breakdown?.unitPrice === "number" ? opt.breakdown.unitPrice : undefined,
+        model: opt.model,
+        tierType: opt.tiers?.type,
+      });
+      if (mode === "installments" && opt.installments?.enabled) {
+        setServerInstallmentsPreview({
+          total: Number(opt.installments?.totalFinanced || opt.breakdown?.total || 0),
+          downPayment: Number(opt.installments?.downPayment?.amount || 0),
+          installments: Array.isArray(opt.installments?.schedule)
+            ? opt.installments.schedule.map((x: any) => Number(x?.amount || 0))
+            : [],
+          plan: {
+            count: Number(opt.installments?.count || 0),
+            interval: "month",
+            intervalCount: 1,
+            downPaymentType: (opt.installments?.downPayment?.type || "percent") as any,
+            downPaymentValue: Number(opt.installments?.downPayment?.value || 0),
+          },
+        });
+      } else {
+        setServerInstallmentsPreview(null);
+      }
+    } catch (e) {
+      setServerPricePreview(null);
+      setServerInstallmentsPreview(null);
+    }
+  }, [preview, selectedModeFromCart]);
+
   /* Due today */
   const dueTodayMajor = useMemo(() => {
+    const mode = (selectedModeFromCart || "pay_in_full") as any;
+    const opt = preview?.data?.options?.[mode];
+    if (opt?.mode === "pay_in_full") return Number(opt?.breakdown?.total || 0);
+    if (opt?.mode === "installments") return Number(opt?.installments?.downPayment?.amount || 0);
+    // fallback
     if (A_FREE) return 0;
     if (A_PAYMENT) return A_PAYMENT.amounts.totalMajor;
     if (A_INST) {
       const a = A_INST.amounts;
-      return a.downPaymentMajor > 0
-        ? a.downPaymentMajor
-        : a.perInstallmentMajor;
+      return a.downPaymentMajor > 0 ? a.downPaymentMajor : a.perInstallmentMajor;
     }
     if (A_SUB) {
       const trial = (A_SUB.requests?.[1] as any)?.body?.pricing?.trialDays ?? 0;
@@ -344,7 +486,7 @@ export default function CheckoutPage() {
       return (A_SUB.amounts.setupFeeMajor || 0) + firstPeriod;
     }
     return 0;
-  }, [A_FREE, A_PAYMENT, A_INST, A_SUB]);
+  }, [preview, selectedModeFromCart, A_FREE, A_PAYMENT, A_INST, A_SUB]);
 
   /* ---- Booking requirements & validation ---- */
   const needsBooking = !!(
@@ -449,11 +591,11 @@ export default function CheckoutPage() {
       if (A_PAYMENT) {
         const req = A_PAYMENT.requests[0];
         const curr = (selectedItem.currency || "usd").toLowerCase();
-        const amtMinor = toMinor(A_PAYMENT.amounts.totalMajor, curr);
+        const amountMajor = A_PAYMENT.amounts.totalMajor;
 
         const resp = await PaymentService.createSimplePaymentIntent(
           (req as any).body,
-          amtMinor,
+          amountMajor,
           curr,
           token || ""
         );
@@ -473,7 +615,7 @@ export default function CheckoutPage() {
         setClientSecret(secret);
         setMode("payment");
         setCurrency((selectedItem.currency || "USD").toUpperCase());
-        setAmountMinor(amtMinor);
+        setAmountMinor(toMinor(amountMajor, curr));
         toast.success("Secure payment initialized");
         return;
       }
@@ -501,7 +643,7 @@ export default function CheckoutPage() {
         return;
       }
     } catch (e: any) {
-      console.error(e);
+      safeConsole.error(e);
       setError(e?.message || "Unable to start checkout");
       toast.error(e?.message || "Unable to start checkout");
     } finally {
@@ -547,7 +689,7 @@ export default function CheckoutPage() {
       if (selectedItem) removeFromCart(selectedItem.id);
       router.push("/dashboard");
     } catch (e: any) {
-      console.error(e);
+      safeConsole.error(e);
       setError(e?.message || "Failed to finalize");
       toast.error(e?.message || "Failed to finalize");
     }
@@ -632,6 +774,74 @@ export default function CheckoutPage() {
                     {selectedItem.description}
                   </p>
 
+                  {/* Server price preview (informational) */}
+                  {serverPricePreview && (
+                    <div className="mt-3 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-[10px] p-3">
+                      <div className="flex items-center justify-between">
+                        <span>Subtotal</span>
+                        <span className="font-medium">
+                          {formatCurrency(
+                            serverPricePreview.subtotal,
+                            serverPricePreview.currency
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>VAT</span>
+                        <span className="font-medium">
+                          {formatCurrency(
+                            serverPricePreview.vat,
+                            serverPricePreview.currency
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Total</span>
+                        <span className="font-semibold">
+                          {formatCurrency(
+                            serverPricePreview.total,
+                            serverPricePreview.currency
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Server installments preview summary */}
+                  {serverInstallmentsPreview && (
+                    <div className="mt-3 text-xs text-gray-600 bg-blue-50 border border-blue-100 rounded-[10px] p-3">
+                      <div className="flex items-center justify-between">
+                        <span>Down payment</span>
+                        <span className="font-medium">
+                          {formatCurrency(
+                            serverInstallmentsPreview.downPayment,
+                            selectedItem.currency
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>
+                          {serverInstallmentsPreview.plan?.count || 0} payments of
+                        </span>
+                        <span className="font-medium">
+                          {formatCurrency(
+                            serverInstallmentsPreview.installments?.[0] || 0,
+                            selectedItem.currency
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Total financed</span>
+                        <span className="font-semibold">
+                          {formatCurrency(
+                            serverInstallmentsPreview.total,
+                            selectedItem.currency
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="mt-3 text-xs text-gray-600">
                     {A_INST && (
                       <p>
@@ -709,7 +919,7 @@ export default function CheckoutPage() {
                   <Button
                     onClick={startCheckout}
                     disabled={busy}
-                    className="w-full md:w-48 bg-[#0D1140] hover:bg-blue-700 text-white text-base py-3 px-6 rounded-[10px] font-semibold shadow-lg hover:shadow-xl transition-all"
+                    className="w-48 bg-[#0D1140] hover:bg-blue-700 text-white text-base py-3 px-6 rounded-[10px] font-semibold shadow-lg hover:shadow-xl transition-all"
                   >
                     <CreditCard size={20} className="mr-2" />
                     {busy

@@ -20,40 +20,31 @@ import {
   RefreshCcw,
   ShieldCheck,
   AlertCircle,
+  Info,
   Inbox,
-  ExternalLink,
 } from "lucide-react";
 import { getTokenFromCookies } from "@/lib/cookies";
 
-type Subscription = {
+type Entitlement = {
   _id: string;
-  provider: string;
-  providerSubscriptionId: string;
-  providerCustomerId: string;
-  providerProductId: string;
-  providerPriceId: string;
   userId: string;
-  productId: string;
-  status: "active" | "trialing" | "past_due" | "canceled" | string;
-  currentPeriodStart?: string | null;
-  currentPeriodEnd?: string | null;
-  cancelAtPeriodEnd?: boolean;
-  trialStart?: string | null;
-  trialEnd?: string | null;
-  prorationBehavior?: string | null;
-  invoices?: Array<{
-    invoiceId: string;
-    amountPaid: number;
-    currency: string;
-    hostedInvoiceUrl?: string;
-    status: string;
-    createdAt: string;
-  }>;
-  createdAt: string;
-  updatedAt: string;
+  subjectType: "feature" | "plan" | string;
+  subjectId: string;
+  subjectKey: string;
+  status: "active" | "inactive" | "expired" | string;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  allocation: "per_user" | "per_team" | string;
+  quantity: number; // -1 = unlimited
+  consumed?: number;
+  source?: {
+    kind?: "subscription" | "promotion" | "manual" | string;
+    id?: string;
+    priceId?: string;
+  };
 };
 
-// EU/UK date formatting
+// EU/UK date & time formatting
 const LOCALE = "en-GB";
 const TZ = "Europe/London";
 
@@ -65,19 +56,43 @@ function formatDate(value?: string | null) {
       year: "numeric",
       month: "short",
       day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZoneName: "short", // BST/GMT
     }).format(new Date(value));
   } catch {
     return value ?? "—";
   }
 }
 
+function remainingOf(e: Entitlement) {
+  if (e.quantity === -1) return "Unlimited";
+  const consumed = e.consumed ?? 0;
+  return Math.max(e.quantity - consumed, 0);
+}
+
+/** Accepts multiple possible backend/wrapper shapes and returns items safely */
+function extractItems(raw: unknown): Entitlement[] {
+  const r = raw as any;
+  // Direct: { ok, items }
+  if (Array.isArray(r?.items)) return r.items as Entitlement[];
+  // Wrapped: { success|ok, data: { items } }
+  if (Array.isArray(r?.data?.items)) return r.data.items as Entitlement[];
+  // Wrapped array: { success|ok, data: Entitlement[] }
+  if (Array.isArray(r?.data)) return r.data as Entitlement[];
+  // Bare array fallback
+  if (Array.isArray(r)) return r as Entitlement[];
+  return [];
+}
+
 function EmptyState({ onRefresh }: { onRefresh: () => void }) {
   return (
     <div className="py-16 text-center">
       <Inbox className="mx-auto h-10 w-10 text-muted-foreground" />
-      <h3 className="mt-4 text-lg font-medium">No subscriptions</h3>
+      <h3 className="mt-4 text-lg font-medium">No active entitlements</h3>
       <p className="mt-1 text-sm text-muted-foreground">
-        You don’t have any active subscriptions yet. Browse plans or refresh if you think this is a mistake.
+        You don’t have any paid features yet. Pick a plan to unlock features, or
+        refresh if you think this is a mistake.
       </p>
       <div className="mt-6 flex items-center justify-center gap-2">
         <Button asChild className="text-white hover:text-black">
@@ -87,6 +102,12 @@ function EmptyState({ onRefresh }: { onRefresh: () => void }) {
           Refresh
         </Button>
       </div>
+      {/* <p className="mt-3 text-xs text-muted-foreground">
+        Need help?{" "}
+        <a href="mailto:support@yourapp.com" className="underline">
+          Contact support
+        </a>
+      </p> */}
     </div>
   );
 }
@@ -133,7 +154,7 @@ function TableSkeletonRows({ rows = 6 }: { rows?: number }) {
 }
 
 export default function Page() {
-  const [data, setData] = useState<Subscription[]>([]);
+  const [data, setData] = useState<Entitlement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -143,18 +164,11 @@ export default function Page() {
     setError(null);
     setLoading(true);
     try {
-      const response = await getApiRequest("/api/me/subscriptions", token || "");
-      const r: any = response?.data;
-      const items: Subscription[] = Array.isArray(r?.data)
-        ? (r.data as Subscription[])
-        : Array.isArray(r?.items)
-        ? (r.items as Subscription[])
-        : Array.isArray(r)
-        ? (r as Subscription[])
-        : [];
+      const response = await getApiRequest("/api/me/entitlements", token || "");
+      const items = extractItems(response?.data);
       setData(items);
     } catch (err: any) {
-      setError(err?.message || "Unable to fetch subscriptions.");
+      setError(err?.message || "Unable to fetch entitlements.");
     } finally {
       setLoading(false);
     }
@@ -166,28 +180,44 @@ export default function Page() {
 
   const stats = useMemo(() => {
     const total = data.length;
-    const active = data.filter((d) => d.status === "active" || d.status === "trialing").length;
-    const trialing = data.filter((d) => d.trialEnd && d.status === "trialing").length;
-    const nextRenewal = data
-      .map((d) => d.currentPeriodEnd)
+    const unlimitedCount = data.filter((d) => d.quantity === -1).length;
+    const finite = data.filter((d) => d.quantity !== -1);
+    const remaining = finite.reduce(
+      (sum, e) => sum + Math.max(e.quantity - (e.consumed ?? 0), 0),
+      0
+    );
+    const features = new Set(data.map((d) => d.subjectKey)).size;
+    const nextExpiry = data
+      .map((d) => d.endsAt)
       .filter(Boolean)
       .map((d) => new Date(d as string).getTime())
       .sort((a, b) => a - b)[0];
+
     return {
       total,
-      active,
-      trialing,
-      nextRenewal: nextRenewal ? formatDate(new Date(nextRenewal).toISOString()) : "—",
+      unlimitedCount,
+      remaining,
+      features,
+      nextExpiry: nextExpiry
+        ? formatDate(new Date(nextExpiry).toISOString())
+        : "—",
     };
   }, [data]);
 
   const statusBadge = (status: string) => {
-    const base = "px-2 py-1 rounded-full text-xs capitalize";
+    const base = "px-2 py-1 rounded-full text-xs";
     if (status === "active") return <Badge className={base}>Active</Badge>;
-    if (status === "trialing") return <Badge className={base}>Trialing</Badge>;
-    if (status === "past_due") return <Badge variant="destructive" className={base}>Past due</Badge>;
-    if (status === "canceled") return <Badge variant="secondary" className={base}>Canceled</Badge>;
-    return <Badge variant="secondary" className={base}>{status}</Badge>;
+    if (status === "expired")
+      return (
+        <Badge variant="destructive" className={base}>
+          Expired
+        </Badge>
+      );
+    return (
+      <Badge variant="secondary" className={base}>
+        {status}
+      </Badge>
+    );
   };
 
   const handleRefresh = async () => {
@@ -233,7 +263,7 @@ export default function Page() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground">
-              Total Subscriptions
+              Total Entitlements
             </CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-semibold">
@@ -243,31 +273,31 @@ export default function Page() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground">
-              Active
+              Distinct Features
             </CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-semibold">
-            {stats.active}
+            {stats.features}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground">
-              Trialing
+              Unlimited
             </CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-semibold">
-            {stats.trialing}
+            {stats.unlimitedCount}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground">
-              Next Renewal
+              Next Expiry
             </CardTitle>
           </CardHeader>
           <CardContent className="text-lg font-semibold">
-            {stats.nextRenewal}
+            {stats.nextExpiry}
           </CardContent>
         </Card>
       </div>
@@ -277,7 +307,7 @@ export default function Page() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5" />
-            <CardTitle>My Subscriptions</CardTitle>
+            <CardTitle>Active Entitlements</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
@@ -286,42 +316,19 @@ export default function Page() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Subscription</TableHead>
+                    <TableHead>Feature</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Provider</TableHead>
-                    <TableHead>Period</TableHead>
-                    <TableHead>Price ID</TableHead>
-                    <TableHead className="text-right">Invoices</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>Allocation</TableHead>
+                    <TableHead className="text-right">Quantity</TableHead>
+                    <TableHead className="text-right">Consumed</TableHead>
+                    <TableHead className="text-right">Remaining</TableHead>
+                    <TableHead>Starts</TableHead>
+                    <TableHead>Ends</TableHead>
+                    <TableHead>Source</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <Skeleton className="h-4 w-40" />
-                        <Skeleton className="h-3 w-32" />
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-5 w-16" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-5 w-20" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-5 w-40" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-5 w-28" />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Skeleton className="h-5 w-12 ml-auto" />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Skeleton className="h-8 w-24 ml-auto" />
-                    </TableCell>
-                  </TableRow>
+                  <TableSkeletonRows rows={6} />
                 </TableBody>
               </Table>
             </div>
@@ -337,55 +344,59 @@ export default function Page() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Subscription</TableHead>
+                    <TableHead>Feature</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Provider</TableHead>
-                    <TableHead>Period</TableHead>
-                    <TableHead>Price ID</TableHead>
-                    <TableHead className="text-right">Invoices</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>Allocation</TableHead>
+                    <TableHead className="text-right">Quantity</TableHead>
+                    <TableHead className="text-right">Consumed</TableHead>
+                    <TableHead className="text-right">Remaining</TableHead>
+                    <TableHead>Starts</TableHead>
+                    <TableHead>Ends</TableHead>
+                    <TableHead>Source</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.map((s) => (
-                    <TableRow key={s._id}>
+                  {data.map((e) => (
+                    <TableRow key={e._id}>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="font-medium">{s.providerSubscriptionId}</span>
+                          <span className="font-medium">{e.subjectKey}</span>
                           <span className="text-xs text-muted-foreground">
-                            product: {s.providerProductId}
+                            {e.subjectType} · {e.subjectId}
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>{statusBadge(s.status)}</TableCell>
-                      <TableCell className="capitalize">{s.provider}</TableCell>
+                      <TableCell>{statusBadge(e.status)}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="capitalize">
+                          {e.allocation.replace("_", " ")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {e.quantity === -1 ? "Unlimited" : e.quantity}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {e.consumed ?? 0}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {remainingOf(e)}
+                      </TableCell>
+                      <TableCell>{formatDate(e.startsAt)}</TableCell>
+                      <TableCell>{formatDate(e.endsAt)}</TableCell>
                       <TableCell>
                         <div className="text-xs">
-                          <div>Start: {formatDate(s.currentPeriodStart)}</div>
-                          <div>End: {formatDate(s.currentPeriodEnd)}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-mono text-xs">{s.providerPriceId}</span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {(s.invoices?.length || 0).toString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Link href={`/dashboard/my-subscriptions/${s._id}`}>
-                            <Button size="sm" variant="outline">View</Button>
-                          </Link>
-                          {s.invoices && s.invoices[0]?.hostedInvoiceUrl && (
-                            <a
-                              href={s.invoices[0].hostedInvoiceUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <Button size="sm" variant="ghost">
-                                Invoice <ExternalLink className="w-3 h-3 ml-1" />
-                              </Button>
-                            </a>
+                          <div className="capitalize">
+                            {e.source?.kind || "—"}
+                          </div>
+                          {e.source?.priceId && (
+                            <div className="text-muted-foreground">
+                              price: {e.source.priceId}
+                            </div>
+                          )}
+                          {e.source?.id && (
+                            <div className="text-muted-foreground">
+                              id: {e.source.id}
+                            </div>
                           )}
                         </div>
                       </TableCell>
