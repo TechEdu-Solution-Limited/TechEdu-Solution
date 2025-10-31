@@ -769,7 +769,7 @@ export function PricingForm({
           <RadioGroup
             className="grid grid-cols-1 sm:grid-cols-3 gap-2"
             value={v.model}
-            onValueChange={(val: PricingModel) => apply({ model: val })}
+            onValueChange={(val: Price) => apply({ model: val })}
             disabled={disabled}
           >
             <Label className="flex items-center gap-2 border rounded-xl p-3 cursor-pointer">
