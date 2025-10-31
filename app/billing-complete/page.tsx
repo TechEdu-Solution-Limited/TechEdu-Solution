@@ -8,6 +8,14 @@ import { getTokenFromCookies } from "@/lib/cookies";
 import { toast } from "react-toastify";
 
 export default function BillingCompletePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BillingCompleteInner />
+    </Suspense>
+  );
+}
+
+function BillingCompleteInner() {
   const sp = useSearchParams();
   const [status, setStatus] = useState<"idle" | "ok" | "err">("idle");
 
@@ -64,7 +72,6 @@ export default function BillingCompletePage() {
   }, [sp]);
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
     <div className="min-h-[50vh] flex items-center justify-center">
       <p className="text-sm text-gray-700">
         {status === "idle" && "Finalizing your billing setup…"}
@@ -72,6 +79,5 @@ export default function BillingCompletePage() {
         {status === "err" && "We couldn’t finalize your billing setup."}
       </p>
     </div>
-    </Suspense>
   );
 }
