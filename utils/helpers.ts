@@ -1,5 +1,5 @@
 import { UserBooking } from "@/types/booking";
-import type { PricingModel, TierType } from "@/lib/constants/pricing";
+import type { PriceModel, TierType } from "@/lib/constants/pricing";
 
 // Helper function to get the primary date/time for display
 export const getPrimaryDateTime = (booking: UserBooking) => {
@@ -81,18 +81,18 @@ export const formatDateTime = (dateString: string) => {
 // Map product.TierType → cart's allowed tier union
 export const normalizeTierType = (
   t?: TierType
-): "none" | "volume" | "graduated" | undefined => {
+): "volume" | "graduated" | undefined => {
   if (!t) return undefined;
   if (t === "stairstep") return "graduated";
-  if (t === "none" || t === "volume" || t === "graduated") return t;
+  if (t === "volume" || t === "graduated") return t;
   return undefined;
 };
 
 // Map product.PricingModel → cart's allowed model union
 export const normalizeCartModel = (
-  m?: PricingModel
-): "one_time" | "subscription" =>
-  m === "subscription" ? "subscription" : "one_time";
+  m?: PriceModel
+): "one_time" | "subscription" | "free" =>
+  m === "subscription" ? "subscription" : m === "one_time" ? "one_time" : "free";
 
 type Tier = { upTo: number; unitPrice: number };
 

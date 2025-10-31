@@ -23,6 +23,7 @@ import type {
 } from "@/types/payment";
 import safeConsole from "../console";
 import { toMinor } from "../constants/currency";
+import { PriceModel } from "../constants/pricing";
 
 export class PaymentService {
   /* -------------------------------------------------------------- *
@@ -312,7 +313,7 @@ export class PaymentService {
     payload: {
       productId: string;
       quantity: number;
-      pricingModel: "one-time" | "subscription";
+      pricingModel: PriceModel;
       allowInstallment?: boolean;
       price: number; // MAJOR units
       priceBasis?: "flat" | "per-unit";

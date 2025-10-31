@@ -4,7 +4,7 @@
 export type CurrencyCode = "gbp" | "usd" | "eur" | (string & {});
 
 /** Pricing models & tiering helpers (for captured snapshots) */
-export type PricingModel = "one_time" | "subscription";
+export type PriceModel = "one_time" | "subscription" | "free";
 export type TierType = "volume" | "stairstep";
 
 /** Participant type shared across API */
@@ -15,7 +15,7 @@ export type UnifiedSucceeded = "succeeded" | "success";
 
 export interface CapturedPricingSnapshot {
   /** Model at time of purchase */
-  model: PricingModel;
+  model: PriceModel;
   /** Quantity purchased (for per_unit) */
   quantity?: number;
   /** Effective unit price (after volume/tier) in MAJOR units (e.g., 135.00) */
@@ -305,7 +305,7 @@ export interface UpdatePaymentRequest {
 export interface PricePreviewResponse {
   ok: boolean;
   currency: CurrencyCode;
-  model: PricingModel;
+  model: PriceModel;
   quantity: number;
   subtotal: number; // MAJOR
   vat: number; // MAJOR
@@ -363,7 +363,7 @@ export interface InstallmentsConfirmEcho {
   productName: string;
   currency: CurrencyCode;
   pricing: {
-    model: PricingModel;
+    model: PriceModel;
     currency: CurrencyCode;
     basePrice?: number;
     unitName?: string;
