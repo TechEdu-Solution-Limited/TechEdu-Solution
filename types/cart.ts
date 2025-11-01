@@ -68,7 +68,7 @@ export interface CartItem {
     maxQty?: number;
     installments?: {
       enabled: boolean;
-      interval?: "hour" | "day" | "week" | "month" | "year";
+      interval?: "day" | "week" | "month" | "year";
       intervalCount?: number;
       downPaymentType?: "percent" | "amount";
       downPaymentValue?: number;

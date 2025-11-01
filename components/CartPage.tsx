@@ -421,7 +421,7 @@ export default function CartPage() {
         installments: {
           enabled: true,
           count: installmentsConfig.count ?? 6,
-          interval: installmentsConfig.interval || "hour",
+          interval: installmentsConfig.interval || "month",
           intervalCount: installmentsConfig.intervalCount ?? 1,
           downPaymentType: installmentsConfig.downPaymentType || "percent",
           downPaymentValue: installmentsConfig.downPaymentValue ?? 0,

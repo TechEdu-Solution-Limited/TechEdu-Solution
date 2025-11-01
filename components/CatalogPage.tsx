@@ -500,13 +500,12 @@ export default function CatalogPage({
           // optional subscription-ish
           subscriptionPrice: product.pricing?.basePrice,
           interval:
-            product.pricing?.interval && product.pricing.interval !== "hour"
-              ? (product.pricing.interval === "day" ||
-                product.pricing.interval === "week" ||
-                product.pricing.interval === "month" ||
-                product.pricing.interval === "year"
-                  ? product.pricing.interval
-                  : undefined)
+            product.pricing?.interval &&
+            (product.pricing.interval === "day" ||
+              product.pricing.interval === "week" ||
+              product.pricing.interval === "month" ||
+              product.pricing.interval === "year")
+              ? product.pricing.interval
               : undefined,
           intervalCount: product.pricing?.intervalCount,
           trialDays: product.pricing?.trialDays,

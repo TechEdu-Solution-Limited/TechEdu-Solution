@@ -393,6 +393,11 @@ export const dashboardSidebarConfig = {
                 href: "/dashboard/sessions/my-sessions",
                 },
                 {
+                  label: "My Attendance",
+                  icon: FileText,
+                  href: "/dashboard/attendance/my-attendance",
+                },
+                {
                   label: "Paid-for Product",
                   icon: ShoppingBasket,
                   href: "/dashboard/my-entitlements",
