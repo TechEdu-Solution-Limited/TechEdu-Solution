@@ -119,7 +119,7 @@ export default function SubscriptionDetailsPage() {
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-3 border rounded">
             <div className="text-xs text-muted-foreground">Status</div>
-            <div className="mt-1"><Badge className="capitalize">{sub.status}</Badge></div>
+            <div className="mt-1"><Badge className="capitalize text-blue-500">{sub.status}</Badge></div>
           </div>
           <div className="p-3 border rounded">
             <div className="text-xs text-muted-foreground">Price ID</div>

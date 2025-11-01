@@ -34,7 +34,7 @@ type Subscription = {
   providerPriceId: string;
   userId: string;
   productId: string;
-  status: "active" | "trialing" | "past_due" | "canceled" | string;
+  status: "incomplete" | string;
   currentPeriodStart?: string | null;
   currentPeriodEnd?: string | null;
   cancelAtPeriodEnd?: boolean;
@@ -137,7 +137,7 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>("active");
+  const [statusFilter, setStatusFilter] = useState<string>("incomplete");
 
   const fetchEntitlements = useCallback(async () => {
     const token = getTokenFromCookies();
@@ -191,11 +191,8 @@ export default function Page() {
   }, [data]);
 
   const statusBadge = (status: string) => {
-    const base = "px-2 py-1 rounded-full text-xs capitalize";
-    if (status === "active") return <Badge className={base}>Active</Badge>;
-    if (status === "trialing") return <Badge className={base}>Trialing</Badge>;
-    if (status === "past_due") return <Badge variant="destructive" className={base}>Past due</Badge>;
-    if (status === "canceled") return <Badge variant="secondary" className={base}>Canceled</Badge>;
+    const base = "px-2 text-blue-500 rounded-full text-xs capitalize";
+    if (status === "incomplete") return <Badge className={base}>Incomplete</Badge>;
     return <Badge variant="secondary" className={base}>{status}</Badge>;
   };
 
