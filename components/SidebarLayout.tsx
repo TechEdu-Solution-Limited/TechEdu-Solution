@@ -194,7 +194,7 @@ export default function SidebarLayout({
       <div className="flex min-h-screen w-full bg-white">
         <Sidebar>
           <SidebarHeader className="border-b border-border p-4">
-            <div className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
               <Image
                 src="/assets/techedusolution.jpg"
                 alt="techedu solution logo"
@@ -208,7 +208,7 @@ export default function SidebarLayout({
                   {dashboardData?.displayName || "Dashboard"}
                 </span>
               </div>
-            </div>
+            </Link>
             {/* Role Management Dropdown - Only show for tech professionals - COMMENTED OUT */}
           </SidebarHeader>
 
