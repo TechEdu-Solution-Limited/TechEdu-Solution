@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { getApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 import { safeConsole } from "@/lib/console";
+import { getCurrencySymbol } from "@/lib/constants/currencies";
 
 interface NonBookableServiceDetails {
   _id: string;
@@ -106,7 +107,7 @@ export default function NonBookableServiceDetailsPage() {
   if (!service) return null;
 
   const price = service?.pricing?.basePrice ?? 0;
-  const currency = (service?.pricing?.currency || "gbp").toUpperCase();
+  const currency = service?.pricing?.currency || "gbp";
   const fileExt = service.materialUrl?.split('.').pop()?.toLowerCase() || '';
   const filename = service.materialUrl?.split('/').pop() || 'download';
   
@@ -221,7 +222,7 @@ export default function NonBookableServiceDetailsPage() {
               <div>
                 <div className="text-xs text-gray-500 mb-1">Price</div>
                 <div className="text-lg font-semibold text-gray-900">
-                  {price > 0 ? `${currency} ${price.toFixed(2)}` : "Free"}
+                  {price > 0 ? `${getCurrencySymbol(currency)}${price.toFixed(2)}` : "Free"}
                 </div>
               </div>
               <div>

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { getApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 import { safeConsole } from "@/lib/console";
+import { getCurrencySymbol } from "@/lib/constants/currencies";
 
 interface NonBookableService {
   _id: string;
@@ -178,7 +179,7 @@ export default function NonBookableServicesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((s) => {
               const price = s?.pricing?.basePrice ?? 0;
-              const currency = (s?.pricing?.currency || "gbp").toUpperCase();
+              const currency = s?.pricing?.currency || "gbp";
               const fileExt = s.materialUrl?.split('.').pop()?.toLowerCase() || '';
               const filename = s.materialUrl?.split('/').pop() || 'download';
               
@@ -237,7 +238,7 @@ export default function NonBookableServicesPage() {
                           {s.mediaType || "file"}
                         </span>
                         <span className="font-medium text-blue-600">
-                          {price > 0 ? `${currency} ${price.toFixed(2)}` : "Free"}
+                          {price > 0 ? `${getCurrencySymbol(currency)}${price.toFixed(2)}` : "Free"}
                         </span>
                       </div>
                       <div className="mt-3 flex gap-2">
