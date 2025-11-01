@@ -155,6 +155,7 @@ export const INavLinks: INavLink[] = [
   {
     label: "Tools",
     subLinks: [
+      { href: "/tools/resources", label: "Resources" },
       { href: "/tools/cv-builder", label: "CV Builder" },
       { href: "/tools/scholarship-coach", label: "Scholarship Coach" },
       { href: "/tools/package-estimator", label: "Package Estimator" },

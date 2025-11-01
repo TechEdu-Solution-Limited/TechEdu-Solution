@@ -70,7 +70,31 @@ function buildCheckoutRequests(pricing: any, ctx: any): ExternalCheckoutAction {
             purpose: "subscription",
           },
         },
-        { body: { purpose: "subscription", productId: ctx?.productId } },
+        {
+          body: {
+            user: ctx?.user,
+            purpose: "subscription",
+            productId: ctx?.productId,
+            productName: ctx?.productName,
+            currency: pricing?.currency || ctx?.currency || "USD",
+            quantity: ctx?.numberOfExpectedParticipants || 1,
+            pricing: {
+              model: "subscription",
+              subscriptionPrice: periodAmountMajor,
+              interval: pricing?.interval || "month",
+              intervalCount: pricing?.intervalCount || 1,
+              trialDays: pricing?.trialDays || 0,
+              setupFee: setupFeeMajor || 0,
+            },
+            plan: {
+              count: 0, // 0 means open-ended recurring subscription
+              interval: pricing?.interval || "month",
+              intervalCount: pricing?.intervalCount || 1,
+              downPaymentType: "none",
+              downPaymentValue: 0,
+            },
+          },
+        },
       ],
     };
   }
@@ -99,7 +123,24 @@ function buildCheckoutRequests(pricing: any, ctx: any): ExternalCheckoutAction {
             purpose: "installments",
           },
         },
-        { body: { purpose: "installments", productId: ctx?.productId } },
+        {
+          body: {
+            user: ctx?.user,
+            purpose: "installments",
+            productId: ctx?.productId,
+            productName: ctx?.productName,
+            currency: pricing?.currency || ctx?.currency || "USD",
+            quantity: ctx?.numberOfExpectedParticipants || 1,
+            pricing,
+            plan: {
+              count,
+              interval: ctx?.installments?.interval || "month",
+              intervalCount: ctx?.installments?.intervalCount || 1,
+              downPaymentType: ctx?.installments?.downPaymentType || "percent",
+              downPaymentValue: ctx?.installments?.downPaymentValue || 0,
+            },
+          },
+        },
       ],
     };
   }

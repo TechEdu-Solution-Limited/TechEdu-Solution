@@ -166,6 +166,11 @@ export interface UserBooking {
   isSession: boolean;
   status: "pending" | "confirmed" | "completed" | "cancelled";
   paymentStatus: "paid" | "unpaid" | "refunded" | "free";
+  paymentId?: {
+    _id: string;
+    amount: number;
+    status: "pending" | "success" | "failed";
+  };
   schedulingStatus:
     | "awaiting-payment"
     | "payment-failed"

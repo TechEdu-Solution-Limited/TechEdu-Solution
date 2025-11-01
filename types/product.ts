@@ -76,8 +76,10 @@ export interface Product {
   // Content & Materials
   tags: string[];
   materials?: string; // URLs to downloadable materials
+  materialUrl?: string; // Alternative URL field for materials
   videoUrl?: string; // Promotional video
   syllabus?: string; // URL to syllabus document
+  mediaType?: string; // For Tools: "file", "video", "audio"
 
   // Status & Availability
   enabled: boolean;

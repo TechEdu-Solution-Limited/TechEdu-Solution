@@ -199,6 +199,14 @@ export default function CartPage() {
   /* ---------------- Role gating ---------------- */
   const canPurchaseProductType = (productType: string, role?: string) => {
     if (!isAuthenticated) return false;
+    
+    // Universal access product types available to all authenticated users
+    const universalProductTypes = [
+      "Tools",
+      "Marketing, Consultation & Free Services",
+    ];
+    if (universalProductTypes.includes(productType)) return true;
+    
     switch (role) {
       case "student":
         return studentServices.includes(productType);

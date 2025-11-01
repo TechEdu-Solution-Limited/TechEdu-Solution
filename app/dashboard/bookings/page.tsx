@@ -119,10 +119,12 @@ export default function UserBookingsPage() {
             ? getPrimaryPrice({ pricing })
             : undefined;
 
-          // Currency preference
+          // Currency preference - check both new and old structures
           const currencyFromPricing: Currency =
             (pricing?.currency as Currency) ??
+            (raw.product?.currency as Currency) ??
             (raw.productId?.currency as Currency) ??
+            (raw.paymentSummary?.currency as Currency) ??
             (raw.productCurrency as Currency) ??
             ("gbp" as Currency);
 
@@ -131,18 +133,44 @@ export default function UserBookingsPage() {
 
             // Human-facing fields
             productName:
-              raw.productId?.service ?? raw.productName ?? "Unknown Service",
+              raw.product?.name ??
+              raw.productId?.service ??
+              raw.productName ??
+              "Unknown Service",
 
             instructorName:
+              raw.instructor?.fullName ??
               raw.instructorId?.fullName ??
               raw.instructorName ??
               "Unknown Instructor",
             instructorEmail:
-              raw.instructorId?.email ?? raw.instructorEmail ?? "Unknown",
+              raw.instructor?.email ??
+              raw.instructorId?.email ??
+              raw.instructorEmail ??
+              "Unknown",
 
-            // Schedule normalization
-            scheduleAt: raw.scheduleAt ?? raw.scheduledAt ?? raw.startTime,
-            endAt: raw.endAt ?? raw.endTime,
+            // Schedule normalization - check both new and old structures
+            scheduleAt:
+              raw.schedule?.confirmed?.start ??
+              raw.scheduleAt ??
+              raw.scheduledAt ??
+              raw.startTime,
+            endAt:
+              raw.schedule?.confirmed?.end ??
+              raw.endAt ??
+              raw.endTime,
+
+            // Duration
+            durationInMinutes:
+              raw.schedule?.minutesPerSession ?? raw.durationInMinutes,
+
+            // Status normalization - check both new and old structures
+            status:
+              raw.status?.booking ?? raw.status ?? "pending",
+            paymentStatus:
+              raw.status?.payment ?? raw.paymentStatus ?? "unpaid",
+            schedulingStatus:
+              raw.status?.scheduling ?? raw.schedulingStatus,
 
             // Arrays normalization
             participants: Array.isArray(raw.participants)
@@ -153,18 +181,37 @@ export default function UserBookingsPage() {
               : [],
             attachments,
 
+            // URLs normalization
+            bookingUrl: raw.links?.bookingUrl ?? raw.bookingUrl,
+            calendlyUrl: raw.links?.calendlyUrl ?? raw.calendlyUrl,
+
             // Pricing surface for UI
             pricing,
             productPrice:
               (typeof priceFromPricing === "number"
                 ? priceFromPricing
                 : undefined) ??
+              raw.paymentSummary?.amount ??
               raw.productId?.price ??
               raw.productPrice ??
               0,
             productCurrency: currencyFromPricing,
             discountPercentage:
               raw.productId?.discountPercentage ?? raw.discountPercentage ?? 0,
+
+            // Audit fields
+            createdAt: raw.audit?.createdAt ?? raw.createdAt,
+            updatedAt: raw.audit?.updatedAt ?? raw.updatedAt,
+
+            // Cancellation
+            isCancelled: raw.cancellation?.isCancelled ?? false,
+
+            // Type mapping from product to productType
+            productType:
+              raw.product?.type ?? raw.productType,
+
+            // Participant type from participants array
+            participantType: raw.participants?.[0]?.participantType ?? raw.participantType,
           };
         });
 
@@ -682,12 +729,12 @@ export default function UserBookingsPage() {
                           booking.bookingPurpose ||
                           "No service specified"}
                       </CardTitle>
-                      <div className="flex items-center gap-2 mb-2">
+                      {/* <div className="flex items-center gap-2 mb-2">
                         <User className="w-4 h-4 text-slate-500" />
                         <span className="text-sm text-slate-600">
                           {booking.bookingSchedulerFullName || "No name provided"}
                         </span>
-                      </div>
+                      </div> */}
                       <div className="flex items-center gap-2 mb-2">
                         <User className="w-4 h-4 text-slate-500" />
                         <span className="text-sm text-slate-600">

@@ -22,6 +22,8 @@ import {
   BarChart3,
   Award,
   ShoppingBasket,
+  SubscriptIcon,
+  
 } from "lucide-react";
 import { HiViewBoards } from "react-icons/hi";
 
@@ -116,6 +118,16 @@ export const dashboardSidebarConfig = {
             href: "/dashboard/non-booked-services",
           },
           {
+            label: "Paid-for Product",
+            icon: ShoppingBasket,
+            href: "/dashboard/my-entitlements",
+          },              
+          {
+            label: "My Subscriptions",
+            icon: SubscriptIcon,
+            href: "/dashboard/my-subscriptions",
+          },
+          {
             label: "Upload Documents",
             icon: FileCheck,
             href: "/dashboard/upload-documents",
@@ -208,6 +220,16 @@ export const dashboardSidebarConfig = {
             label: "Non Booked Services",
             icon: BookOpen,
             href: "/dashboard/non-booked-services",
+          },
+          {
+            label: "Paid-for Product",
+            icon: ShoppingBasket,
+            href: "/dashboard/my-entitlements",
+          },              
+          {
+            label: "My Subscriptions",
+            icon: SubscriptIcon,
+            href: "/dashboard/my-subscriptions",
           },
           {
             label: "Classroom",
@@ -369,12 +391,17 @@ export const dashboardSidebarConfig = {
                 label: "My Sessions",
                 icon: Calendar,
                 href: "/dashboard/sessions/my-sessions",
-              },
-              {
-                label: "Paid-for Product",
-                icon: ShoppingBasket,
-                href: "/dashboard/my-subscriptions",
-              },
+                },
+                {
+                  label: "Paid-for Product",
+                  icon: ShoppingBasket,
+                  href: "/dashboard/my-entitlements",
+                },              
+                {
+                  label: "My Subscriptions",
+                  icon: SubscriptIcon,
+                  href: "/dashboard/my-subscriptions",
+                },
               // {
               //   label: "Company Status",
               //   icon: Building2,
@@ -572,6 +599,16 @@ export const dashboardSidebarConfig = {
             href: "/dashboard/talents",
           },
           {
+            label: "Paid-for Product",
+            icon: ShoppingBasket,
+            href: "/dashboard/my-entitlements",
+          },              
+          {
+            label: "My Subscriptions",
+            icon: SubscriptIcon,
+            href: "/dashboard/my-subscriptions",
+          },
+          {
             label: "Interviews",
             icon: Calendar,
             href: "/dashboard/interviews",
@@ -639,6 +676,16 @@ export const dashboardSidebarConfig = {
             label: "Non Booked Services",
             icon: BookOpen,
             href: "/dashboard/non-booked-services",
+          },
+          {
+            label: "Paid-for Product",
+            icon: ShoppingBasket,
+            href: "/dashboard/my-entitlements",
+          },              
+          {
+            label: "My Subscriptions",
+            icon: SubscriptIcon,
+            href: "/dashboard/my-subscriptions",
           },
           {
             label: "Orders & Payments",

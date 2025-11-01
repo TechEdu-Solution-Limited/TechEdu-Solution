@@ -54,12 +54,48 @@ const getUpTo = (t: any): number | undefined =>
 
 const pickTier = (tiers: any[] = [], qty: number) => {
   if (!tiers.length) return { tier: undefined, index: -1 };
-  const idx = tiers.findIndex((t) => {
-    const upTo = getUpTo(t);
-    return typeof upTo === "number" ? qty <= upTo : false;
-  });
-  const index = idx >= 0 ? idx : tiers.length - 1;
-  return { tier: tiers[index], index };
+  
+  // Find smallest upTo >= qty (hit tier) and track max tier as fallback
+  let bestUpTo: number | null = null;
+  let bestPrice: number | null = null;
+  let bestIndex = -1;
+  
+  let maxUpTo = -Infinity;
+  let maxPrice: number | null = null;
+  let maxIndex = -1;
+  
+  for (let i = 0; i < tiers.length; i++) {
+    const t = tiers[i];
+    if (!t) continue;
+    const cap = getUpTo(t);
+    const price = Number(t.unitPrice);
+    
+    if (typeof cap !== "number" || !Number.isFinite(price)) continue;
+    
+    // candidate hit tier
+    if (cap >= qty && (bestUpTo === null || cap < bestUpTo)) {
+      bestUpTo = cap;
+      bestPrice = price;
+      bestIndex = i;
+    }
+    
+    // track max tier (for qty above all caps)
+    if (cap > maxUpTo) {
+      maxUpTo = cap;
+      maxPrice = price;
+      maxIndex = i;
+    }
+  }
+  
+  // Return best match or fallback to max tier
+  if (bestIndex >= 0) {
+    return { tier: tiers[bestIndex], index: bestIndex };
+  }
+  if (maxIndex >= 0) {
+    return { tier: tiers[maxIndex], index: maxIndex };
+  }
+  
+  return { tier: undefined, index: -1 };
 };
 
 const isPerUnit = (pricing?: Partial<Pricing> | null): boolean => {
@@ -751,11 +787,16 @@ export default function CatalogPage({
                         <span className="bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full">
                           {product.productType}
                         </span>
-                        {product.sessionType && (
+                        {/* Show mediaType for Tools non-bookable, sessionType for others */}
+                        {product.productType === "Tools" && !product.isBookableService && product.mediaType ? (
+                          <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full capitalize">
+                            {product.mediaType}
+                          </span>
+                        ) : product.sessionType ? (
                           <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">
                             {product.sessionType}
                           </span>
-                        )}
+                        ) : null}
                         <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full">
                           {product.pricing?.model || ""}
                         </span>
@@ -764,16 +805,24 @@ export default function CatalogPage({
                       <div className="flex items-start justify-between mt-auto">
                         <div className="flex flex-col items-start gap-1">
                           <div className="flex items-baseline gap-1">
-                            <span className="text-lg font-bold text-blue-600">
-                              {getCurrencySymbol(product.currency || "gbp")}{" "}
-                              {displayAmount}
-                              {showSlash(product.pricing as Pricing)
-                                ? " /"
-                                : ""}
-                            </span>
-                            <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full">
-                              {pricingBadgeLabel(product.pricing as Pricing)}
-                            </span>
+                            {displayAmount === 0 || (product.pricing?.basePrice ?? 0) === 0 ? (
+                              <span className="text-lg font-bold text-green-600">
+                                Free
+                              </span>
+                            ) : (
+                              <>
+                                <span className="text-lg font-bold text-blue-600">
+                                  {getCurrencySymbol(product.currency || "gbp")}{" "}
+                                  {displayAmount}
+                                  {showSlash(product.pricing as Pricing)
+                                    ? " /"
+                                    : ""}
+                                </span>
+                                <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full">
+                                  {pricingBadgeLabel(product.pricing as Pricing)}
+                                </span>
+                              </>
+                            )}
                           </div>
 
                           {isVolume(product.pricing as Pricing) && (
