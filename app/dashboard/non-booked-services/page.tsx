@@ -53,9 +53,11 @@ export default function NonBookableServicesPage() {
         return;
       }
       const response = await getApiRequest(
-        "/api/non-bookable-services/my-services",
+        `/api/non-bookable-services/my-services?mediaType=${mediaFilter}`,
         token
       );
+      console.log("Non-booked services response:", response);
+      console.log("Non-booked services data:", response?.data);
       if (response?.data?.success) {
         const data = (response.data.data || []) as NonBookableService[];
         setServices(data);
@@ -69,11 +71,11 @@ export default function NonBookableServicesPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [mediaFilter]);
 
   useEffect(() => {
     fetchServices();
-  }, [fetchServices]);
+  }, [mediaFilter]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -234,3 +236,4 @@ export default function NonBookableServicesPage() {
     </div>
   );
 }
+  

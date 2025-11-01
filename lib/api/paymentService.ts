@@ -17,6 +17,8 @@ import type {
   InstallmentsStartResponse,
   InstallmentsConfirmRequest,
   InstallmentsConfirmResponse,
+  SubscriptionConfirmRequest,
+  SubscriptionConfirmResponse,
   EarlyPayoffRequest,
   EarlyPayoffResponse,
   SavedPaymentMethod,
@@ -313,15 +315,10 @@ export class PaymentService {
     payload: {
       productId: string;
       quantity: number;
-      pricingModel: PriceModel;
-      allowInstallment?: boolean;
-      price: number; // MAJOR units
-      priceBasis?: "flat" | "per-unit";
       unitName?: "person" | "team";
-      tierType?: "volume" | "stairstep";
     },
     token?: string
-  ): Promise<ApiResponse<PricePreviewResponse>> {
+  ): Promise<ApiResponse<any>> {
     return postApiRequest(`/api/payments/price-preview`, payload, {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     });
@@ -347,6 +344,15 @@ export class PaymentService {
     token: string
   ): Promise<ApiResponse<InstallmentsConfirmResponse>> {
     return postApiRequest(`/api/billing/installments/confirm`, payload, {
+      Authorization: `Bearer ${token}`,
+    });
+  }
+
+  static async confirmSubscription(
+    payload: SubscriptionConfirmRequest,
+    token: string
+  ): Promise<ApiResponse<SubscriptionConfirmResponse>> {
+    return postApiRequest(`/api/billing/subscriptions/confirm`, payload, {
       Authorization: `Bearer ${token}`,
     });
   }

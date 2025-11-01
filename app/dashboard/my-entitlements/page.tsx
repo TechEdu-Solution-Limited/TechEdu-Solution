@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { getApiRequest } from "@/lib/apiFetch";
 import { Button } from "@/components/ui/button";
@@ -160,24 +160,22 @@ export default function Page() {
   const [refreshing, setRefreshing] = useState(false);
   const [subjectTypeFilter, setSubjectTypeFilter] = useState<string>("all");
 
-  async function fetchEntitlements() {
+  const fetchEntitlements = useCallback(async () => {
     const token = getTokenFromCookies();
     setError(null);
     setLoading(true);
     try {
-      const response = await getApiRequest("/api/me/entitlements", token || "");
+      const response = await getApiRequest(`/api/me/entitlements?subjectType=${subjectTypeFilter}`, token || "");
+      console.log("fetchEntitlements response", response);
+      console.log("Entitlement Data", response?.data)
       const items = extractItems(response?.data);
       setData(items);
     } catch (err: any) {
-      setError(err?.message || "Unable to fetch entitlements.");
+      setError(err?.message || "Unable to fetch entitlements. " + subjectTypeFilter);
     } finally {
       setLoading(false);
     }
-  }
-
-  useEffect(() => {
-    fetchEntitlements();
-  }, []);
+  }, [subjectTypeFilter]);
 
   // Filter data by subjectType
   const filteredData = useMemo(() => {
@@ -232,6 +230,10 @@ export default function Page() {
     await fetchEntitlements();
     setRefreshing(false);
   };
+
+  useEffect(() => {
+    fetchEntitlements();
+  }, [fetchEntitlements]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">

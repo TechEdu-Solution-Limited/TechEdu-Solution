@@ -265,11 +265,10 @@ export const Header = () => {
             {hasToken && userData?.role ? "Dashboard" : "Get Started"}
           </Link>
 
-          <div
+          {/* <div
             className="relative text-left"
             onMouseEnter={() => setIsOpenCart(true)}
             onMouseLeave={() => {
-              // Add a small delay to allow moving mouse to dropdown
               setTimeout(() => {
                 const dropdown = document.getElementById("cart-dropdown");
                 if (dropdown && !dropdown.matches(":hover")) {
@@ -277,7 +276,7 @@ export const Header = () => {
                 }
               }, 100);
             }}
-          >
+          > */}
             <Link href="/cart" className="focus:outline-none">
               <div className={`relative ${isBouncing ? "animate-bounce" : ""}`}>
                 <FaCartArrowDown
@@ -292,7 +291,7 @@ export const Header = () => {
               </div>
             </Link>
 
-            {isOpenCart && (
+            {/* {isOpenCart && (
               <div
                 id="cart-dropdown"
                 role="menu"
@@ -375,20 +374,6 @@ export const Header = () => {
                         </span>
                       </div>
 
-                      {/* {!isAuthenticated && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-[10px] p-3 mb-3">
-                          <p className="text-xs text-yellow-700 mb-2">
-                            Login required to checkout
-                          </p>
-                          <Link
-                            href="/login"
-                            className="w-full bg-yellow-600 hover:bg-yellow-700 text-white text-center py-2 px-3 rounded text-xs font-medium transition-colors"
-                          >
-                            Login to Continue
-                          </Link>
-                        </div>
-                      )} */}
-
                       <Link
                         href="/cart"
                         className={`w-full text-center py-2 px-4 rounded-[10px] font-medium transition-colors ${
@@ -403,8 +388,8 @@ export const Header = () => {
                   </div>
                 )}
               </div>
-            )}
-          </div>
+            )} */}
+          {/* </div> */}
           <button
             type="button"
             onClick={toggleMenu}

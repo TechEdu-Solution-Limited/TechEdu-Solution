@@ -352,11 +352,9 @@ export interface InstallmentsStartResponse {
 /** POST /api/billing/installments/confirm */
 export interface InstallmentsConfirmRequest {
   user: { id: string; email: string; name: string };
-  productId: string;
-  quantity: number;
-  plan: InstallmentPlan;
-  setupIntentId?: string; // if you confirm SI frontend and pass to server
-  paymentMethodId?: string; // or pass attached PM id
+  quoteId: string;
+  setupIntentId?: string;
+  paymentMethodId?: string;
 }
 
 export interface InstallmentsConfirmEcho {
@@ -383,11 +381,29 @@ export interface InstallmentsConfirmFinal {
   downPayment: number; // MAJOR
   installments: number[]; // MAJOR
   prices?: string[];
+  clientSecret?: string; // Stripe PaymentIntent client_secret if payment is required
 }
 
 export type InstallmentsConfirmResponse =
   | InstallmentsConfirmEcho
   | InstallmentsConfirmFinal;
+
+/** POST /api/billing/subscriptions/confirm */
+export interface SubscriptionConfirmRequest {
+  user: { id: string; email: string; name: string };
+  quoteId: string;
+  setupIntentId?: string;
+  paymentMethodId?: string;
+}
+
+export interface SubscriptionConfirmResponse {
+  subscriptionId?: string;
+  stripeProductId?: string;
+  stripePriceId?: string;
+  clientSecret?: string;
+  success: boolean;
+  message?: string;
+}
 
 /** POST /api/billing/installments/early-payoff */
 export interface EarlyPayoffRequest {

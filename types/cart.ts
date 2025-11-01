@@ -100,6 +100,7 @@ export type PricePreview = {
   unitPrice?: number;
   model?: string; // "one_time" | "subscription"
   tierType?: string;
+  quoteId?: string; // Quote ID from price-preview response
 };
 
 export type BillingChoice = "pay_in_full" | "installments" | "subscription";

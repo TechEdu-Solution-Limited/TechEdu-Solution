@@ -281,6 +281,44 @@ export default function CartPage() {
     const qtySafe = Math.max(1, Number(qty || 1));
 
     if (model === "subscription") {
+      // Check if subscription has per-unit pricing with tiers
+      const priceBasis = p.priceBasis || (p.model === "per_unit" ? "per_unit" : "flat");
+      
+      if (priceBasis === "per_unit") {
+        // Use tier-based calculation for per-unit subscription
+        const ti = (p.tierType as "volume" | "stairstep") || "volume";
+        const tiers = Array.isArray(p.tiers)
+          ? p.tiers.map((t: any) => ({
+              upTo: Number(t?.upTo ?? t?.upto ?? t?.cap ?? 0),
+              unitPrice: Number(t?.unitPrice || 0),
+            }))
+          : [];
+        
+        const subtotal = tiers.length > 0
+          ? perUnitPriceCalculator(tiers, ti, qtySafe)
+          : Number(p.basePrice || p.subscriptionPrice || item.price || 0);
+        
+        const discount = Math.max(0, subtotal * (discountPercentage / 100));
+        const afterDisc = Math.max(0, subtotal - discount);
+        const vat = taxInclusive
+          ? 0
+          : Math.max(0, afterDisc * (vatPercentage / 100));
+        const total = afterDisc + vat;
+        
+        return {
+          ok: true,
+          currency,
+          quantity: qtySafe,
+          subtotal,
+          vat,
+          total,
+          unitPrice: tiers.length ? tiers[0]?.unitPrice ?? 0 : subtotal,
+          model: "subscription",
+          tierType: ti,
+        };
+      }
+      
+      // Flat subscription pricing
       const period = Number(p.subscriptionPrice ?? item.price ?? 0);
       const subtotal = period;
       const discount = Math.max(0, subtotal * (discountPercentage / 100));
@@ -432,24 +470,104 @@ export default function CartPage() {
     }
   };
 
+  // Fetch server price preview when cart items change
+  const fetchServerPricePreview = async (item: CartItem, qty: number) => {
+    if (!isAuthenticated) {
+      // Fall back to local preview if not authenticated
+      const local = localPricePreview(item, qty);
+      setPricePreviewById((prev) => ({ ...prev, [item.id]: local }));
+      ensureDefaultMode(item.id);
+      if (item.pricing?.installments?.enabled) {
+        fetchInstallmentsPreview(item);
+      }
+      return;
+    }
+
+    const token = getTokenFromCookies() || "";
+    const p: any = item.pricing || {};
+    const payload: any = {
+      productId: item.id,
+      quantity: qty,
+    };
+    
+    // Only include unitName if it's per-unit pricing
+    if (p.unitName) {
+      payload.unitName = p.unitName;
+    }
+
+    try {
+      const resp = await PaymentService.postPricePreview(payload, token);
+      const serverPreview = resp?.data;
+      
+      if (serverPreview?.data?.options?.pay_in_full) {
+        const opt = serverPreview.data.options.pay_in_full;
+        const serverPricePreview: PricePreview = {
+          ok: true,
+          currency: opt.currency || item.currency || "USD",
+          quantity: Number(opt.quantity || 1),
+          subtotal: Number(opt.breakdown?.subtotal || 0),
+          vat: Number(opt.breakdown?.vatAmount || 0),
+          total: Number(opt.breakdown?.total || 0),
+          unitPrice: typeof opt.breakdown?.unitPrice === "number" ? opt.breakdown.unitPrice : undefined,
+          model: opt.model as any,
+          tierType: opt.tiers?.type as any,
+          quoteId: opt.quoteId,
+        };
+        setPricePreviewById((prev) => ({ ...prev, [item.id]: serverPricePreview }));
+        ensureDefaultMode(item.id);
+
+        // If installments are available, parse installments preview
+        if (serverPreview.data.availableModes?.includes("installments") && serverPreview.data.options.installments) {
+          const instOpt = serverPreview.data.options.installments;
+          setInstallmentsPreviewById((prev) => ({
+            ...prev,
+            [item.id]: {
+              quoteId: instOpt.quoteId,
+              plan: {
+                count: Number(instOpt.installments?.count || 0),
+                interval: "month" as const,
+                intervalCount: 1,
+                downPaymentType: (instOpt.installments?.downPayment?.type || "percent") as any,
+                downPaymentValue: Number(instOpt.installments?.downPayment?.value || 0),
+              },
+              downPaymentAmount: Number(instOpt.installments?.downPayment?.amount || 0),
+              installmentAmount: instOpt.installments?.schedule?.[0]?.amount || 0,
+              schedule: Array.isArray(instOpt.installments?.schedule)
+                ? instOpt.installments.schedule.map((x: any) => Number(x?.amount || 0))
+                : [],
+              totalFinanced: Number(instOpt.installments?.totalFinanced || 0),
+            },
+          }));
+        }
+      } else {
+        // Fallback to local preview if server response is unexpected
+        const local = localPricePreview(item, qty);
+        setPricePreviewById((prev) => ({ ...prev, [item.id]: local }));
+        ensureDefaultMode(item.id);
+        if (item.pricing?.installments?.enabled) {
+          fetchInstallmentsPreview(item);
+        }
+      }
+    } catch (error) {
+      safeConsole.error("Error fetching server price preview:", error);
+      // Fallback to local preview on error
+      const local = localPricePreview(item, qty);
+      setPricePreviewById((prev) => ({ ...prev, [item.id]: local }));
+      ensureDefaultMode(item.id);
+      if (item.pricing?.installments?.enabled) {
+        fetchInstallmentsPreview(item);
+      }
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
-      const token = getTokenFromCookies();
       await Promise.all(
         cartItems.map(async (item) => {
           if (cancelled) return;
-
           const qty = calculateQuantity(item);
-
-          const local = localPricePreview(item, qty);
-          if (!cancelled) {
-            setPricePreviewById((prev) => ({ ...prev, [item.id]: local }));
-            ensureDefaultMode(item.id);
-            if (item.pricing?.installments?.enabled) {
-              fetchInstallmentsPreview(item);
-            }
-          }
+          await fetchServerPricePreview(item, qty);
         })
       );
     };
@@ -458,7 +576,7 @@ export default function CartPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cartItems, teamMembersCount]);
+  }, [cartItems, teamMembersCount, isAuthenticated]);
 
   /* ---------------- Billing modes ---------------- */
   const getSupportedModesForItem = (
@@ -990,7 +1108,7 @@ export default function CartPage() {
                                 choice === "pay_in_full" ? "default" : "ghost"
                               }
                               className={`px-3 py-1 rounded-none ${
-                                choice === "pay_in_full" ? "" : "bg-white"
+                                choice === "pay_in_full" ? "text-white hover:bg-blue-700" : "bg-white"
                               }`}
                               onClick={() =>
                                 setPaymentModeById((prev) => ({
@@ -1009,20 +1127,16 @@ export default function CartPage() {
                                 choice === "installments" ? "default" : "ghost"
                               }
                               className={`px-3 py-1 rounded-none ${
-                                choice === "installments" ? "" : "bg-white"
+                                choice === "installments" ? "text-white hover:bg-blue-700" : "bg-white"
                               }`}
-                              onClick={() => {
+                              onClick={() =>
                                 setPaymentModeById((prev) => ({
                                   ...prev,
                                   [item.id]: "installments",
-                                }));
-                                // Fetch installments preview when user selects installments
-                                if (item.pricing?.installments?.enabled) {
-                                  fetchInstallmentsPreview(item);
-                                }
-                              }}
+                                }))
+                              }
                             >
-                              Pay in 6 months
+                              Pay in Installments
                             </Button>
                           )}
                           {supportedModes.includes("subscription") && (

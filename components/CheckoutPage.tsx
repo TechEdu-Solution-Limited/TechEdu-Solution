@@ -58,41 +58,11 @@ function buildCheckoutRequests(pricing: any, ctx: any): ExternalCheckoutAction {
         {
           body: {
             user: ctx?.user,
-            productId: ctx?.productId,
-            pricing: {
-              model: "subscription",
-              subscriptionPrice: periodAmountMajor,
-              interval: pricing?.interval || "month",
-              intervalCount: pricing?.intervalCount || 1,
-              trialDays: pricing?.trialDays || 0,
-              setupFee: setupFeeMajor || 0,
-            },
-            purpose: "subscription",
           },
         },
         {
           body: {
             user: ctx?.user,
-            purpose: "subscription",
-            productId: ctx?.productId,
-            productName: ctx?.productName,
-            currency: pricing?.currency || ctx?.currency || "USD",
-            quantity: ctx?.numberOfExpectedParticipants || 1,
-            pricing: {
-              model: "subscription",
-              subscriptionPrice: periodAmountMajor,
-              interval: pricing?.interval || "month",
-              intervalCount: pricing?.intervalCount || 1,
-              trialDays: pricing?.trialDays || 0,
-              setupFee: setupFeeMajor || 0,
-            },
-            plan: {
-              count: 1, // 0 means open-ended recurring subscription
-              interval: pricing?.interval || "month",
-              intervalCount: pricing?.intervalCount || 1,
-              downPaymentType: "none",
-              downPaymentValue: 0,
-            },
           },
         },
       ],
@@ -112,33 +82,11 @@ function buildCheckoutRequests(pricing: any, ctx: any): ExternalCheckoutAction {
         {
           body: {
             user: ctx?.user,
-            productId: ctx?.productId,
-            plan: {
-              count,
-              interval: ctx?.installments?.interval || "month",
-              intervalCount: ctx?.installments?.intervalCount || 1,
-              downPaymentType: ctx?.installments?.downPaymentType || "percent",
-              downPaymentValue: ctx?.installments?.downPaymentValue || 0,
-            },
-            purpose: "installments",
           },
         },
         {
           body: {
             user: ctx?.user,
-            purpose: "installments",
-            productId: ctx?.productId,
-            productName: ctx?.productName,
-            currency: pricing?.currency || ctx?.currency || "USD",
-            quantity: ctx?.numberOfExpectedParticipants || 1,
-            pricing,
-            plan: {
-              count,
-              interval: ctx?.installments?.interval || "month",
-              intervalCount: ctx?.installments?.intervalCount || 1,
-              downPaymentType: ctx?.installments?.downPaymentType || "percent",
-              downPaymentValue: ctx?.installments?.downPaymentValue || 0,
-            },
           },
         },
       ],
@@ -519,6 +467,13 @@ export default function CheckoutPage() {
     const opt = preview?.data?.options?.[mode];
     if (opt?.mode === "pay_in_full") return Number(opt?.breakdown?.total || 0);
     if (opt?.mode === "installments") return Number(opt?.installments?.downPayment?.amount || 0);
+    if (opt?.mode === "subscription") {
+      // For subscriptions, if there's a breakdown, use the first period's total
+      // Otherwise fall back to A_SUB calculation
+      if (opt?.breakdown?.total !== undefined) {
+        return Number(opt.breakdown.total || 0);
+      }
+    }
     // fallback
     if (A_FREE) return 0;
     if (A_PAYMENT) return A_PAYMENT.amounts.totalMajor;
@@ -720,10 +675,28 @@ export default function CheckoutPage() {
 
     try {
       const CONFIRM = (A_INST ?? A_SUB)!.requests[1];
-      const resp = await PaymentService.confirmInstallments(
-        (CONFIRM as any).body,
-        token || ""
-      );
+      const user = CONFIRM.body.user;
+      const quoteId = serverPricePreview?.quoteId;
+
+      if (!quoteId) {
+        throw new Error("Missing quote from price preview");
+      }
+
+      let resp: any;
+      if (A_SUB) {
+        // Subscription confirm
+        resp = await PaymentService.confirmSubscription(
+          { user, quoteId, setupIntentId: _setupIntentId },
+          token || ""
+        );
+      } else {
+        // Installments confirm
+        resp = await PaymentService.confirmInstallments(
+          { user, quoteId, setupIntentId: _setupIntentId },
+          token || ""
+        );
+      }
+
       const out: any = resp?.data;
       const ok =
         typeof out?.ok === "boolean"
@@ -731,6 +704,18 @@ export default function CheckoutPage() {
           : typeof out?.success === "boolean"
           ? out.success
           : false;
+
+      // Check if there's a clientSecret in the response (for down payment)
+      if (out?.clientSecret && out?.clientSecret.includes("_secret_")) {
+        // Handle payment required
+        setClientSecret(out.clientSecret);
+        setMode("payment");
+        setCurrency((selectedItem?.currency || "USD").toUpperCase());
+        // Amount would need to be calculated from the response
+        toast.success("Payment required to activate plan");
+        return;
+      }
+
       if (!ok)
         throw new Error(
           out?.message || out?.error || "Failed to finalize billing"
@@ -752,7 +737,7 @@ export default function CheckoutPage() {
   const handlePaymentSuccess = () => {
     toast.success("Payment successful");
     if (selectedItem) removeFromCart(selectedItem.id);
-    router.push("/dashboard");
+    router.push("/dashboard/bookings");
   };
 
   const handleClose = () => {
@@ -921,7 +906,7 @@ export default function CheckoutPage() {
                             }
                             (s) at{" "}
                             {formatCurrency(
-                              A_SUB.amounts.periodAmountMajor,
+                              serverPricePreview?.total || A_SUB.amounts.periodAmountMajor,
                               selectedItem.currency
                             )}
                             .
@@ -1054,7 +1039,7 @@ export default function CheckoutPage() {
                 <div className="text-xs text-gray-600">
                   Then{" "}
                   {formatCurrency(
-                    A_SUB.amounts.periodAmountMajor,
+                    serverPricePreview?.total || A_SUB.amounts.periodAmountMajor,
                     selectedItem.currency
                   )}{" "}
                   every{" "}

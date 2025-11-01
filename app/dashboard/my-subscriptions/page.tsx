@@ -144,7 +144,7 @@ export default function Page() {
     setError(null);
     setLoading(true);
     try {
-      const response = await getApiRequest("/api/me/subscriptions", token || "");
+      const response = await getApiRequest(`/api/me/subscriptions?status=${statusFilter}`, token || "");
       const r: any = response?.data;
       const items: Subscription[] = Array.isArray(r?.data)
         ? (r.data as Subscription[])
@@ -163,7 +163,7 @@ export default function Page() {
 
   useEffect(() => {
     fetchEntitlements();
-  }, []);
+  }, [statusFilter]);
 
   // Filter data by status
   const filteredData = useMemo(() => {
