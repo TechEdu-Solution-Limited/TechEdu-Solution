@@ -221,6 +221,7 @@ export interface CreatePaymentIntentRequest {
 /** Slim version your new API supports */
 export interface SimplePaymentIntentRequest {
   productId: string;
+  quoteId?: string;
   isTeam: boolean;
   userNotes: string;
   attachments?: string[]; // CHANGED: was string

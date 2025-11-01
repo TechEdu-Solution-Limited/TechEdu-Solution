@@ -149,10 +149,10 @@ export default function NonBookableServicesPage() {
                 value={mediaFilter}
                 onChange={(e) => setMediaFilter(e.target.value)}
               >
-                <option value="all">All media</option>
-                <option value="file">File</option>
+                <option value="all">All media types</option>
+                <option value="audio">Audio</option>
                 <option value="video">Video</option>
-                <option value="link">Link</option>
+                <option value="file">File</option>
               </select>
             </div>
           </div>

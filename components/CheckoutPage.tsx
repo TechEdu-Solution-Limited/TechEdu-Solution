@@ -152,9 +152,10 @@ function buildCheckoutRequests(pricing: any, ctx: any): ExternalCheckoutAction {
       {
         body: {
           productId: ctx?.productId,
-          userNotes: ctx?.userNotes,
+          userNotes: ctx?.userNotes || "",
           attachments: ctx?.attachments,
           isTeam: !!ctx?.isTeam,
+          participantType: ctx?.participantType || "individual",
           numberOfExpectedParticipants: ctx?.numberOfExpectedParticipants,
         },
       },
@@ -325,6 +326,7 @@ export default function CheckoutPage() {
   /* ---------------- Server price previews ---------------- */
   const [serverPricePreview, setServerPricePreview] = useState<
     | {
+        quoteId?: string;
         currency: string;
         quantity: number;
         subtotal: number;
@@ -422,9 +424,10 @@ export default function CheckoutPage() {
       productId: selectedItem.id,
       productName: selectedItem.title || "Product",
       isTeam: !!booking?.isTeam,
+      participantType: booking?.participantType || (booking?.isTeam ? "team" : "individual"),
       numberOfExpectedParticipants: quantity,
       userNotes: booking?.userNotes,
-      attachments: booking?.attachments?.[0],
+      attachments: booking?.attachments,
       installments:
         selectedMode === "installments" &&
         selectedItem.pricing?.installments?.enabled
@@ -476,6 +479,7 @@ export default function CheckoutPage() {
         return;
       }
       setServerPricePreview({
+        quoteId: opt.quoteId,
         currency: (opt.currency || "USD").toString().toUpperCase(),
         quantity: Number(opt.quantity || 1),
         subtotal: Number(opt.breakdown?.subtotal || 0),
@@ -636,8 +640,14 @@ export default function CheckoutPage() {
         // Use server preview total if available, otherwise fallback to calculated
         const amountMajor = serverPricePreview?.total ?? A_PAYMENT.amounts.totalMajor;
 
+        // Build request body with quoteId from preview if available
+        const requestBody: any = {
+          ...(req as any).body,
+          ...(serverPricePreview?.quoteId ? { quoteId: serverPricePreview.quoteId } : {}),
+        };
+
         const resp = await PaymentService.createSimplePaymentIntent(
-          (req as any).body,
+          requestBody,
           amountMajor,
           curr,
           token || ""

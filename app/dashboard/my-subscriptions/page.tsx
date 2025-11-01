@@ -137,6 +137,7 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("active");
 
   async function fetchEntitlements() {
     const token = getTokenFromCookies();
@@ -163,6 +164,12 @@ export default function Page() {
   useEffect(() => {
     fetchEntitlements();
   }, []);
+
+  // Filter data by status
+  const filteredData = useMemo(() => {
+    if (statusFilter === "all") return data;
+    return data.filter((s) => s.status === statusFilter);
+  }, [data, statusFilter]);
 
   const stats = useMemo(() => {
     const total = data.length;
@@ -279,6 +286,19 @@ export default function Page() {
             <ShieldCheck className="h-5 w-5" />
             <CardTitle>My Subscriptions</CardTitle>
           </div>
+          <div className="flex gap-2">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-10 rounded-md border border-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All statuses</option>
+              <option value="active">Active</option>
+              <option value="trialing">Trialing</option>
+              <option value="past_due">Past Due</option>
+              <option value="canceled">Canceled</option>
+            </select>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -347,7 +367,7 @@ export default function Page() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.map((s) => (
+                  {filteredData.map((s) => (
                     <TableRow key={s._id}>
                       <TableCell>
                         <div className="flex flex-col">

@@ -158,6 +158,7 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [subjectTypeFilter, setSubjectTypeFilter] = useState<string>("all");
 
   async function fetchEntitlements() {
     const token = getTokenFromCookies();
@@ -178,16 +179,22 @@ export default function Page() {
     fetchEntitlements();
   }, []);
 
+  // Filter data by subjectType
+  const filteredData = useMemo(() => {
+    if (subjectTypeFilter === "all") return data;
+    return data.filter((e) => e.subjectType === subjectTypeFilter);
+  }, [data, subjectTypeFilter]);
+
   const stats = useMemo(() => {
-    const total = data.length;
-    const unlimitedCount = data.filter((d) => d.quantity === -1).length;
-    const finite = data.filter((d) => d.quantity !== -1);
+    const total = filteredData.length;
+    const unlimitedCount = filteredData.filter((d) => d.quantity === -1).length;
+    const finite = filteredData.filter((d) => d.quantity !== -1);
     const remaining = finite.reduce(
       (sum, e) => sum + Math.max(e.quantity - (e.consumed ?? 0), 0),
       0
     );
-    const features = new Set(data.map((d) => d.subjectKey)).size;
-    const nextExpiry = data
+    const features = new Set(filteredData.map((d) => d.subjectKey)).size;
+    const nextExpiry = filteredData
       .map((d) => d.endsAt)
       .filter(Boolean)
       .map((d) => new Date(d as string).getTime())
@@ -202,7 +209,7 @@ export default function Page() {
         ? formatDate(new Date(nextExpiry).toISOString())
         : "—",
     };
-  }, [data]);
+  }, [filteredData]);
 
   const statusBadge = (status: string) => {
     const base = "px-2 py-1 rounded-full text-xs";
@@ -309,6 +316,18 @@ export default function Page() {
             <ShieldCheck className="h-5 w-5" />
             <CardTitle>Active Entitlements</CardTitle>
           </div>
+          <div className="flex gap-2">
+            <select
+              value={subjectTypeFilter}
+              onChange={(e) => setSubjectTypeFilter(e.target.value)}
+              className="h-10 rounded-md border border-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All subject types</option>
+              <option value="product">Product</option>
+              <option value="feature">Feature</option>
+              <option value="tool">Tool</option>
+            </select>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -356,7 +375,7 @@ export default function Page() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.map((e) => (
+                  {filteredData.map((e) => (
                     <TableRow key={e._id}>
                       <TableCell>
                         <div className="flex flex-col">
