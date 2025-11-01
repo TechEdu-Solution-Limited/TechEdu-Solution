@@ -87,7 +87,7 @@ function buildCheckoutRequests(pricing: any, ctx: any): ExternalCheckoutAction {
               setupFee: setupFeeMajor || 0,
             },
             plan: {
-              count: 0, // 0 means open-ended recurring subscription
+              count: 1, // 0 means open-ended recurring subscription
               interval: pricing?.interval || "month",
               intervalCount: pricing?.intervalCount || 1,
               downPaymentType: "none",

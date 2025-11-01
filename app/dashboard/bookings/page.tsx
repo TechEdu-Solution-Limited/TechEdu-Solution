@@ -100,10 +100,9 @@ export default function UserBookingsPage() {
 
       if (response?.data?.success) {
         const bookingsData = response.data.data || [];
-        console.log("Raw bookings data:", bookingsData);
 
         const processedBookings = bookingsData.map((raw: any) => {
-          // Normalize attachments
+          // Normalize attachments (may not be present in these endpoints)
           const attachments: string[] = Array.isArray(raw.attachments)
             ? raw.attachments
             : raw.attachments
@@ -119,7 +118,7 @@ export default function UserBookingsPage() {
             ? getPrimaryPrice({ pricing })
             : undefined;
 
-          // Currency preference - check both new and old structures
+          // Currency preference - check all possible locations
           const currencyFromPricing: Currency =
             (pricing?.currency as Currency) ??
             (raw.product?.currency as Currency) ??
@@ -130,47 +129,51 @@ export default function UserBookingsPage() {
 
           return {
             ...raw,
+            
+            // Normalize id to _id for consistency
+            _id: raw.id ?? raw._id,
 
-            // Human-facing fields
+            // Human-facing fields - flat structure preferred
             productName:
-              raw.product?.name ??
               raw.productId?.service ??
+              raw.product?.name ??
               raw.productName ??
+              raw.bookingPurpose ??
               "Unknown Service",
 
             instructorName:
-              raw.instructor?.fullName ??
               raw.instructorId?.fullName ??
+              raw.instructor?.fullName ??
               raw.instructorName ??
               "Unknown Instructor",
             instructorEmail:
-              raw.instructor?.email ??
               raw.instructorId?.email ??
+              raw.instructor?.email ??
               raw.instructorEmail ??
               "Unknown",
 
-            // Schedule normalization - check both new and old structures
+            // Schedule normalization - flat structure preferred
             scheduleAt:
-              raw.schedule?.confirmed?.start ??
               raw.scheduleAt ??
+              raw.schedule?.confirmed?.start ??
               raw.scheduledAt ??
               raw.startTime,
             endAt:
-              raw.schedule?.confirmed?.end ??
               raw.endAt ??
+              raw.schedule?.confirmed?.end ??
               raw.endTime,
 
             // Duration
             durationInMinutes:
               raw.schedule?.minutesPerSession ?? raw.durationInMinutes,
+              
+            // Timezone from schedule
+            timezone: raw.schedule?.confirmed?.timezone ?? raw.timezone,
 
-            // Status normalization - check both new and old structures
-            status:
-              raw.status?.booking ?? raw.status ?? "pending",
-            paymentStatus:
-              raw.status?.payment ?? raw.paymentStatus ?? "unpaid",
-            schedulingStatus:
-              raw.status?.scheduling ?? raw.schedulingStatus,
+            // Status normalization - flat structure preferred
+            status: raw.status?.booking ?? raw.status ?? "pending",
+            paymentStatus: raw.status?.payment ?? raw.paymentStatus ?? "unpaid",
+            schedulingStatus: raw.status?.scheduling ?? raw.schedulingStatus,
 
             // Arrays normalization
             participants: Array.isArray(raw.participants)
@@ -181,9 +184,11 @@ export default function UserBookingsPage() {
               : [],
             attachments,
 
-            // URLs normalization
-            bookingUrl: raw.links?.bookingUrl ?? raw.bookingUrl,
-            calendlyUrl: raw.links?.calendlyUrl ?? raw.calendlyUrl,
+            // URLs normalization - check materialUrl as booking-level field
+            materialUrl: raw.materialUrl ?? raw.links?.materialUrl,
+            bookingUrl: raw.bookingUrl ?? raw.links?.bookingUrl,
+            calendlyUrl: raw.calendlyUrl ?? raw.links?.calendlyUrl,
+            meetingLink: raw.meetingLink ?? raw.schedule?.meeting?.joinUrl,
 
             // Pricing surface for UI
             pricing,
@@ -191,8 +196,8 @@ export default function UserBookingsPage() {
               (typeof priceFromPricing === "number"
                 ? priceFromPricing
                 : undefined) ??
-              raw.paymentSummary?.amount ??
               raw.productId?.price ??
+              (raw.paymentSummary?.amount ? raw.paymentSummary.amount / 100 : undefined) ?? // Convert from minor to major units
               raw.productPrice ??
               0,
             productCurrency: currencyFromPricing,
@@ -200,18 +205,33 @@ export default function UserBookingsPage() {
               raw.productId?.discountPercentage ?? raw.discountPercentage ?? 0,
 
             // Audit fields
-            createdAt: raw.audit?.createdAt ?? raw.createdAt,
-            updatedAt: raw.audit?.updatedAt ?? raw.updatedAt,
+            createdAt: raw.createdAt ?? raw.audit?.createdAt,
+            updatedAt: raw.updatedAt ?? raw.audit?.updatedAt,
 
-            // Cancellation
-            isCancelled: raw.cancellation?.isCancelled ?? false,
+            // Type mapping - flat structure preferred
+            productType: raw.productType ?? raw.product?.type,
 
-            // Type mapping from product to productType
-            productType:
-              raw.product?.type ?? raw.productType,
+            // Participant type - flat structure or from participants array
+            participantType:
+              raw.participantType ?? raw.participants?.[0]?.participantType,
 
-            // Participant type from participants array
-            participantType: raw.participants?.[0]?.participantType ?? raw.participantType,
+            // Platform role
+            platformRole: raw.platformRole ?? raw.participants?.[0]?.platformRole,
+
+            // Additional common fields
+            bookingPurpose: raw.bookingPurpose,
+            email: raw.email,
+            fullName: raw.fullName,
+
+            // Required fields with safe defaults
+            minutesPerSession: raw.minutesPerSession ?? 60,
+            numberOfExpectedParticipants: raw.numberOfExpectedParticipants ?? 1,
+            isClassroom: raw.isClassroom ?? (raw.schedule?.kind === "classroom"),
+            isSession: raw.isSession ?? (raw.schedule?.kind === "session"),
+            createdBy: raw.createdBy ?? raw.email ?? "",
+            
+            // Handle bookingSchedulerFullName (from participants or fullName)
+            bookingSchedulerFullName: raw.fullName ?? raw.participants?.[0]?.fullName,
           };
         });
 
@@ -729,12 +749,12 @@ export default function UserBookingsPage() {
                           booking.bookingPurpose ||
                           "No service specified"}
                       </CardTitle>
-                      {/* <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-2">
                         <User className="w-4 h-4 text-slate-500" />
                         <span className="text-sm text-slate-600">
                           {booking.bookingSchedulerFullName || "No name provided"}
                         </span>
-                      </div> */}
+                      </div>
                       <div className="flex items-center gap-2 mb-2">
                         <User className="w-4 h-4 text-slate-500" />
                         <span className="text-sm text-slate-600">

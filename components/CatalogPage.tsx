@@ -135,15 +135,15 @@ const teamAwareDisplayAmount = (
     // Tier selection based on total count (members + admin)
     const tierQty = Math.max(1, membersCount + 1);
     const { tier } = pickTier(pricing.tiers ?? [], tierQty);
-      const unitOrFlat = toNum(tier?.unitPrice ?? pricing.basePrice ?? 0);
+    const unitOrFlat = toNum(tier?.unitPrice ?? pricing.basePrice ?? 0);
 
     if (isStairstep(pricing)) {
       // flat band total
-        return unitOrFlat;
+      return unitOrFlat;
     }
     // volume → multiply by (members + admin)
     const qtyMultiplier = Math.max(1, membersCount + 1);
-      return toNum(unitOrFlat * qtyMultiplier);
+    return toNum(unitOrFlat * qtyMultiplier);
   }
 
   switch (pricing.model) {
@@ -805,7 +805,7 @@ export default function CatalogPage({
                       <div className="flex items-start justify-between mt-auto">
                         <div className="flex flex-col items-start gap-1">
                           <div className="flex items-baseline gap-1">
-                            {displayAmount === 0 || (product.pricing?.basePrice ?? 0) === 0 ? (
+                            {displayAmount === 0 ? (
                               <span className="text-lg font-bold text-green-600">
                                 Free
                               </span>

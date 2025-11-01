@@ -30,12 +30,48 @@ const getUpTo = (t: any): number | undefined =>
 
 const pickTier = (tiers: any[] = [], qty: number) => {
   if (!tiers.length) return { tier: undefined, index: -1 };
-  const idx = tiers.findIndex((t) => {
-    const upTo = getUpTo(t);
-    return typeof upTo === "number" ? qty <= upTo : false;
-  });
-  const index = idx >= 0 ? idx : tiers.length - 1;
-  return { tier: tiers[index], index };
+  
+  // Find smallest upTo >= qty (hit tier) and track max tier as fallback
+  let bestUpTo: number | null = null;
+  let bestPrice: number | null = null;
+  let bestIndex = -1;
+  
+  let maxUpTo = -Infinity;
+  let maxPrice: number | null = null;
+  let maxIndex = -1;
+  
+  for (let i = 0; i < tiers.length; i++) {
+    const t = tiers[i];
+    if (!t) continue;
+    const cap = getUpTo(t);
+    const price = Number(t.unitPrice);
+    
+    if (typeof cap !== "number" || !Number.isFinite(price)) continue;
+    
+    // candidate hit tier
+    if (cap >= qty && (bestUpTo === null || cap < bestUpTo)) {
+      bestUpTo = cap;
+      bestPrice = price;
+      bestIndex = i;
+    }
+    
+    // track max tier (for qty above all caps)
+    if (cap > maxUpTo) {
+      maxUpTo = cap;
+      maxPrice = price;
+      maxIndex = i;
+    }
+  }
+  
+  // Return best match or fallback to max tier
+  if (bestIndex >= 0) {
+    return { tier: tiers[bestIndex], index: bestIndex };
+  }
+  if (maxIndex >= 0) {
+    return { tier: tiers[maxIndex], index: maxIndex };
+  }
+  
+  return { tier: undefined, index: -1 };
 };
 
 const isPerUnit = (pricing?: Partial<Pricing> | null): boolean => {

@@ -664,23 +664,17 @@ export default function CartPage() {
       paymentModeById[productId] || getDefaultModeForItem(productId);
     const qty = calculateQuantity(item); // Use calculateQuantity to get correct qty (includes admin for team)
 
-    // Build price-preview payload to send to server (then navigate)
+    // Build minimal price-preview payload to send to server
     const p: any = item.pricing || {};
-    const priceBasis: "flat" | "per-unit" = (p.priceBasis || (p.model === "per_unit" ? "per-unit" : "flat")) as any;
-    const { unitOrFlat: unitPriceComputed } = computeLocalUnitOrTotal(item, qty);
     const payload: any = {
       productId: item.id,
       quantity: qty,
-      pricingModel: (p.model === "subscription" || item.isRecurring) ? "subscription" : "one_time",
-      allowInstallment: choice === "installments",
-      price: Number(unitPriceComputed ?? p.basePrice ?? item.price ?? 0),
-      priceBasis,
-      unitName: (p.unitName || (userData?.role === "teamTechProfessional" ? "team" : "person")) as any,
-      tierType: p.tierType,
-      ...(Array.isArray((p as any).tiers)
-        ? { tiers: (p as any).tiers.map((t: any) => ({ upTo: Number(t?.upTo ?? t?.upto ?? t?.cap ?? 0), unitPrice: Number(t?.unitPrice || 0) })) }
-        : {}),
     };
+    
+    // Only include unitName if it's per-unit pricing
+    if (p.unitName) {
+      payload.unitName = p.unitName;
+    }
     try {
       setIsCheckingOutById((prev) => ({ ...prev, [productId]: true }));
       // Send preview request and persist response + chosen mode for Checkout page
