@@ -511,7 +511,6 @@ export default function CartPage() {
           unitPrice: typeof opt.breakdown?.unitPrice === "number" ? opt.breakdown.unitPrice : undefined,
           model: opt.model as any,
           tierType: opt.tiers?.type as any,
-          quoteId: opt.quoteId,
         };
         setPricePreviewById((prev) => ({ ...prev, [item.id]: serverPricePreview }));
         ensureDefaultMode(item.id);
@@ -522,7 +521,6 @@ export default function CartPage() {
           setInstallmentsPreviewById((prev) => ({
             ...prev,
             [item.id]: {
-              quoteId: instOpt.quoteId,
               plan: {
                 count: Number(instOpt.installments?.count || 0),
                 interval: "month" as const,

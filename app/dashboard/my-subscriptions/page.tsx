@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { getApiRequest } from "@/lib/apiFetch";
 import { Button } from "@/components/ui/button";
@@ -139,12 +139,14 @@ export default function Page() {
   const [refreshing, setRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("active");
 
-  async function fetchEntitlements() {
+  const fetchEntitlements = useCallback(async () => {
     const token = getTokenFromCookies();
     setError(null);
     setLoading(true);
     try {
       const response = await getApiRequest(`/api/me/subscriptions?status=${statusFilter}`, token || "");
+      console.log("Subscriptions response:", response);
+      console.log("Subscriptions data:", response?.data);
       const r: any = response?.data;
       const items: Subscription[] = Array.isArray(r?.data)
         ? (r.data as Subscription[])
@@ -159,11 +161,11 @@ export default function Page() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [statusFilter]);
 
   useEffect(() => {
     fetchEntitlements();
-  }, [statusFilter]);
+  }, [fetchEntitlements]);
 
   // Filter data by status
   const filteredData = useMemo(() => {

@@ -158,7 +158,7 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [subjectTypeFilter, setSubjectTypeFilter] = useState<string>("all");
+  const [subjectTypeFilter, setSubjectTypeFilter] = useState<string>("product");
 
   const fetchEntitlements = useCallback(async () => {
     const token = getTokenFromCookies();

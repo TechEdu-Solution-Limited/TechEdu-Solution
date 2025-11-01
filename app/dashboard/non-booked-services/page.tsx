@@ -41,7 +41,7 @@ export default function NonBookableServicesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [mediaFilter, setMediaFilter] = useState<string>("all");
+  const [mediaFilter, setMediaFilter] = useState<string>("file");
 
   const fetchServices = useCallback(async () => {
     try {
