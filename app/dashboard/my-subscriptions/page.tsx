@@ -175,7 +175,7 @@ export default function Page() {
 
   const stats = useMemo(() => {
     const total = data.length;
-    const active = data.filter((d) => d.status === "active" || d.status === "trialing").length;
+    const active = data.filter((d) => d.status === "incomplete").length;
     const trialing = data.filter((d) => d.trialEnd && d.status === "trialing").length;
     const nextRenewal = data
       .map((d) => d.currentPeriodEnd)
@@ -249,7 +249,7 @@ export default function Page() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground">
-              Active
+              Incomplete
             </CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-semibold">
