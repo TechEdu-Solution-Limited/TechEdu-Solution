@@ -1220,13 +1220,28 @@ export default function CartPage() {
                   <div className="w-full lg:w-auto lg:text-right space-y-4">
                     <div className="text-center lg:text-right">
                       <p className="text-3xl font-bold text-[#011F72] mb-1">
-                        {formatCurrency(displayAmount, displayCurrency)}
+                        {choice === "installments" &&
+                        installmentsPreviewById[item.id]?.downPaymentAmount
+                          ? formatCurrency(
+                              installmentsPreviewById[item.id].downPaymentAmount,
+                              displayCurrency
+                            )
+                          : formatCurrency(displayAmount, displayCurrency)}
                       </p>
                       <p className="text-sm text-gray-500">
-                        {pp?.model === "subscription"
+                        {choice === "installments" &&
+                        installmentsPreviewById[item.id]?.downPaymentAmount
+                          ? "down payment"
+                          : pp?.model === "subscription"
                           ? "per cycle"
                           : "per course"}
                       </p>
+                      {choice === "installments" &&
+                        installmentsPreviewById[item.id]?.downPaymentAmount && (
+                          <p className="text-xs text-gray-400 mt-1 line-through">
+                            Total: {formatCurrency(displayAmount, displayCurrency)}
+                          </p>
+                        )}
                     </div>
 
                     <div className="flex flex-col gap-3">
