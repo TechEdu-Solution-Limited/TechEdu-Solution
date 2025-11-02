@@ -110,7 +110,7 @@ function buildCheckoutRequests(pricing: any, ctx: any): ExternalCheckoutAction {
     ],
   };
 }
-import { CreditCard, Loader2, Upload, X } from "lucide-react";
+import { CreditCard, Loader2, Upload, X, CheckCircle2 } from "lucide-react";
 
 /* ---------------- Currency utils ---------------- */
 const ZERO_DECIMAL = new Set([
@@ -270,6 +270,7 @@ export default function CheckoutPage() {
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   /* ---------------- Server price previews ---------------- */
   const [serverPricePreview, setServerPricePreview] = useState<
@@ -741,9 +742,12 @@ export default function CheckoutPage() {
 
   /* After PaymentIntent succeeds (one-time) */
   const handlePaymentSuccess = () => {
-    toast.success("Payment successful");
     if (selectedItem) removeFromCart(selectedItem.id);
-    router.push("/dashboard/bookings");
+    setShowSuccessModal(true);
+    // Auto-redirect after 3 seconds
+    setTimeout(() => {
+      router.push("/dashboard/bookings");
+    }, 3000);
   };
 
   const handleClose = () => {
@@ -800,7 +804,20 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="mt-[5rem] px-4 py-10 bg-gray-50 min-h-screen">
+    <>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes scaleIn {
+          from {
+            transform: scale(0);
+            opacity: 0;
+          }
+          to {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+      ` }} />
+      <div className="mt-[5rem] px-4 py-10 bg-gray-50 min-h-screen">
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left: Details & Stripe */}
         <div className="lg:col-span-2 space-y-6">
@@ -1061,6 +1078,41 @@ export default function CheckoutPage() {
         </div>
       </div>
 
+      {/* Payment Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[12px] shadow-xl max-w-md w-full p-8 text-center transform transition-all animate-in zoom-in-95 duration-300">
+            {/* Animated Checkmark */}
+            <div className="mb-6 flex justify-center">
+              <div className="relative">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center transform transition-all duration-500" style={{ animation: "scaleIn 0.5s ease-out forwards" }}>
+                  <CheckCircle2 className="w-12 h-12 text-green-600" />
+                </div>
+                {/* Animated circle pulse */}
+                <div className="absolute inset-0 rounded-full border-4 border-green-600 opacity-0 animate-ping"></div>
+                <div className="absolute inset-0 rounded-full border-4 border-green-300 opacity-0 animate-ping" style={{ animationDelay: "0.5s", animationDuration: "1.5s" }}></div>
+              </div>
+            </div>
+
+            {/* Success Message */}
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">
+              Payment Successful!
+            </h2>
+            <p className="text-gray-600 mb-2">
+              Thank you for your purchase.
+            </p>
+            <p className="text-sm text-gray-500 mb-6">
+              Redirecting you to your dashboard...
+            </p>
+
+            {/* Loading indicator */}
+            <div className="flex justify-center">
+              <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Booking Modal */}
       {bookingModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -1222,5 +1274,6 @@ export default function CheckoutPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

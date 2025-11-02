@@ -210,7 +210,7 @@ export default function Page() {
   }, [filteredData]);
 
   const statusBadge = (status: string) => {
-    const base = "px-2 py-1 rounded-full text-xs";
+    const base = "px-2 rounded-full text-blue-400 text-xs";
     if (status === "active") return <Badge className={base}>Active</Badge>;
     if (status === "expired")
       return (
