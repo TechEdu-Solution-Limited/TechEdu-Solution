@@ -291,11 +291,7 @@ export default function Page() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="h-10 rounded-md border border-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">All statuses</option>
-              <option value="active">Active</option>
-              <option value="trialing">Trialing</option>
-              <option value="past_due">Past Due</option>
-              <option value="canceled">Canceled</option>
+              <option value="incomplete">Incomplete</option>
             </select>
           </div>
         </CardHeader>
