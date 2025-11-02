@@ -904,7 +904,7 @@ export default function PaymentsPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {displayPayments.map((payment) => (
+                        {displayPayments.map((payment: Payment) => (
                           <TableRow
                             key={payment._id}
                             className="hover:bg-gray-50 transition-colors"
