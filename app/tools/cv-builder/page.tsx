@@ -22,6 +22,10 @@ const CVUploadModal = dynamic(() => import("@/components/cv/CVUploadModal"), {
 const ProAccessModal = dynamic(() => import("@/components/cv/ProAccessModal"), {
   ssr: false,
 });
+const AIConsentModal = dynamic(
+  () => import("@/components/cv/builder/modals/AIConsentModal"),
+  { ssr: false }
+);
 
 // ✅ Point to the real RatingModal file
 import type { RatingModalProps } from "@/components/cv/builder/modals/CVReatingModal";
@@ -37,6 +41,7 @@ import { PaymentService } from "@/lib/api/paymentService";
 import { getTokenFromCookies } from "@/lib/cookies";
 import { cvService } from "@/services/cv/cvServiceOptimized";
 import type { CVRatingResult } from "@/services/cv/cvServiceOptimized";
+import { aiConsentService } from "@/services/auth/aiConsentService";
 
 // Upload helper
 import { useFirebaseStorage } from "@/hooks/useFirebaseStorage";
@@ -233,6 +238,10 @@ const page = () => {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [ratingOpen, setRatingOpen] = useState(false);
   const [ratingData, setRatingData] = useState<CVRatingResult | null>(null);
+  const [aiConsentOpen, setAiConsentOpen] = useState(false);
+  const [pendingConsent, setPendingConsent] = useState<{
+    aiTraining: boolean;
+  } | null>(null);
 
   // Pro subscription modal
   const [proOpen, setProOpen] = useState(false);
@@ -243,25 +252,61 @@ const page = () => {
     const token = getTokenFromCookies();
     if (!token) {
       toast.info("Please sign in to continue.");
-      router.push("/login?next=/cv-builder");
+      router.push("/login?next=/tools/cv-builder");
       return null;
     }
     return token;
   };
 
-  // FREE RATING: open upload, upload to storage, rate, show result
-  const handleFreeClick = () => setIsUploadOpen(true);
+  // FREE RATING: check auth -> show consent -> upload -> rate
+  const handleFreeClick = () => {
+    // First check authentication
+    const token = requireAuth();
+    if (!token) {
+      return; // Already redirected to login
+    }
+    // Show consent modal
+    setAiConsentOpen(true);
+  };
+
+  // Handle consent acceptance/decline
+  const handleConsentAccept = async (consent?: { aiTraining: boolean }) => {
+    setPendingConsent(consent || { aiTraining: false });
+    setAiConsentOpen(false);
+    
+    // Save consent to backend if provided
+    if (consent?.aiTraining) {
+      try {
+        await aiConsentService.setTraining(true);
+        await aiConsentService.acceptProcessing();
+      } catch (err) {
+        console.error("Failed to save consent:", err);
+        // Continue anyway - non-blocking
+      }
+    } else if (consent) {
+      try {
+        await aiConsentService.acceptProcessing();
+      } catch (err) {
+        console.error("Failed to save consent:", err);
+        // Continue anyway - non-blocking
+      }
+    }
+    
+    // Open upload modal after consent
+    setIsUploadOpen(true);
+  };
 
   const handleUpload = async (file: File) => {
     setUploadLoading(true);
     try {
       // 1) Upload to storage for a reachable URL
       const url: string = await uploadFile(file);
-      // 2) Ask backend to rate from URL
+      // 2) Ask backend to rate from URL (consent already handled)
       const result = await cvService.rateFromUrl(url, false);
       setRatingData(result);
       setRatingOpen(true);
       setIsUploadOpen(false);
+      setPendingConsent(null); // Clear pending consent
       toast.success("CV analyzed successfully.");
     } catch (err: any) {
       console.error(err);
@@ -448,10 +493,10 @@ const page = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <Link
-                href="/cv-builder/#"
+                href="/cv-builder/#rate-my-cv"
                 className="bg-[#0D1140] hover:bg-blue-700 text-white text-center px-3 py-4 rounded text-[1rem] font-medium transition"
               >
-                Start Building My CV
+                AI Rate My CV for Free
               </Link>
               <Link
                 href="/tools/cv-builder/samples"
@@ -594,7 +639,7 @@ const page = () => {
         </h2>
 
         {/* 3 cards on large screens; wide container to fit them */}
-        <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div id="rate-my-cv" className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {PRICING_PLANS.map((plan, index) => (
             <div
               key={plan.key}
@@ -699,6 +744,12 @@ const page = () => {
       </section>
 
       {/* ───── Modals ───── */}
+      <AIConsentModal
+        isOpen={aiConsentOpen}
+        onClose={() => setAiConsentOpen(false)}
+        onAccept={handleConsentAccept}
+      />
+
       <CVUploadModal
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
