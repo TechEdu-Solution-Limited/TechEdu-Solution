@@ -446,8 +446,14 @@ export default function CheckoutPage() {
             : [],
           plan: {
             count: Number(opt.installments?.count || 0),
-            interval: "month",
-            intervalCount: 1,
+            interval: (opt.installments?.interval ||
+              selectedItem?.pricing?.installments?.interval ||
+              "month") as "day" | "week" | "month" | "year",
+            intervalCount: Number(
+              opt.installments?.intervalCount ||
+                selectedItem?.pricing?.installments?.intervalCount ||
+                1
+            ),
             downPaymentType: (opt.installments?.downPayment?.type || "percent") as any,
             downPaymentValue: Number(opt.installments?.downPayment?.value || 0),
           },
@@ -1021,18 +1027,20 @@ export default function CheckoutPage() {
                 </span>
               </div>
 
-              {A_INST && (
+              {A_INST && serverInstallmentsPreview && (
                 <div className="text-xs text-gray-600">
-                  Future:{" "}
-                  {(A_INST.requests?.[1] as any)?.body?.plan?.count || 0} ×{" "}
+                  Future installments:{" "}
+                  {serverInstallmentsPreview.plan?.count || 0} ×{" "}
                   {formatCurrency(
-                    A_INST.amounts.perInstallmentMajor,
+                    serverInstallmentsPreview.installments?.[0] || 0,
                     selectedItem.currency
                   )}{" "}
                   every{" "}
-                  {(A_INST.requests?.[1] as any)?.body?.plan?.intervalCount ||
-                    1}{" "}
-                  {(A_INST.requests?.[1] as any)?.body?.plan?.interval}(s)
+                  {serverInstallmentsPreview.plan?.intervalCount || 1}{" "}
+                  {serverInstallmentsPreview.plan?.interval || "month"}
+                  {(serverInstallmentsPreview.plan?.intervalCount || 1) !== 1
+                    ? "s"
+                    : ""}
                 </div>
               )}
               {A_SUB && (

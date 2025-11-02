@@ -1065,20 +1065,6 @@ export default function CartPage() {
                       </Badge>
                     </div>
 
-                    {/* Bookable hint */}
-                    {isAuthenticated && item.requiresBooking && (
-                      <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-[10px]">
-                        <div className="flex items-center gap-2 text-blue-700">
-                          <Calendar className="w-4 h-4" />
-                          <span className="text-sm font-medium">
-                            Bookable Service
-                          </span>
-                        </div>
-                        <p className="text-xs text-blue-600 mt-1">
-                          We’ll collect any extra details during checkout.
-                        </p>
-                      </div>
-                    )}
 
                     {/* Role restriction message */}
                     {!canPurchaseProductType(
@@ -1208,12 +1194,28 @@ export default function CartPage() {
                       )}
 
                       {choice === "subscription" && (
-                        <div className="text-xs text-gray-600">
+                        <div className="text-md font-medium text-gray-600">
                           Recurring billing: you’ll add a payment method at
                           checkout.
                         </div>
                       )}
                     </div>
+
+                    
+                    {/* Bookable hint */}
+                    {isAuthenticated && item.requiresBooking && (
+                      <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-[10px]">
+                        <div className="flex items-center gap-2 text-blue-700">
+                          <Calendar className="w-4 h-4" />
+                          <span className="text-sm font-medium">
+                            Bookable Service
+                          </span>
+                        </div>
+                        <p className="text-xs text-blue-600 mt-1">
+                          We’ll collect any extra details during checkout.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Price + actions */}
