@@ -322,7 +322,7 @@ export default function PaymentsPage() {
   };
 
   // Calculate stats
-  const totalAmount = payments.reduce((sum, p) => sum + p.amount, 0);
+  const totalAmount = payments.reduce((sum, p) => sum + p.amount, 0) / 100;
   const successfulPayments = payments.filter((p) => p.status === "success");
   const pendingPayments = payments.filter((p) => p.status === "pending");
   const failedPayments = payments.filter((p) => p.status === "failed");
@@ -407,7 +407,7 @@ export default function PaymentsPage() {
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-600">Amount</span>
             <span className="font-bold text-lg text-gray-900">
-              {formatCurrency(payment.amount, payment.currency)}
+              {formatCurrency(payment.amount / 100, payment.currency)}
             </span>
           </div>
 
@@ -923,7 +923,7 @@ export default function PaymentsPage() {
                               <div className="space-y-1">
                                 <div className="font-bold text-gray-900">
                                   {formatCurrency(
-                                    payment.amount,
+                                    payment.amount / 100,
                                     payment.currency
                                   )}
                                 </div>
