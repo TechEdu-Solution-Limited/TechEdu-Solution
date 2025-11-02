@@ -18,11 +18,13 @@ import {
 } from "@/components/ui/pagination";
 
 import { useCart } from "@/contexts/CartContext";
+import { useRole } from "@/contexts/RoleContext";
 import type { CartItem } from "@/types/cart";
 import type { Product } from "@/types/product";
 
 import { getApiRequest } from "@/lib/apiFetch";
 import { safeConsole } from "@/lib/console";
+import { toast } from "react-toastify";
 import type { Pricing } from "@/lib/constants/pricing";
 import { normalizeCartModel, normalizeTierType } from "@/utils/helpers";
 import { getCurrencySymbol } from "@/lib/constants/currencies";
@@ -175,6 +177,23 @@ const pricingBadgeLabel = (pricing: Pricing | undefined): string => {
 const showSlash = (pricing: Pricing | undefined): boolean =>
   pricing?.model === "one_time";
 
+/**
+ * Check if product requires teamTechProfessional role
+ * Products with unitName = "team" and tierType = "volume" | "stairstep" require teamTechProfessional
+ */
+const requiresTeamTechProfessional = (product: Product): boolean => {
+  const pricing = product.pricing;
+  if (!pricing) return false;
+  
+  const unitName = (pricing as any)?.unitName || pricing.unitName;
+  const tierType = pricing.tierType;
+  
+  return (
+    unitName === "team" &&
+    (tierType === "volume" || tierType === "stairstep")
+  );
+};
+
 export default function CatalogPage({
   productType = "Training & Certification",
   title = "Training & Certification Programs",
@@ -206,6 +225,7 @@ export default function CatalogPage({
   const perPage = 12;
 
   const { addToCart, isInCart } = useCart();
+  const { userData } = useRole();
 
   const [flyingItem, setFlyingItem] = useState<{
     id: string;
@@ -390,6 +410,16 @@ export default function CatalogPage({
 
   const handleAddToCart = (product: Product, event: React.MouseEvent) => {
     event.stopPropagation();
+
+    // Check if product requires teamTechProfessional role
+    if (requiresTeamTechProfessional(product)) {
+      const userRole = userData?.role;
+      if (userRole !== "teamTechProfessional") {
+        safeConsole.warn("Only team tech professionals can purchase team products");
+        toast.error("This product is only available for Team Tech Professionals. Please switch to your team account to purchase.");
+        return;
+      }
+    }
 
     const requiresBooking = !!(
       product.requiresBooking || product.isBookableService
@@ -847,18 +877,36 @@ export default function CatalogPage({
                           >
                             In Cart
                           </Button>
-                        ) : (
-                          <Button
-                            className="bg-blue-600 hover:bg-blue-700 rounded-[10px] text-white px-4 py-2 w-full"
-                            onClick={(e) => handleAddToCart(product, e)}
-                            data-add-to-cart
-                          >
-                            {product.requiresBooking ||
-                            product.isBookableService
-                              ? "Book Now"
-                              : "Add to Cart"}
-                          </Button>
-                        )}
+                        ) : (() => {
+                          const requiresTeam = requiresTeamTechProfessional(product);
+                          const hasPermission = userData?.role === "teamTechProfessional";
+                          const isRestricted = requiresTeam && !hasPermission;
+                          
+                          return (
+                            <Button
+                              className={`rounded-[10px] text-white px-4 py-2 w-full ${
+                                isRestricted
+                                  ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed"
+                                  : "bg-blue-600 hover:bg-blue-700"
+                              }`}
+                              onClick={(e) => handleAddToCart(product, e)}
+                              disabled={isRestricted}
+                              data-add-to-cart
+                              title={
+                                isRestricted
+                                  ? "Only Team Tech Professionals can purchase this product"
+                                  : undefined
+                              }
+                            >
+                              {isRestricted
+                                ? "Team Only"
+                                : product.requiresBooking ||
+                                  product.isBookableService
+                                ? "Book Now"
+                                : "Add to Cart"}
+                            </Button>
+                          );
+                        })()}
                       </div>
                     </CardContent>
                   </Card>
