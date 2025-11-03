@@ -53,6 +53,7 @@ import {
 } from "@/lib/cookies";
 import { loginUser, registerUser } from "@/lib/apiFetch";
 import { safeConsole } from "@/lib/console";
+import { apiRequest } from "@/lib/apiFetch";
 
 import type { BillingChoice, CartItem, PricePreview } from "@/types/cart";
 
@@ -658,6 +659,44 @@ export default function CartPage() {
       setAuthEmail("");
       setAuthPassword("");
       setAuthError("");
+
+      // Onboarding gate: route to onboarding if not completed
+      try {
+        const token = getTokenFromCookies();
+        const userId = user?.id || user?._id || user?.userId;
+        const role = user?.role || "student";
+        if (token && userId) {
+          const res = await apiRequest(
+            "/api/onboarding/start",
+            "POST",
+            { userId, userType: role },
+            token
+          );
+          const status = (res as any)?.data?.status;
+          if (status !== "completed") {
+            const to = role === "student"
+              ? `/onboarding/student?userId=${userId}&redirect=${encodeURIComponent("/cart")}`
+              : role === "recruiter"
+              ? `/onboarding/recruiter?userId=${userId}`
+              : role === "institution"
+              ? `/onboarding/institution?userId=${userId}`
+              : role === "individualTechProfessional"
+              ? `/onboarding/tech-professional?userId=${userId}`
+              : role === "teamTechProfessional"
+              ? `/onboarding/team-tech-professional?userId=${userId}`
+              : "/login";
+            router.replace(to);
+            return;
+          }
+        }
+      } catch (e) {
+        // On error, safely route student to onboarding with redirect
+        const userId = user?.id || user?._id || user?.userId;
+        if (userId) {
+          router.replace(`/onboarding/student?userId=${userId}&redirect=${encodeURIComponent("/cart")}`);
+          return;
+        }
+      }
       router.replace("/cart");
     } catch (err: any) {
       safeConsole.error("Sign-up error:", err);
@@ -714,6 +753,43 @@ export default function CartPage() {
       setAuthEmail("");
       setAuthPassword("");
       setAuthError("");
+
+      // Onboarding gate: route to onboarding if not completed
+      try {
+        const token = getTokenFromCookies();
+        const userId = user?.id || user?._id || user?.userId;
+        const role = user?.role || "student";
+        if (token && userId) {
+          const res = await apiRequest(
+            "/api/onboarding/start",
+            "POST",
+            { userId, userType: role },
+            token
+          );
+          const status = (res as any)?.data?.status;
+          if (status !== "completed") {
+            const to = role === "student"
+              ? `/onboarding/student?userId=${userId}&redirect=${encodeURIComponent("/cart")}`
+              : role === "recruiter"
+              ? `/onboarding/recruiter?userId=${userId}`
+              : role === "institution"
+              ? `/onboarding/institution?userId=${userId}`
+              : role === "individualTechProfessional"
+              ? `/onboarding/tech-professional?userId=${userId}`
+              : role === "teamTechProfessional"
+              ? `/onboarding/team-tech-professional?userId=${userId}`
+              : "/login";
+            router.replace(to);
+            return;
+          }
+        }
+      } catch (e) {
+        const userId = user?.id || user?._id || user?.userId;
+        if (userId) {
+          router.replace(`/onboarding/student?userId=${userId}&redirect=${encodeURIComponent("/cart")}`);
+          return;
+        }
+      }
       router.replace("/cart");
     } catch (err: any) {
       safeConsole.error("Login error:", err);

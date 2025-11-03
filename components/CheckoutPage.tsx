@@ -372,8 +372,23 @@ export default function CheckoutPage() {
       user,
       productId: selectedItem.id,
       productName: selectedItem.title || "Product",
-      isTeam: !!booking?.isTeam,
-      participantType: booking?.participantType || (booking?.isTeam ? "team" : "individual"),
+      // Derive team purchase from booking or pricing (per_unit with unitName="team")
+      isTeam: (() => {
+        const bTeam = !!booking?.isTeam;
+        const p: any = selectedItem.pricing || {};
+        const isPerUnit = p?.priceBasis === "per_unit" || p?.model === "per_unit";
+        const unitName = p?.unitName;
+        const pricingTeam = isPerUnit && unitName === "team";
+        return bTeam || pricingTeam;
+      })(),
+      participantType: (() => {
+        if (booking?.participantType) return booking.participantType;
+        const p: any = selectedItem.pricing || {};
+        const isPerUnit = p?.priceBasis === "per_unit" || p?.model === "per_unit";
+        const unitName = p?.unitName;
+        const pricingTeam = isPerUnit && unitName === "team";
+        return (booking?.isTeam || pricingTeam) ? "team" : "individual";
+      })(),
       numberOfExpectedParticipants: quantity,
       userNotes: booking?.userNotes,
       attachments: booking?.attachments,
