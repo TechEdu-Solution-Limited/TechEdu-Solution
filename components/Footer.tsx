@@ -242,7 +242,7 @@ const Footer = () => {
               <FaInstagram size={18} />
             </Link>
             <Link
-              href="https://www.facebook.com/techedusolution/"
+              href="https://www.facebook.com/people/TechEdu-Solution/61579971691943/"
               aria-label="Facebook"
               className="hover:text-blue-500 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
             >
