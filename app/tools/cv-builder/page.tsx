@@ -493,7 +493,7 @@ const page = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <Link
-                href="/cv-builder/#rate-my-cv"
+                href="/tools/cv-builder/#rate-my-cv"
                 className="bg-[#0D1140] hover:bg-blue-700 text-white text-center px-3 py-4 rounded text-[1rem] font-medium transition"
               >
                 AI Rate My CV for Free
