@@ -747,7 +747,7 @@ export default function TeamTechProfessionalDashboard() {
                         {teamData.teamSize} members
                       </span>
                     </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                    {/* <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                       <span className="font-medium text-gray-600 text-sm">
                         Location:
                       </span>
@@ -755,7 +755,7 @@ export default function TeamTechProfessionalDashboard() {
                         {teamData.location.city}, {teamData.location.state},{" "}
                         {teamData.location.country}
                       </span>
-                    </div>
+                    </div> */}
                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                       <span className="font-medium text-gray-600 text-sm">
                         Training:
@@ -764,22 +764,22 @@ export default function TeamTechProfessionalDashboard() {
                         {teamData.trainingAvailability}
                       </span>
                     </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                    {/* <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                       <span className="font-medium text-gray-600 text-sm">
                         Email:
                       </span>
                       <span className="text-gray-900 font-medium">
                         {teamData.contactEmail}
                       </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                    </div> */}
+                    {/* <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                       <span className="font-medium text-gray-600 text-sm">
                         Phone:
                       </span>
                       <span className="text-gray-900 font-medium">
                         {teamData.contactPhone}
                       </span>
-                    </div>
+                    </div> */}
                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                       <span className="font-medium text-gray-600 text-sm">
                         Status:

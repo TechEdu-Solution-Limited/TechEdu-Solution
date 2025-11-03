@@ -37,6 +37,7 @@ import {
   Shield,
   // RefreshCw,
   // ChevronsUpDown,
+  ArrowLeft,
 } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { UserNav } from "./UserNav";
@@ -208,6 +209,10 @@ export default function SidebarLayout({
                   {dashboardData?.displayName || "Dashboard"}
                 </span>
               </div>
+            </Link>
+            <Link href="/" className="text-sm text-white bg-blue-600 hover:bg-blue-400 px-2 py-1 rounded-[10px] flex items-center gap-2">
+              Go to Home
+              <ArrowLeft className="h-4 w-4" />
             </Link>
             {/* Role Management Dropdown - Only show for tech professionals - COMMENTED OUT */}
           </SidebarHeader>
