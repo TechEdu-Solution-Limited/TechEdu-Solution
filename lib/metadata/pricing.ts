@@ -89,6 +89,24 @@ const serviceCategories: Record<TabType, ServiceCategory> = {
     ],
     focusKeywords: ["tech training", "certification programs", "workshops"],
   },
+  "career connect": {
+    title: "Career Connect",
+    description:
+      "Connect employers with talented graduates and professionals through AI-powered job matching and talent sourcing.",
+    keywords: [
+      "job matching",
+      "talent sourcing",
+      "recruitment platform",
+      "career connect",
+      "job postings",
+      "candidate matching",
+      "employer services",
+      "graduate recruitment",
+      "professional networking",
+      "hiring platform",
+    ],
+    focusKeywords: ["job matching", "talent sourcing", "career connect"],
+  },
 };
 
 export function generatePricingMetadata(tab?: TabType): Metadata {

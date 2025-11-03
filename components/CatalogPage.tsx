@@ -169,7 +169,12 @@ const pricingBadgeLabel = (pricing: Pricing | undefined): string => {
     return isStairstep(pricing) ? "flat" : pricing.unitName || "unit";
   }
   if (pricing.model === "one_time") return "person";
-  if (pricing.model === "subscription") return "team";
+  if (pricing.model === "subscription") {
+    // Respect basis for subscriptions: per-unit → unit label, flat → person
+    return pricing.priceBasis === "per_unit"
+      ? (pricing.unitName || "unit")
+      : "person";
+  }
   return "unit";
 };
 
@@ -490,7 +495,10 @@ export default function CatalogPage({
         pricing: {
           model: normalizeCartModel(product.pricing?.model),
           priceBasis: (product.pricing as any)?.priceBasis,
-          unitName: (product.pricing as any)?.unitName || "team",
+          unitName:
+            ((product.pricing as any)?.priceBasis === "per_unit")
+              ? ((product.pricing as any)?.unitName || "team")
+              : undefined,
           currency: (product.currency || "gbp").toLowerCase(),
           allowQuantity: !!product.pricing?.allowQuantity,
           minQty:
@@ -841,15 +849,31 @@ export default function CatalogPage({
                             ) : (
                               <>
                                 <span className="text-lg font-bold text-blue-600">
-                                  {getCurrencySymbol(product.currency || "gbp")}{" "}
-                                  {displayAmount}
-                                  {showSlash(product.pricing as Pricing)
-                                    ? " /"
-                                    : ""}
+                                  {getCurrencySymbol(product.currency || "gbp")} {displayAmount}
+                                  {((product.pricing as any)?.model === "subscription")
+                                    ? (() => {
+                                        const ic = Number((product.pricing as any)?.intervalCount || 1);
+                                        const interval = (product.pricing as any)?.interval || "month";
+                                        const label = ic > 1 ? `${ic} ${interval}s` : `${interval}`;
+                                        return ` / ${label}`;
+                                      })()
+                                    : (showSlash(product.pricing as Pricing) ? " /" : "")}
                                 </span>
                                 <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full">
                                   {pricingBadgeLabel(product.pricing as Pricing)}
                                 </span>
+                                {(product.pricing as any)?.model === "subscription" && (
+                                  <span className="text-xs text-gray-500 ml-2">
+                                    {((product.pricing as any)?.autoRenew === false)
+                                      ? "No renewal"
+                                      : (() => {
+                                          const ic = Number((product.pricing as any)?.intervalCount || 1);
+                                          const interval = (product.pricing as any)?.interval || "month";
+                                          const label = ic > 1 ? `${ic} ${interval}s` : `${interval}`;
+                                          return `Auto-renews every ${label}`;
+                                        })()}
+                                  </span>
+                                )}
                               </>
                             )}
                           </div>

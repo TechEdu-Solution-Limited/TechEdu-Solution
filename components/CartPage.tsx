@@ -1235,9 +1235,26 @@ export default function CartPage() {
                         installmentsPreviewById[item.id]?.downPaymentAmount
                           ? "down payment"
                           : pp?.model === "subscription"
-                          ? "per cycle"
+                          ? (() => {
+                              const ic = Number(item.pricing?.intervalCount || 1);
+                              const interval = item.pricing?.interval || "month";
+                              const every = ic > 1 ? `${ic} ${interval}s` : interval;
+                              return `/ ${every}`;
+                            })()
                           : "per course"}
                       </p>
+                      {pp?.model === "subscription" && (
+                        <p className="text-xs text-gray-500">
+                          {(item.pricing as any)?.autoRenew === false
+                            ? "No renewal"
+                            : (() => {
+                                const ic = Number(item.pricing?.intervalCount || 1);
+                                const interval = item.pricing?.interval || "month";
+                                const every = ic > 1 ? `${ic} ${interval}s` : interval;
+                                return `Auto-renews every ${every}`;
+                              })()}
+                        </p>
+                      )}
                       {choice === "installments" &&
                         installmentsPreviewById[item.id]?.downPaymentAmount && (
                           <p className="text-xs text-gray-400 mt-1 line-through">

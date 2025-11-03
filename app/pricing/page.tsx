@@ -19,6 +19,7 @@ import {
   BookOpen,
   Target,
   Zap,
+  Share2,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 import Link from "next/link";
@@ -188,6 +189,27 @@ const serviceCategories: Record<TabType, ServiceCategory> = {
           "3-hour deep-dive + interactive exercises + post-session support",
         price: "£150",
         delivery: "Scheduled 2-4 weeks in advance",
+      },
+    ],
+  },
+  "career connect": {
+    icon: Share2,
+    title: "Career Connect",
+    description: "Connect employers with talented graduates and professionals",
+    services: [
+      {
+        name: "Job Posting & Matching",
+        tier: "Standard",
+        format: "Premium job listings with AI-powered candidate matching",
+        price: "Contact us",
+        delivery: "Ongoing platform access",
+      },
+      {
+        name: "Talent Sourcing",
+        tier: "Enterprise",
+        format: "Dedicated recruitment support with curated candidate profiles",
+        price: "Contact us",
+        delivery: "Customized timeline",
       },
     ],
   },

@@ -15,7 +15,8 @@ export type TabType =
   | "academic services"
   | "career development"
   | "corporate & business consultancy"
-  | "training";
+  | "training"
+  | "career connect";
 
 // Product type mapping to TabType
 export const PRODUCT_TYPE_MAPPING: Record<TabType, string> = {
@@ -23,6 +24,7 @@ export const PRODUCT_TYPE_MAPPING: Record<TabType, string> = {
   "career development": "Career Development & Mentorship",
   "corporate & business consultancy": "Corporate & Business Consultancy",
   training: "Training & Certification",
+  "career connect": "Career Connect",
 } as const;
 
 export const studentServices = [
@@ -80,6 +82,11 @@ export const EMPTY_STATE_MESSAGES: Record<
     title: "No Training Programs Found",
     description:
       "We couldn't find any training programs matching your current filters. Try adjusting your search criteria or browse our complete training catalog.",
+  },
+  "career connect": {
+    title: "No Career Connect Products Found",
+    description:
+      "We couldn't find any Career Connect products matching your current filters. Try adjusting your search criteria or browse our complete Career Connect catalog.",
   },
 } as const;
 
