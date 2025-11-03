@@ -791,7 +791,7 @@ export default function TeamTechProfessionalDashboard() {
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                {/* <div className="space-y-4">
                   <h4 className="font-semibold text-lg text-gray-900 flex items-center gap-2">
                     <Code className="w-5 h-5 text-purple-600" />
                     Tech Stack
@@ -807,7 +807,7 @@ export default function TeamTechProfessionalDashboard() {
                       </Badge>
                     ))}
                   </div>
-                </div>
+                </div> */}
 
                 <div className="space-y-4">
                   <h4 className="font-semibold text-lg text-gray-900 flex items-center gap-2">
