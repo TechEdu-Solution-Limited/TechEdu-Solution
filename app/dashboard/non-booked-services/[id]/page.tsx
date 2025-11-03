@@ -280,6 +280,9 @@ export default function NonBookableServiceDetailsPage() {
                     : "Free"}
                 </div>
               </div>
+              <button onClick={() => handleDownload(service.materialUrl!, filename)} className="cursor-pointer px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 inline-flex items-center gap-2">
+                Download
+              </button>
               {/* <div>
                 <div className="text-xs text-gray-500 mb-1">Created</div>
                 <div className="text-sm font-medium text-gray-900">

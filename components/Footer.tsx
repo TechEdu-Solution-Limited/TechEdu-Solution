@@ -228,21 +228,21 @@ const Footer = () => {
 
           <nav aria-label="Social Media" className="flex gap-3 ml-4">
             <Link
-              href="https://www.linkedin.com/company/techedusolution"
+              href="https://www.linkedin.com/company/techedu-solution/viewAsMember=true"
               aria-label="LinkedIn"
               className="hover:text-blue-300 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
             >
               <FaLinkedin size={18} />
             </Link>
             <Link
-              href="#"
+              href="https://www.instagram.com/techedusolution/"
               aria-label="Instagram"
               className="hover:text-pink-500 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-pink-500"
             >
               <FaInstagram size={18} />
             </Link>
             <Link
-              href="#"
+              href="https://www.facebook.com/techedusolution/"
               aria-label="Facebook"
               className="hover:text-blue-500 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
             >
