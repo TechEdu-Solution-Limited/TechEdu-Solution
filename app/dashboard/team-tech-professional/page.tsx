@@ -590,12 +590,12 @@ export default function TeamTechProfessionalDashboard() {
                       {teamData.teamName}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 bg-green-50 px-3 py-2 rounded-[10px]">
+                  {/* <div className="flex items-center gap-2 bg-green-50 px-3 py-2 rounded-[10px]">
                     <MapPin className="w-4 h-4 text-green-600" />
                     <span className="text-green-900">
                       {teamData.location.city}, {teamData.location.state}
                     </span>
-                  </div>
+                  </div> */}
                   <div className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-[10px]">
                     <Users className="w-4 h-4 text-purple-600" />
                     <span className="text-purple-900">
@@ -613,14 +613,14 @@ export default function TeamTechProfessionalDashboard() {
                 <RefreshCw className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Refresh</span>
               </Button>
-              <Button className="rounded-[12px] text-sm sm:text-base px-4 py-2 bg-blue-600 hover:bg-blue-700">
+              {/* <Button className="rounded-[12px] text-sm sm:text-base px-4 py-2 bg-blue-600 hover:bg-blue-700">
                 <Plus className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Invite Members</span>
               </Button>
               <Button className="rounded-[12px] text-sm sm:text-base px-4 py-2 bg-green-600 hover:bg-green-700">
                 <Settings className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Settings</span>
-              </Button>
+              </Button> */}
             </div>
           </div>
         </div>
