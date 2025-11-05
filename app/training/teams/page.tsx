@@ -339,7 +339,7 @@ const page = () => {
               Still Not Sure Where to Start?
             </h2>
             <p className="text-gray-700 mb-10">
-              Finding your perfect path shouldn't be overwhelming — whether
+              Finding your perfect path shouldn't be overwhelming, whether
               you're a student, jobseeker, or team lead, we're here to guide
               your next step with clarity. Explore your options or speak
               directly with a strategist to get personalized support.

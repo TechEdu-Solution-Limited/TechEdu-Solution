@@ -310,7 +310,7 @@ export default function ProfessionalSummarySection({
                   : !cvId
                   ? "CV must be created first"
                   : aiConsent && !aiConsent.aiTraining
-                  ? "AI training consent required — clicking will prompt"
+                  ? "AI training consent required, clicking will prompt"
                   : "Generate AI suggestions"
               }
             >

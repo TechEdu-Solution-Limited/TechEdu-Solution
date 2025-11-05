@@ -93,7 +93,7 @@ const page = () => {
             </h1>
             <p className="text-md md:text-[1.2rem] md:leading-8 text-white  md:text-blue-300 max-w-2xl lg:max-w-xl mx-auto xl:mx-0 md:pb-8">
               Whether you're a student applying for scholarships, a jobseeker
-              building your CV, or an employer hiring talent — we'll guide your
+              building your CV, or an employer hiring talent, we'll guide your
               next step
             </p>
 

@@ -72,7 +72,7 @@ const services = [
     id: 1,
     question: "Are these certificates internationally recognized?",
     answer:
-      "Yes — while they're not university degrees, they are real-world, instructor-verified credentials. We've had learners use them in job applications, graduate school admissions, and funded fellowship programs.",
+      "Yes, while they're not university degrees, they are real-world, instructor-verified credentials. We've had learners use them in job applications, graduate school admissions, and funded fellowship programs.",
   },
   {
     id: 2,
@@ -108,7 +108,7 @@ const page = () => {
             </h1>
             <p className="text-md md:text-[1.2rem] md:leading-8  text-white md:text-blue-300 max-w-2xl lg:max-w-xl mx-auto xl:mx-0 md:pb-12">
               All TechEdu Solution training programs come with verifiable
-              certificates — designed to showcase your skills, validate your
+              certificates, designed to showcase your skills, validate your
               effort, and open doors to real opportunities.
             </p>
 

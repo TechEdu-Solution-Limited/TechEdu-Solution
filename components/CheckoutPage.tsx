@@ -934,7 +934,7 @@ export default function CheckoutPage() {
                         {(A_SUB.requests?.[1] as any)?.body?.pricing
                           ?.trialDays ? (
                           <>
-                            Trial active — nothing due today. Your subscription
+                            Trial active, nothing due today. Your subscription
                             renews{" "}
                             {(A_SUB.requests?.[1] as any)?.body?.pricing
                               ?.intervalCount || 1}{" "}

@@ -123,7 +123,7 @@ const page = () => {
             </h1>
             <p className="text-md md:text-[1.2rem] md:leading-8  text-white md:text-blue-300 max-w-2xl lg:max-w-xl mx-auto xl:mx-0 md:pb-12">
               Browse a range of sample CVs created with TechEdu Solution's CV
-              Builder — formatted for impact, role-specific, and aligned with
+              Builder, formatted for impact, role-specific, and aligned with
               global hiring standards.
             </p>
 

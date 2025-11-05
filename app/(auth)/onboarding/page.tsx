@@ -155,7 +155,7 @@ const OnboardingPage = () => {
           <div className="bg-gray-200 text-center px-6 py-10 sm:p-12 md:p-24 rounded-[15px]">
             <h2 className="text-3xl md:text-5xl font-bold mb-4">Trust Note</h2>
             <p className="text-xl">
-              This helps us show you what matters most — nothing is public or
+              This helps us show you what matters most, nothing is public or
               shared.
             </p>
           </div>

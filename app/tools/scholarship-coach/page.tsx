@@ -69,7 +69,7 @@ const features = [
   },
   {
     title: "Strategy Video Guides",
-    description: "Learn how selection panels think — and how to impress them",
+    description: "Learn how selection panels think, and how to impress them",
     image: "/assets/certificate-tamperproof.webp",
   },
   {
@@ -149,12 +149,12 @@ const page = () => {
           {/* Left: Hero Content */}
           <div className="space-y-4 text-center md:pt-[4rem] xl:text-left xl:pt-8">
             <h1 className="text-4xl lg:text-5xl font-bold leading-tight xl:w-[57vw] text-white">
-              Land Scholarships with Strategy — Not Guesswork
+              Land Scholarships with Strategy, Not Guesswork
             </h1>
             <p className="text-md md:text-[1.2rem] md:leading-8  text-white md:text-blue-300 max-w-2xl lg:max-w-xl mx-auto xl:mx-0 md:pb-6">
               Whether you're applying for Master's, PhDs, fellowships, or
               research grants, our Scholarship Coach gives you the strategy,
-              templates, and review support you need to stand out — globally.
+              templates, and review support you need to stand out, globally.
             </p>
 
             <div className="grid grid-cols-2 gap-4">

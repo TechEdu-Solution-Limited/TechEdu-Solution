@@ -165,7 +165,7 @@ const GlobalTestimonials: Story[] = [
     name: "Sami R.",
     image: "/assets/ngozi.webp",
     review:
-      "I submitted a CV created here and got two callbacks — one in Germany and one in the UAE.",
+      "I submitted a CV created here and got two callbacks, one in Germany and one in the UAE.",
     role: "Data Graduate",
   },
   {
@@ -486,7 +486,7 @@ const page = () => {
             </h1>
             <p className="text-md md:text-[1.2rem] md:leading-8  text-white md:text-blue-300 max-w-2xl lg:max-w-xl mx-auto xl:mx-0 md:pb-6">
               Design a polished, professional CV using our intuitive
-              drag-and-drop tool — with expert-reviewed sections,
+              drag-and-drop tool, with expert-reviewed sections,
               industry-aligned formatting, and export-ready files trusted by
               recruiters across the globe.
             </p>

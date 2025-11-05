@@ -71,7 +71,7 @@ export default function WhyTechEduSection() {
             className="w-full h-auto rounded-[8px] mb-4"
           />
           <h3 className="text-xl font-semibold text-gray-900 mb-3">
-            Careers That Don’t Just Happen—They’re Built
+            Careers That Don’t Just Happen, They’re Built
           </h3>
           <ul className="space-y-2 text-gray-800 list-disc list-inside">
             <li>CV building and optimization</li>

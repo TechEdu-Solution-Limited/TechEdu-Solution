@@ -23,7 +23,7 @@ const GraduatesSay: Story[] = [
     country: "UK",
     image: "/assets/tomi.webp",
     review:
-      "It was the first time I felt seen — not just screened out. The feedback loop changed everything.",
+      "It was the first time I felt seen, not just screened out. The feedback loop changed everything.",
     role: "Graduate Trainee, London",
   },
   {
@@ -61,7 +61,7 @@ const features = [
   },
   {
     title: "Mock Interview Coaching",
-    description: "Get prepped before the call — not judged during it",
+    description: "Get prepped before the call, not judged during it",
     image: "/assets/data-driven.webp",
     alt: "Icon representing mock interview coaching",
   },
@@ -189,10 +189,10 @@ export default function ForGraduates() {
             </h1>
             <p className="text-md md:text-[1.2rem] md:leading-8  text-white md:text-blue-300 max-w-2xl lg:max-w-xl mx-auto xl:mx-0 md:pt-6 md:pb-12">
               You're more than a CV. CareerConnect helps graduates like you{" "}
-              <span className="font-bold">stand out</span> — with verified
+              <span className="font-bold">stand out</span>, with verified
               profiles, coaching-backed visibility, and direct employer
               matching. Whether you're job-hunting or internship-ready,
-              CareerConnect puts you in front of the right eyes — faster.
+              CareerConnect puts you in front of the right eyes, faster.
             </p>
 
             <div className="">

@@ -21,7 +21,7 @@ const clientStories: Story[] = [
     country: "UAE",
     image: "/assets/fatima.jpg",
     review:
-      "What makes TechEdu Solutions stand out is the real-world relevance of the training. It's not just theory — it's mentorship, tools, and support. I've grown both professionally and personally.",
+      "What makes TechEdu Solutions stand out is the real-world relevance of the training. It's not just theory, it's mentorship, tools, and support. I've grown both professionally and personally.",
   },
 ];
 

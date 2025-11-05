@@ -189,7 +189,7 @@ const page = () => {
     <div className="min-h-screen bg-gray-50">
       <header className="mx-auto px-4 md:px-16 pt-24 pb-16 flex flex-col items-center justify-center text-center bg-[#0D1140] h-full w-full md:h-[80vh]">
         <h1 className="text-3xl md:text-5xl font-extrabold text-white text-center pb-4">
-          Let's Build Your CV — One Step at a Time
+          Let's Build Your CV, One Step at a Time
         </h1>
         <p className="text-lg text-gray-200 font-medium max-w-[70vw] mx-auto mt-4">
           Answer a few quick prompts and let our builder assemble a

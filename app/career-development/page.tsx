@@ -115,7 +115,7 @@ const realSuccessStories: Story[] = [
     role: "Graduate Trainee",
     image: "/assets/real-career-stories-2.webp",
     review:
-      "CareerConnect helped me land two interviews and one offer — all in one month.",
+      "CareerConnect helped me land two interviews and one offer, all in one month.",
     country: "UK",
   },
   {
@@ -441,7 +441,7 @@ export default function CareerDevelopment() {
                 Not sure where to start? Let's map it out together.
               </h3>
               <p className="text-sm md:text-base mb-4">
-                Calls are 15–30 minutes with a real strategist — not a bot.
+                Calls are 15–30 minutes with a real strategist, not a bot.
               </p>
               <Link href="/contact#contact-form">
                 <button className="bg-[#0D1140] text-white px-6 py-4 rounded-[8px] hover:bg-blue-700 transition-colors duration-200">

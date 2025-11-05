@@ -184,7 +184,7 @@ const page = () => {
             <p className="text-md md:text-[1.2rem] md:leading-8  text-white md:text-blue-300 max-w-2xl lg:max-w-xl mx-auto xl:mx-0 md:pb-8">
               Whether you're building your career or upskilling your team, Tech
               Edu Solution delivers practical, instructor-led training programs
-              — fully online, certified, and designed for immediate impact.
+              , fully online, certified, and designed for immediate impact.
             </p>
 
             <div className="grid grid-cols-2 gap-4">
@@ -489,7 +489,7 @@ const page = () => {
               Still Not Sure Where to Start?
             </h3>
             <p className="text-gray-700 mb-6 md:mb-10">
-              Finding your perfect path shouldn't be overwhelming — whether
+              Finding your perfect path shouldn't be overwhelming, whether
               you're a student, jobseeker, or team lead, we're here to guide
               your next step with clarity. Explore your options or speak
               directly with a strategist to get personalized support.

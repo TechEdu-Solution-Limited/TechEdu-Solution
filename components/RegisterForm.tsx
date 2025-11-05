@@ -408,7 +408,7 @@ const Page = () => {
           </Link>
         </div>
         <p className="text-sm text-gray-600 mb-6">
-          Build your CV, join trainings, access scholarships, or post jobs — all
+          Build your CV, join trainings, access scholarships, or post jobs, all
           from a single, unified account. No credit card required.
         </p>
 

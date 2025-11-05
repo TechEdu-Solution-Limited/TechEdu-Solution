@@ -256,10 +256,10 @@ export default function ForEmployers() {
                 id="explore-more"
                 className="text-3xl md:text-5xl font-extrabold uppercase text-outline text-white"
               >
-                Don’t Just Post — Match.
+                Don’t Just Post, Match.
               </h2>
               <p className="text-gray-700 text-lg">
-                CareerConnect turns job posts into smart hiring signals —
+                CareerConnect turns job posts into smart hiring signals,
                 connecting you to verified talent and optional screening support
                 from TechEdu’s recruitment team.
               </p>

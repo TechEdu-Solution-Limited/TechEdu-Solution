@@ -100,14 +100,14 @@ const Home: NextPage = () => {
           <div className="space-y-6 text-center pt-16 md:pt-[7rem] xl:text-left xl:pt-[3.2rem]">
             <h1 className="text-4xl lg:text-5xl font-bold leading-tight xl:w-[80vw] text-white lg:leading-[3.5rem]">
               Accelerate Your Academic, Career
-              <br /> & Business Journey
+              <br /> & Business Journey,
               <br />
-              <span className="lg:w-4">—With Expert Guidance</span>
+              <span className="lg:w-4">With Expert Guidance</span>
             </h1>
             <p className="text-md md:text-[1.2rem] leading-8 text-white md:text-blue-300 max-w-2xl lg:max-w-xl mx-auto xl:mx-0 pb-8 md:pb-[4rem]">
               From scholarship coaching to career strategy and business
               consulting, TechEdu Solution connects you with expert-led services
-              and smart tools—so you grow faster, smarter, and stronger.
+              and smart tools, so you grow faster, smarter, and stronger.
             </p>
             <Link
               href="/free-consultation"

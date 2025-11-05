@@ -322,7 +322,7 @@ const LoginPage = () => {
         </div>
         <p className="text-sm text-gray-600 mb-6 max-w-[75%]">
           Whether you're returning to edit your CV, track a scholarship
-          application, or manage your training — you're just one step away
+          application, or manage your training, you're just one step away
         </p>
 
         {/* OAuth Error Alert */}

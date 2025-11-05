@@ -97,7 +97,7 @@ const SuccessStories: Story[] = [
     country: "UK",
     image: "/assets/ngozi.webp",
     review:
-      "I used CareerConnect to hire two data analysts and one graduate intern — all within two weeks.",
+      "I used CareerConnect to hire two data analysts and one graduate intern, all within two weeks.",
     role: "HR Manager, Fintech Startup",
   },
   {
@@ -163,7 +163,7 @@ export default function CareerConnect() {
               CareerConnect is TechEdu Solution's dedicated career platform that
               links graduates, entry-level professionals, and skilled interns
               with organizations that value capability, not just credentials.
-              It's not just a job board — it's a talent-matching engine, backed
+              It's not just a job board, it's a talent-matching engine, backed
               by coaching, screening, and verified profiles.
             </p>
 

@@ -108,7 +108,7 @@ const page = () => {
             <p className="text-md md:text-[1.2rem] md:leading-8  text-white md:text-blue-300 max-w-2xl lg:max-w-xl mx-auto xl:mx-0 md:pb-12">
               Designed for graduates, students, and early-career professionals,
               our Zoom-based programs help you build the exact skills employers
-              want — with verified certificates to prove it.
+              want, with verified certificates to prove it.
             </p>
 
             <div className="grid grid-cols-2 gap-4 pt-4">

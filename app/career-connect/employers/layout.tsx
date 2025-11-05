@@ -3,13 +3,13 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Hire Graduate Talent with CareerConnect by TechEdu Solution",
   description:
-    "Post jobs, access verified CVs, and manage shortlists with CareerConnect — the faster way to hire job-ready graduates.",
+    "Post jobs, access verified CVs, and manage shortlists with CareerConnect, the faster way to hire job-ready graduates.",
   keywords:
     "hire graduates UK, job portal for HR, shortlist tool, job board with CV reviews, CareerConnect employers",
   openGraph: {
     title: "Hire Graduate Talent with CareerConnect by TechEdu Solution",
     description:
-      "Post jobs, access verified CVs, and manage shortlists with CareerConnect — the faster way to hire job-ready graduates.",
+      "Post jobs, access verified CVs, and manage shortlists with CareerConnect, the faster way to hire job-ready graduates.",
     url: "https://techedusolution.com/career-connect/employers",
     siteName: "TechEdu Solution",
     images: [
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Hire Graduate Talent with CareerConnect by TechEdu Solution",
     description:
-      "Post jobs, access verified CVs, and manage shortlists with CareerConnect — the faster way to hire job-ready graduates.",
+      "Post jobs, access verified CVs, and manage shortlists with CareerConnect, the faster way to hire job-ready graduates.",
     images: ["/assets/employers-og.jpg"],
   },
   robots: {

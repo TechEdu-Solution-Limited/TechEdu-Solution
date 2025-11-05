@@ -58,7 +58,7 @@ export default function PackageEstimatorPage() {
             </h1>
             <p className="text-md md:text-[1.2rem] md:leading-8  text-white md:text-blue-300 max-w-2xl lg:max-w-xl mx-auto xl:mx-0 md:pt-6 md:pb-12">
               Answer a few quick questions and get an instant estimate for the
-              exact tools, services, and support you need — whether you're
+              exact tools, services, and support you need, whether you're
               applying for a scholarship, launching a career, or upskilling.
             </p>
             <div className="xl:pt-2">
