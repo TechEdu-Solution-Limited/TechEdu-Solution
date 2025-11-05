@@ -327,7 +327,7 @@ export class PaymentService {
   // No separate GET installments preview in the new flow
 
   /* -------------------------------------------------------------- *
-   * NEW: Installments lifecycle (Stripe SetupIntent + Schedule)
+   * NEW: Installments and Subscriptions lifecycle (Stripe SetupIntent + Schedule)
    * -------------------------------------------------------------- */
 
   static async startInstallmentsSetup(

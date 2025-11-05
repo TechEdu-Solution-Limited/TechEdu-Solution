@@ -71,7 +71,7 @@ const toMajor = (minor: number, currency: string) =>
 
 interface PaymentFormProps {
   clientSecret: string;
-  mode?: "payment" | "setup";
+  mode?: "payment" | "setup" | "auto";
   amount?: number; // required if mode="payment"
   currency?: string; // required if mode="payment"
   onSuccess: () => void;
@@ -84,7 +84,7 @@ interface PaymentFormProps {
 
 function PaymentForm({
   clientSecret,
-  mode = "payment",
+  mode = "auto",
   amount,
   currency,
   onSuccess,
@@ -94,8 +94,10 @@ function PaymentForm({
   productName = "Course",
   bookingId,
 }: PaymentFormProps) {
-  const isPayment = mode === "payment";
-  const isSetup = mode === "setup";
+  const inferredIsPayment = clientSecret?.startsWith("pi_");
+  const inferredIsSetup = clientSecret?.startsWith("seti_");
+  const isPayment = mode === "payment" || (mode === "auto" && inferredIsPayment);
+  const isSetup = mode === "setup" || (mode === "auto" && inferredIsSetup);
 
   const stripe = useStripe();
   const elements = useElements();
@@ -165,6 +167,10 @@ function PaymentForm({
     }
     if (isSetup && !looksLikeSI) {
       setError("Invalid setup intent. Please try again.");
+      return;
+    }
+    if (isPayment && (amount == null || !currency)) {
+      setError("Missing amount or currency for payment.");
       return;
     }
 
@@ -389,16 +395,16 @@ function PaymentForm({
           <Shield className="w-6 h-6 text-green-600" />
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          {mode === "payment" ? "Secure Payment" : "Secure Billing Setup"}
+          {isPayment ? "Secure Payment" : "Secure Billing Setup"}
         </h2>
         <p className="text-gray-600">
-          {mode === "payment"
+          {isPayment
             ? `Complete your purchase for ${productName}`
             : `Add a payment method for ${productName}`}
         </p>
       </div>
 
-      {mode === "payment" && amount != null && currency && (
+      {isPayment && amount != null && currency && (
         <div className="bg-gray-50 rounded-[12px] p-4 mb-6">
           <div className="flex justify-between items-center mb-3">
             <span className="text-sm font-medium text-gray-700">
@@ -437,7 +443,7 @@ function PaymentForm({
         </div>
       )}
 
-      {mode === "setup" && (
+      {isSetup && (
         <div className="bg-blue-50 rounded-[12px] p-4 mb-6 border border-blue-200">
           <p className="text-sm text-blue-800">
             You’re adding a payment method. You may be charged later according
@@ -545,7 +551,7 @@ function PaymentForm({
               <div className="flex items-center justify-center">
                 <CheckCircle className="w-5 h-5 mr-3" />
                 <span>
-                  {mode === "payment"
+                  {isPayment
                     ? "Payment Successful!"
                     : "Setup Complete!"}
                 </span>
@@ -554,7 +560,7 @@ function PaymentForm({
               <div className="flex items-center justify-center">
                 <Loader2 className="w-5 h-5 mr-3 animate-spin" />
                 <span>
-                  {mode === "payment"
+                  {isPayment
                     ? "Processing Payment..."
                     : "Saving Card..."}
                 </span>
@@ -563,7 +569,7 @@ function PaymentForm({
               <div className="flex items-center justify-center">
                 <CreditCard className="w-5 h-5 mr-3" />
                 <span>
-                  {mode === "payment" && amount != null && currency
+                  {isPayment && amount != null && currency
                     ? `Pay ${new Intl.NumberFormat("en-US", {
                         style: "currency",
                         currency: currency.toUpperCase(),
@@ -584,7 +590,7 @@ function PaymentForm({
 
 interface StripePaymentFormProps {
   clientSecret: string;
-  mode?: "payment" | "setup";
+  mode?: "payment" | "setup" | "auto";
   amount?: number;
   currency?: string;
   onSuccess: () => void;
@@ -599,7 +605,7 @@ interface StripePaymentFormProps {
 
 export default function StripePaymentForm({
   clientSecret,
-  mode = "payment",
+  mode = "auto",
   amount,
   currency,
   onSuccess,
