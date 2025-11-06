@@ -79,7 +79,7 @@ export default function QuickNavigationLinks() {
             Ready to unlock clarity?
           </h3>
           <p className="text-sm md:text-base mb-4">
-            Let's map out your next move—whether you need academic support,
+            Let's map out your next move, whether you need academic support,
             career strategy, or a training package.
           </p>
           <p className="font-semibold text-sm md:text-base mb-6">

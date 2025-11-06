@@ -128,7 +128,7 @@ export default function ForEmployers() {
               <span className="font-bold">
                 CareerConnect by TechEdu Solution Ltd
               </span>{" "}
-              gives you a faster, smarter way to identify job-ready talent —
+              gives you a faster, smarter way to identify job-ready talent,
               with coaching insights, verified profiles, and curated shortlists
               built in. It's more than job posting. It's{" "}
               <span className="font-bold">guided graduate hiring</span> designed

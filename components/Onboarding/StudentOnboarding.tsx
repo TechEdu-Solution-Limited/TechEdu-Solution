@@ -846,7 +846,7 @@ export default function StudentOnboarding() {
           <span className="inline-block bg-blue-100 rounded-full px-3 py-1 mr-2 mb-1">
             🚀
           </span>
-          Let's get started—your future begins here!
+          Let's get started, your future begins here!
         </p>
       </div>
 

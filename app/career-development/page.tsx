@@ -168,7 +168,7 @@ export default function CareerDevelopment() {
             </h1>
             <p className="text-md md:text-[1.2rem] md:leading-8  text-white md:text-blue-300 max-w-2xl lg:max-w-xl mx-auto xl:mx-0 md:pt-3 pb-[1.5rem]">
               Whether you're entering the job market, switching careers, or
-              aiming for leadership roles—TechEdu Solution helps you craft your
+              aiming for leadership roles, TechEdu Solution helps you craft your
               career intentionally. From CVs that open doors to coaching that
               builds confidence, our experts and tools are here to guide your
               next bold move.

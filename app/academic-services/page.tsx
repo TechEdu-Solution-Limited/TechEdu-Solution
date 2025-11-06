@@ -86,7 +86,7 @@ export default function AcademicServices() {
               Whether you're writing your first research proposal or preparing
               for your PhD defense, TechEdu Solution gives you expert guidance
               every step of the way. We remove confusion, build your confidence,
-              and help you hit real milestones—locally and internationally.
+              and help you hit real milestones, locally and internationally.
             </p>
             <div>
               <Link

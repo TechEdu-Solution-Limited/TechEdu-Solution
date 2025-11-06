@@ -17,10 +17,10 @@ export default function NotSureWhereToBegin() {
           </span>
         </h2>
         <p className="font-semibold text-gray-600 mb-3">
-          Let’s Find the Right Path—Together.
+          Let’s Find the Right Path, Together.
         </p>
         <p className="text-gray-800">
-          Whether it's funding, a better job, or smarter strategy—our expert
+          Whether it's funding, a better job, or smarter strategy, our expert
           team will help you take the next confident step.
         </p>
       </div>

@@ -277,7 +277,7 @@ export default function CorporateConsultancy() {
               At TechEdu Solution, we help institutions, teams, and leaders
               unlock growth with strategic consulting, actionable data, and
               performance-driven training. Whether you're building a workforce,
-              tracking academic outcomes, or leveling up decision-making—we
+              tracking academic outcomes, or leveling up decision-making, we
               co-design real solutions that scale with you.
             </p>
 
@@ -458,9 +458,9 @@ export default function CorporateConsultancy() {
                 <FaQuoteLeft size={200} />
               </span>
               <span className="relative z-20">
-                Organizations don't grow by accident
+                Organizations don't grow by accident,
                 <br />
-                —they grow by insight and execution.
+                they grow by insight and execution.
               </span>
               <cite className="relative z-20 not-italic block mt-4 text-sm font-semibold text-gray-900">
                 — Precious, Founder

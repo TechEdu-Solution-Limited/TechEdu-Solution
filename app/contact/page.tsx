@@ -13,7 +13,7 @@ const page = () => {
         </h1>
         <h2 className="text-lg font-medium text-white md:text-xl md:max-w-[65vw]">
           Whether you’re a student seeking mentorship, a jobseeker ready to
-          stand out, or a business leader exploring smarter training—we’d love
+          stand out, or a business leader exploring smarter training, we’d love
           to hear from you.
         </h2>
         <h2 className="text-lg pt-8 font-medium text-white sm:text-xl">

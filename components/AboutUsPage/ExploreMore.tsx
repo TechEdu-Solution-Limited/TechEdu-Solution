@@ -36,7 +36,7 @@ export default function ExploreMore() {
           <h3 className="text-2xl font-bold mb-2">Ready to Work With Us?</h3>
           <p className="text-gray-700 mb-10">
             Whether you're applying for a scholarship, trying to scale your
-            career, or building a better business—
+            career, or building a better business,
             <strong className="font-semibold"> we've got your back.</strong>
           </p>
         </div>

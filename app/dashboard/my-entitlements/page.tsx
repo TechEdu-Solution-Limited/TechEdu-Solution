@@ -244,7 +244,7 @@ export default function Page() {
             My Paid Features & Entitlements
           </h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
-            This page lists all your active entitlements—features unlocked via
+            This page lists all your active entitlements, features unlocked via
             subscriptions, promotions, or manual credits.{" "}
             <strong>Quantity</strong> is your allowance,
             <strong> Consumed</strong> shows what you’ve used, and{" "}

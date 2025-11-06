@@ -138,7 +138,7 @@ const page = () => {
             </h1>
             <p className="text-md md:text-[1.2rem] md:leading-8  text-white md:text-blue-300 max-w-2xl lg:max-w-xl mx-auto xl:mx-0 md:pt-6 md:pb-12">
               Use our interactive Package Estimator to select the services,
-              tools, and training you need—then get instant pricing, bundle
+              tools, and training you need then get instant pricing, bundle
               savings, and booking options tailored to your goals.
             </p>
 

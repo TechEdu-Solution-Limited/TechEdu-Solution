@@ -20,7 +20,7 @@ export default function WhyTechEduSection() {
           </span>
         </h2>
         <p className="text-gray-800 text-lg">
-          At TechEdu Solution, we don’t just offer services—we walk with you
+          At TechEdu Solution, we don’t just offer services, we walk with you
           from challenge to achievement. Whether you{"'"}re a student,
           jobseeker, or business leader, we give you the structure, tools, and
           expert support to achieve your next goal.
