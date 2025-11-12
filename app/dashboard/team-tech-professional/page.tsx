@@ -437,7 +437,9 @@ export default function TeamTechProfessionalDashboard() {
 
         setTasks(transformedTasks);
       } catch (error: any) {
-        safeConsole.error("Error fetching team data:", error);
+        safeConsole.error(process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : "Error fetching team data:", error);
         // Fallback to mock data if API fails
         setTeamData({
           teamId: "fallback",

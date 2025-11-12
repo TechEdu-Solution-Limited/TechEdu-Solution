@@ -105,7 +105,9 @@ export default function TeamManagementPage() {
       setTeamData(teamResponse.data?.data);
       setMembers(membersResponse.data?.data?.members || []);
     } catch (error: any) {
-      safeConsole.error("Error fetching team data:", error);
+      safeConsole.error(process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : "Error fetching team data:", error);
       toast.error(
         process.env.NEXT_PUBLIC_NODE_ENV === "production"
           ? "Something went wrong"

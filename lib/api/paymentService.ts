@@ -330,6 +330,20 @@ export class PaymentService {
    * NEW: Installments and Subscriptions lifecycle (Stripe SetupIntent + Schedule)
    * -------------------------------------------------------------- */
 
+  /**
+   * Start payment setup process for installments or subscriptions.
+   * Creates Stripe customer (if needed) and returns the appropriate payment intent(s)
+   * based on quote mode (installments or subscription).
+   * 
+   * For installments: returns PaymentIntent (pi_) for down payment (if any) 
+   * and SetupIntent (seti_) for recurring installments.
+   * 
+   * For subscriptions: returns intent(s) based on trial and auto-renewal settings.
+   * 
+   * @param payload - Request body with user info and quoteId from price preview
+   * @param token - Authentication token
+   * @returns Response with customerId, clientSecret(s), and intentType
+   */
   static async startInstallmentsSetup(
     payload: InstallmentsStartRequest,
     token: string

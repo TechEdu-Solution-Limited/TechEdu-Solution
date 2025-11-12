@@ -313,6 +313,7 @@ export interface PricePreviewResponse {
   total: number; // MAJOR
   unitPrice?: number; // MAJOR
   tierType?: TierType;
+  quoteId?: string; // Quote ID to be used in installments/subscription start endpoint
   graduatedDetail?: Array<{
     qty: number;
     unitPrice: number;
@@ -343,10 +344,14 @@ export interface InstallmentsPreviewResponse {
 /** POST /api/billing/installments/start */
 export interface InstallmentsStartRequest {
   user: { id: string; email: string; name: string };
+  quoteId: string; // Quote ID from price preview response
 }
 export interface InstallmentsStartResponse {
   customerId: string;
-  clientSecret: string; // Stripe SetupIntent client_secret
+  paymentIntentClientSecret?: string; // PaymentIntent client_secret (for down payment if any)
+  setupIntentClientSecret?: string; // SetupIntent client_secret (for recurring installments)
+  intentType: "payment" | "setup" | "both"; // Type of intent(s) returned
+  clientSecret: string; // Primary client_secret (paymentIntentClientSecret if present, otherwise setupIntentClientSecret)
 }
 
 /** POST /api/billing/installments/confirm */

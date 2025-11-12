@@ -461,7 +461,7 @@ export default function CatalogPage({
     setFlyingItem({
       id: product._id,
       title: product.service,
-      image: product.thumbnailUrl || "/assets/default-product.png",
+      image: product.thumbnailUrl || "/assets/techedusolution.jpg",
       startPos,
       endPos: cartPos,
     });
@@ -482,7 +482,7 @@ export default function CatalogPage({
         category:
           product.productCategoryTitle || product.category || "Uncategorized",
         productType: product.productType,
-        image: product.thumbnailUrl || "/assets/default-product.png",
+        image: product.thumbnailUrl || "/assets/techedusolution.jpg",
         duration:
           typeof product.programLength === "number" && product.mode
             ? `${product.programLength} ${product.mode}`
@@ -796,7 +796,7 @@ export default function CatalogPage({
                         src={
                           product.thumbnailUrl ||
                           product.iconUrl ||
-                          "/assets/default-product.png"
+                          "/assets/techedusolution.jpg"
                         }
                         alt={product.service}
                         fill

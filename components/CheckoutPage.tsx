@@ -267,6 +267,14 @@ export default function CheckoutPage() {
   const [mode, setMode] = useState<"payment" | "setup" | null>(null);
   const [currency, setCurrency] = useState<string>("USD");
   const [amountMinor, setAmountMinor] = useState<number | undefined>(undefined);
+  
+  // Store billing flow state for handling "both" intent type
+  const [billingFlowState, setBillingFlowState] = useState<{
+    isBillingFlow: boolean;
+    setupIntentSecret?: string;
+    paymentIntentSecret?: string;
+    intentType?: "payment" | "setup" | "both";
+  } | null>(null);
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -442,8 +450,11 @@ export default function CheckoutPage() {
         setServerInstallmentsPreview(null);
         return;
       }
+      // Extract quoteId from option level or top level of response
+      const quoteId = opt.quoteId || preview?.data?.quoteId || preview?.quoteId;
+      
       setServerPricePreview({
-        quoteId: opt.quoteId,
+        quoteId: quoteId,
         currency: (opt.currency || "USD").toString().toUpperCase(),
         quantity: Number(opt.quantity || 1),
         subtotal: Number(opt.breakdown?.subtotal || 0),
@@ -453,6 +464,19 @@ export default function CheckoutPage() {
         model: opt.model,
         tierType: opt.tiers?.type,
       });
+      
+      // Debug: Log quoteId extraction
+      if (!quoteId) {
+        safeConsole.warn("⚠️ [CheckoutPage] quoteId not found in preview response", {
+          hasOpt: !!opt,
+          optKeys: opt ? Object.keys(opt) : [],
+          hasPreviewData: !!preview?.data,
+          previewDataKeys: preview?.data ? Object.keys(preview.data) : [],
+          mode,
+        });
+      } else {
+        safeConsole.log("✅ [CheckoutPage] quoteId extracted:", quoteId);
+      }
       if (mode === "installments" && opt.installments?.enabled) {
         setServerInstallmentsPreview({
           total: Number(opt.installments?.totalFinanced || opt.breakdown?.total || 0),
@@ -599,6 +623,7 @@ export default function CheckoutPage() {
     if (!action || !selectedItem) return;
     setBusy(true);
     setError(null);
+    setBillingFlowState(null); // Clear billing flow state at start
     const token = getTokenFromCookies();
 
     try {
@@ -650,26 +675,78 @@ export default function CheckoutPage() {
         return;
       }
 
-      // BILLING (installments/subscription) → SetupIntent
+      // BILLING (installments/subscription) → PaymentIntent or SetupIntent
       if (A_INST || A_SUB) {
         const START = (A_INST ?? A_SUB)!.requests[0];
+        const quoteId = serverPricePreview?.quoteId;
+        
+        if (!quoteId) {
+          throw new Error("Missing quoteId from price preview. Please refresh and try again.");
+        }
+
+        // Build request body with quoteId from price preview
+        const requestBody = {
+          ...(START as any).body,
+          quoteId,
+        };
+
         const startResp = await PaymentService.startInstallmentsSetup(
-          (START as any).body,
+          requestBody,
           token || ""
         );
         const startPayload: any = startResp?.data;
-        const setupSecret =
-          startPayload?.data?.clientSecret || startPayload?.clientSecret;
+        
+        // Handle new response structure with multiple client secrets
+        const paymentIntentSecret = startPayload?.paymentIntentClientSecret;
+        const setupIntentSecret = startPayload?.setupIntentClientSecret;
+        const primaryClientSecret = startPayload?.clientSecret;
+        const intentType = startPayload?.intentType; // "payment" | "setup" | "both"
 
-        if (!setupSecret || !String(setupSecret).includes("_secret_")) {
-          throw new Error("Invalid SetupIntent response");
+        // Determine which client secret to use and what mode
+        let clientSecretToUse: string | undefined;
+        let modeToUse: "payment" | "setup" = "setup";
+        let amountToUse: number | undefined;
+
+        if (intentType === "payment" || (intentType === "both" && paymentIntentSecret)) {
+          // Use PaymentIntent for immediate charge (down payment or first charge)
+          clientSecretToUse = paymentIntentSecret || primaryClientSecret;
+          modeToUse = "payment";
+          // Use server preview total for amount (in minor units)
+          const curr = (serverPricePreview?.currency || selectedItem.currency || "USD").toLowerCase();
+          const amountMajor = serverPricePreview?.total ?? (A_INST?.amounts.downPaymentMajor ?? A_SUB?.amounts.periodAmountMajor ?? 0);
+          amountToUse = toMinor(amountMajor, curr);
+        } else if (intentType === "setup" || setupIntentSecret) {
+          // Use SetupIntent for card-on-file (no immediate charge)
+          clientSecretToUse = setupIntentSecret || primaryClientSecret;
+          modeToUse = "setup";
+          amountToUse = undefined;
+        } else {
+          // Fallback to primary client secret
+          clientSecretToUse = primaryClientSecret;
         }
 
-        setClientSecret(setupSecret);
-        setMode("setup");
-        setCurrency((selectedItem.currency || "USD").toUpperCase());
-        setAmountMinor(undefined);
-        toast.success("Add a payment method to continue");
+        if (!clientSecretToUse || !String(clientSecretToUse).includes("_secret_")) {
+          throw new Error("Invalid payment intent response from server");
+        }
+
+        setClientSecret(clientSecretToUse);
+        setMode(modeToUse);
+        setCurrency((serverPricePreview?.currency || selectedItem.currency || "USD").toUpperCase());
+        setAmountMinor(amountToUse);
+        
+        // Store billing flow state for handling "both" intent type
+        setBillingFlowState({
+          isBillingFlow: true,
+          setupIntentSecret: setupIntentSecret,
+          paymentIntentSecret: paymentIntentSecret,
+          intentType: intentType,
+        });
+        
+        if (modeToUse === "payment") {
+          toast.success("Complete your payment to continue");
+        } else {
+          toast.success("Add a payment method to continue");
+        }
         return;
       }
     } catch (e: any) {
@@ -755,8 +832,20 @@ export default function CheckoutPage() {
     }
   };
 
-  /* After PaymentIntent succeeds (one-time) */
-  const handlePaymentSuccess = () => {
+  /* After PaymentIntent succeeds (one-time or billing down payment) */
+  const handlePaymentSuccess = async () => {
+    // If this is a billing flow with "both" intent type, proceed with setup after payment
+    if (billingFlowState?.isBillingFlow && billingFlowState?.intentType === "both" && billingFlowState?.setupIntentSecret) {
+      // Switch to setup mode for recurring installments
+      setClientSecret(billingFlowState.setupIntentSecret);
+      setMode("setup");
+      setAmountMinor(undefined);
+      setBillingFlowState(null); // Clear state to avoid loops
+      toast.success("Down payment completed. Please confirm payment method for installments.");
+      return;
+    }
+    
+    // For one-time payments or billing flows that don't need setup, complete checkout
     if (selectedItem) removeFromCart(selectedItem.id);
     setShowSuccessModal(true);
     // Auto-redirect after 3 seconds
@@ -769,6 +858,7 @@ export default function CheckoutPage() {
     setClientSecret(null);
     setMode(null);
     setAmountMinor(undefined);
+    setBillingFlowState(null);
   };
 
   /* Guards */

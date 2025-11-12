@@ -244,7 +244,7 @@ export default function ProductPage() {
       image:
         product.thumbnailUrl ||
         product.iconUrl ||
-        "/assets/default-product.png",
+        "/assets/techedusolution.jpg",
       duration: `${product.programLength} ${product.mode}`,
       certificate: product.hasCertificate,
       status: product.enabled ? "active" : "inactive",
@@ -412,7 +412,7 @@ export default function ProductPage() {
               src={
                 product.thumbnailUrl ||
                 product.iconUrl ||
-                "/assets/default-product.png"
+                "/assets/techedusolution.jpg"
               }
               alt={product.service}
               fill

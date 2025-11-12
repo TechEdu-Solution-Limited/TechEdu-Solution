@@ -502,6 +502,9 @@ export default function CartPage() {
       
       if (serverPreview?.data?.options?.pay_in_full) {
         const opt = serverPreview.data.options.pay_in_full;
+        // Extract quoteId from option level or top level of response
+        const quoteId = opt.quoteId || serverPreview.data.quoteId || serverPreview.quoteId;
+        
         const serverPricePreview: PricePreview = {
           ok: true,
           currency: opt.currency || item.currency || "USD",
@@ -512,9 +515,23 @@ export default function CartPage() {
           unitPrice: typeof opt.breakdown?.unitPrice === "number" ? opt.breakdown.unitPrice : undefined,
           model: opt.model as any,
           tierType: opt.tiers?.type as any,
+          quoteId: quoteId, // Add quoteId to the preview
         };
         setPricePreviewById((prev) => ({ ...prev, [item.id]: serverPricePreview }));
         ensureDefaultMode(item.id);
+        
+        // Debug: Log if quoteId is found
+        if (quoteId) {
+          safeConsole.log("✅ [CartPage] quoteId extracted for item:", item.id, quoteId);
+        } else {
+          safeConsole.warn("⚠️ [CartPage] quoteId not found in price preview response", {
+            itemId: item.id,
+            hasOpt: !!opt,
+            optKeys: opt ? Object.keys(opt) : [],
+            hasData: !!serverPreview.data,
+            dataKeys: serverPreview.data ? Object.keys(serverPreview.data) : [],
+          });
+        }
 
         // If installments are available, parse installments preview
         if (serverPreview.data.availableModes?.includes("installments") && serverPreview.data.options.installments) {

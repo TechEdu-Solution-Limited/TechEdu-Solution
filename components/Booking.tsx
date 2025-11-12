@@ -586,7 +586,7 @@ export default function BookingPage() {
         category: productData?.category || productType || "Service",
         productType:
           productData?.productType || productType || "Training & Certification",
-        image: productData?.image || "/assets/default-product.png",
+        image: productData?.image || "/assets/techedusolution.jpg",
         certificate: productData?.certificate || false,
         status: productData?.status || "active",
         level: formData.sessionType || sessionType || "1-on-1",
