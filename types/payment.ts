@@ -393,21 +393,22 @@ export type InstallmentsConfirmResponse =
   | InstallmentsConfirmEcho
   | InstallmentsConfirmFinal;
 
-/** POST /api/billing/subscriptions/confirm */
-export interface SubscriptionConfirmRequest {
+/** POST /api/billing/subscriptions/payment-setup */
+export interface SubscriptionPaymentSetupRequest {
   user: { id: string; email: string; name: string };
   quoteId: string;
   setupIntentId?: string;
   paymentMethodId?: string;
 }
 
-export interface SubscriptionConfirmResponse {
+export interface SubscriptionPaymentSetupResponse {
   subscriptionId?: string;
   stripeProductId?: string;
   stripePriceId?: string;
-  clientSecret?: string;
-  success: boolean;
-  message?: string;
+  paymentIntentClientSecret?: string; // PaymentIntent client_secret (for immediate charge if any)
+  setupIntentClientSecret?: string; // SetupIntent client_secret (for recurring subscription)
+  intentType?: "payment_intent" | "setup_intent" | "both"; // Type of intent(s) returned
+  invoiceTotal?: number; // Total invoice amount in major units
 }
 
 /** POST /api/billing/installments/early-payoff */

@@ -1338,7 +1338,7 @@ export default function CartPage() {
                       </p>
                       {pp?.model === "subscription" && (
                         <p className="text-xs text-gray-500">
-                          {(item.pricing as any)?.autoRenew === false
+                          {(item.pricing?.autoRenew) === false
                             ? "No renewal"
                             : (() => {
                                 const ic = Number(item.pricing?.intervalCount || 1);

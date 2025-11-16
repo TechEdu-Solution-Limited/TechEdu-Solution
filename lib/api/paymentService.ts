@@ -17,8 +17,8 @@ import type {
   InstallmentsStartResponse,
   InstallmentsConfirmRequest,
   InstallmentsConfirmResponse,
-  SubscriptionConfirmRequest,
-  SubscriptionConfirmResponse,
+  SubscriptionPaymentSetupRequest,
+  SubscriptionPaymentSetupResponse,
   EarlyPayoffRequest,
   EarlyPayoffResponse,
   SavedPaymentMethod,
@@ -362,11 +362,11 @@ export class PaymentService {
     });
   }
 
-  static async confirmSubscription(
-    payload: SubscriptionConfirmRequest,
+  static async subscriptionPaymentSetup(
+    payload: SubscriptionPaymentSetupRequest,
     token: string
-  ): Promise<ApiResponse<SubscriptionConfirmResponse>> {
-    return postApiRequest(`/api/billing/subscriptions/confirm`, payload, {
+  ): Promise<ApiResponse<SubscriptionPaymentSetupResponse>> {
+    return postApiRequest(`/api/billing/subscriptions/payment-setup`, payload, {
       Authorization: `Bearer ${token}`,
     });
   }
