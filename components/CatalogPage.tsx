@@ -794,11 +794,11 @@ export default function CatalogPage({
                     <div className="relative w-full aspect-square bg-gray-100 rounded-t-xl overflow-hidden">
                       <Image
                         src=
-                        {
-                          product.thumbnailUrl ||
-                          product.iconUrl ||
+                        // {
+                        //   product.thumbnailUrl ||
+                        //   product.iconUrl ||
                           "/assets/techedusolution.jpg"
-                        }
+                        // }
                         alt={product.service}
                         fill
                         className="object-cover transition-transform duration-200 group-hover:scale-105"
