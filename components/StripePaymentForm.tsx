@@ -472,13 +472,13 @@ function PaymentForm({
                 </div>
                 <div className="absolute top-4 right-4">
                   <div className="flex items-center gap-2">
-                    <img src="/icons/visa.png" alt="Visa" className="w-8 h-5" />
+                    <img src="/icons/visa.png" alt="Visa" className="w-8 h-9" />
                     <img
                       src="/icons/mastercard.png"
                       alt="Mastercard"
-                      className="w-8 h-5"
+                      className="w-8 h-8"
                     />
-                    <img src="/icons/amex.png" alt="AMEX" className="w-8 h-5" />
+                    <img src="/icons/amex.png" alt="AMEX" className="w-8 h-8" />
                   </div>
                 </div>
               </div>

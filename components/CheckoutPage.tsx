@@ -279,6 +279,30 @@ export default function CheckoutPage() {
     paymentIntentSecret?: string;
     intentType?: "payment_intent" | "setup_intent" | "both";
   } | null>(null);
+  const [quoteExpired, setQuoteExpired] = useState(false);
+  const [quoteRefreshing, setQuoteRefreshing] = useState(false);
+  const isQuoteExpiredError = (error: any) => {
+    const details = error?.response?.data?.error?.details;
+    const message =
+      error?.response?.data?.message || error?.message || error?.toString?.() || "";
+    const detailMatch = Array.isArray(details)
+      ? details.some(
+          (d) =>
+            typeof d === "string" && d.toLowerCase().includes("quote") && d.toLowerCase().includes("expire")
+        )
+      : false;
+    return (
+      detailMatch ||
+      message.toLowerCase().includes("quote has expired") ||
+      message.toLowerCase().includes("quote expired")
+    );
+  };
+
+  const isCurrentQuoteExpired = () => {
+    if (quoteExpired) return true;
+    if (!serverPricePreview?.expiresAt) return false;
+    return new Date(serverPricePreview.expiresAt).getTime() <= Date.now();
+  };
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -297,6 +321,7 @@ export default function CheckoutPage() {
         model?: string;
         tierType?: string;
         subscription?: SubscriptionPreviewDetails;
+        expiresAt?: string;
       }
     | null
   >(null);
@@ -482,6 +507,7 @@ export default function CheckoutPage() {
         model: opt.model,
         tierType: opt.tiers?.type,
         subscription: subscriptionMeta,
+        expiresAt: opt.expiresAt || preview?.data?.expiresAt,
       });
       
       // Debug: Log quoteId extraction
@@ -525,6 +551,12 @@ export default function CheckoutPage() {
       setServerInstallmentsPreview(null);
     }
   }, [preview, selectedModeFromCart]);
+
+  useEffect(() => {
+    if (serverPricePreview?.quoteId) {
+      setQuoteExpired(false);
+    }
+  }, [serverPricePreview?.quoteId]);
 
   /* Due today */
   const dueTodayMajor = useMemo(() => {
@@ -590,6 +622,7 @@ export default function CheckoutPage() {
 
   const displayCurrency =
     serverPricePreview?.currency || selectedItem?.currency || "USD";
+  const quoteHasExpired = isCurrentQuoteExpired();
 
   /* ---- Booking requirements & validation ---- */
   const needsBooking = !!(
@@ -674,6 +707,35 @@ export default function CheckoutPage() {
     setTimeout(() => beginCheckout(), 0);
   };
 
+  const regenerateQuote = async () => {
+    if (!selectedItem) return;
+    setQuoteRefreshing(true);
+    try {
+      const token = getTokenFromCookies() || "";
+      const payload: any = {
+        productId: selectedItem.id,
+        quantity,
+      };
+      const p: any = selectedItem.pricing || {};
+      if (p.unitName) {
+        payload.unitName = p.unitName;
+      }
+      const resp = await PaymentService.postPricePreview(payload, token);
+      const previewData = resp?.data;
+      setPreview(previewData);
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("checkout.preview", JSON.stringify(previewData));
+      }
+      setQuoteExpired(false);
+      toast.success("Generated a new quote.");
+    } catch (error: any) {
+      safeConsole.error("Quote regeneration error:", error);
+      toast.error(error?.message || "Failed to generate new quote");
+    } finally {
+      setQuoteRefreshing(false);
+    }
+  };
+
   /* ---- Core checkout starter ---- */
   const beginCheckout = async () => {
     if (!action || !selectedItem) return;
@@ -681,6 +743,12 @@ export default function CheckoutPage() {
     setError(null);
     setBillingFlowState(null); // Clear billing flow state at start
     const token = getTokenFromCookies();
+    if (isCurrentQuoteExpired()) {
+      toast.error("This quote has expired. Please generate a new quote to continue.");
+      setQuoteExpired(true);
+      setBusy(false);
+      return;
+    }
 
     try {
       // FREE
@@ -916,8 +984,11 @@ export default function CheckoutPage() {
       }
     } catch (e: any) {
       safeConsole.error(e);
-      setError(e?.message || "Unable to start checkout");
-      toast.error(e?.message || "Unable to start checkout");
+      setError(e?.error.details[0] || "Unable to start checkout");
+      toast.error(e?.error.details[0] || "Unable to start checkout");
+      if (isQuoteExpiredError(e)) {
+        setQuoteExpired(true);
+      }
     } finally {
       setBusy(false);
     }
@@ -1107,6 +1178,28 @@ export default function CheckoutPage() {
                     {selectedItem.description}
                   </p>
 
+                  {quoteHasExpired && (
+                    <div className="mt-3 text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-[10px] p-3 space-y-2">
+                      <div>The quote for this product has expired. Generate a new quote to continue checkout.</div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-amber-900 border-amber-300"
+                        onClick={regenerateQuote}
+                        disabled={quoteRefreshing}
+                      >
+                        {quoteRefreshing ? (
+                          <>
+                            <Loader2 size={14} className="mr-2 animate-spin" />
+                            Refreshing…
+                          </>
+                        ) : (
+                          "Generate new quote"
+                        )}
+                      </Button>
+                    </div>
+                  )}
+
                   {/* Server price preview (informational) */}
                   {serverPricePreview && (
                     <div className="mt-3 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-[10px] p-3">
@@ -1253,7 +1346,7 @@ export default function CheckoutPage() {
                   </Button>
                   <Button
                     onClick={startCheckout}
-                    disabled={busy}
+                    disabled={busy || quoteHasExpired}
                     className="w-48 bg-[#0D1140] hover:bg-blue-700 text-white text-base py-3 px-6 rounded-[10px] font-semibold shadow-lg hover:shadow-xl transition-all"
                   >
                     <CreditCard size={20} className="mr-2" />

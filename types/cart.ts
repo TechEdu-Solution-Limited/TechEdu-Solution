@@ -113,6 +113,7 @@ export type PricePreview = {
   tierType?: string;
   quoteId?: string; // Quote ID from price-preview response
   subscription?: SubscriptionPreviewDetails;
+  expiresAt?: string;
 };
 
 export type BillingChoice = "pay_in_full" | "installments" | "subscription";

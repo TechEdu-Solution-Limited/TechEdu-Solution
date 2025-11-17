@@ -122,6 +122,14 @@ export default function CartPage() {
   const [isCheckingOutById, setIsCheckingOutById] = useState<
     Record<string, boolean>
   >({});
+  const [isRefreshingQuoteById, setIsRefreshingQuoteById] = useState<
+    Record<string, boolean>
+  >({});
+  const hasQuoteExpired = (preview?: PricePreview | null) => {
+    if (!preview?.expiresAt) return false;
+    return new Date(preview.expiresAt).getTime() <= Date.now();
+  };
+
 
   /* ---------------- Auth box ---------------- */
   const [authEmail, setAuthEmail] = useState("");
@@ -530,6 +538,7 @@ export default function CartPage() {
           model: opt.model as any,
           tierType: opt.tiers?.type as any,
           quoteId: quoteId, // Add quoteId to the preview
+          expiresAt: opt.expiresAt || serverPreview.data?.expiresAt,
         };
         setPricePreviewById((prev) => ({ ...prev, [item.id]: serverPricePreview }));
         ensureDefaultMode(item.id);
@@ -597,6 +606,7 @@ export default function CartPage() {
           tierType: opt.tiers?.type as any,
           quoteId,
           subscription: subscriptionMeta,
+          expiresAt: opt.expiresAt || serverPreview.data?.expiresAt,
         };
         setPricePreviewById((prev) => ({ ...prev, [item.id]: serverPricePreview }));
         ensureDefaultMode(item.id);
@@ -670,6 +680,20 @@ export default function CartPage() {
       if (prev[itemId]) return prev;
       return { ...prev, [itemId]: getDefaultModeForItem(itemId) };
     });
+  };
+
+  const regenerateQuoteForItem = async (item: CartItem) => {
+    setIsRefreshingQuoteById((prev) => ({ ...prev, [item.id]: true }));
+    try {
+      const qty = calculateQuantity(item);
+      await fetchServerPricePreview(item, qty);
+      toast.success("Generated a new quote for this product.");
+    } catch (error: any) {
+      safeConsole.error("Quote refresh error:", error);
+      toast.error(error?.message || "Failed to refresh quote");
+    } finally {
+      setIsRefreshingQuoteById((prev) => ({ ...prev, [item.id]: false }));
+    }
   };
 
   /* ---------------- Auth: signup / login / sign out ---------------- */
@@ -916,6 +940,10 @@ export default function CartPage() {
 
     const choice =
       paymentModeById[productId] || getDefaultModeForItem(productId);
+    if (hasQuoteExpired(pricePreviewById[productId])) {
+      toast.error("This quote has expired. Please generate a new quote before checkout.");
+      return;
+    }
     const qty = calculateQuantity(item); // Use calculateQuantity to get correct qty (includes admin for team)
 
     // Build minimal price-preview payload to send to server
@@ -1149,6 +1177,8 @@ export default function CartPage() {
               const subscriptionSetupFee =
                 subscriptionDetails?.setupFee ??
                 (item.pricing?.setupFee ?? 0);
+              const quoteExpired = hasQuoteExpired(pp);
+              const isRefreshingQuote = !!isRefreshingQuoteById[item.id];
 
               return (
                 <div
@@ -1237,6 +1267,27 @@ export default function CartPage() {
                             {getRoleRestrictionMessage(item.productType)}
                           </span>
                         </div>
+                      </div>
+                    )}
+
+                    {quoteExpired && (
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-[10px] text-sm text-amber-800 space-y-2">
+                        <div>The quote for this product has expired. Generate a new quote to continue.</div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-amber-900 border-amber-300"
+                          onClick={() => regenerateQuoteForItem(item)}
+                          disabled={isRefreshingQuote}
+                        >
+                          {isRefreshingQuote ? (
+                            <>
+                              <Loader2 size={14} className="mr-2 animate-spin" /> Refreshing…
+                            </>
+                          ) : (
+                            "Generate new quote"
+                          )}
+                        </Button>
                       </div>
                     )}
 
@@ -1434,7 +1485,8 @@ export default function CartPage() {
                           !canPurchaseProductType(
                             item.productType,
                             userData?.role
-                          )
+                          ) ||
+                          quoteExpired
                         }
                       >
                         {isCheckingOutById[item.id] ? (
