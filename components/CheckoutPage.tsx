@@ -16,7 +16,11 @@ import { PaymentService } from "@/lib/api/paymentService";
 import { getTokenFromCookies } from "@/lib/cookies";
 import { safeConsole } from "@/lib/console";
 
-import type { BillingChoice, CartItem } from "@/types/cart";
+import type {
+  BillingChoice,
+  CartItem,
+  SubscriptionPreviewDetails,
+} from "@/types/cart";
 // Local minimal checkout builder (keeps this page self-contained)
 type ExternalCheckoutAction =
   | {
@@ -292,6 +296,7 @@ export default function CheckoutPage() {
         unitPrice?: number;
         model?: string;
         tierType?: string;
+        subscription?: SubscriptionPreviewDetails;
       }
     | null
   >(null);
@@ -453,6 +458,19 @@ export default function CheckoutPage() {
       // Extract quoteId from option level or top level of response
       const quoteId = opt.quoteId || preview?.data?.quoteId || preview?.quoteId;
       
+      const subscriptionMeta = opt.subscription
+        ? {
+            price: Number(opt.subscription.price ?? opt.breakdown?.total ?? 0),
+            interval: (opt.subscription.interval || "month").toString(),
+            intervalCount: Number(opt.subscription.intervalCount ?? 1),
+            trialDays: Number(opt.subscription.trialDays ?? 0),
+            setupFee: Number(opt.subscription.setupFee ?? 0),
+            autoRenew: opt.subscription.autoRenew ?? true,
+            minTermMonths: Number(opt.subscription.minTermMonths ?? 0),
+            proration: opt.subscription.proration ?? true,
+          }
+        : undefined;
+
       setServerPricePreview({
         quoteId: quoteId,
         currency: (opt.currency || "USD").toString().toUpperCase(),
@@ -463,6 +481,7 @@ export default function CheckoutPage() {
         unitPrice: typeof opt.breakdown?.unitPrice === "number" ? opt.breakdown.unitPrice : undefined,
         model: opt.model,
         tierType: opt.tiers?.type,
+        subscription: subscriptionMeta,
       });
       
       // Debug: Log quoteId extraction
@@ -534,6 +553,43 @@ export default function CheckoutPage() {
     }
     return 0;
   }, [preview, selectedModeFromCart, A_FREE, A_PAYMENT, A_INST, A_SUB]);
+
+  const subscriptionDisplay = useMemo(() => {
+    const fallbackPricing = (A_SUB?.requests?.[1] as any)?.body?.pricing;
+    return {
+      price:
+        serverPricePreview?.subscription?.price ??
+        serverPricePreview?.total ??
+        A_SUB?.amounts.periodAmountMajor ??
+        fallbackPricing?.subscriptionPrice ??
+        fallbackPricing?.basePrice ??
+        selectedItem?.price ??
+        0,
+      interval:
+        serverPricePreview?.subscription?.interval ??
+        fallbackPricing?.interval ??
+        "month",
+      intervalCount:
+        serverPricePreview?.subscription?.intervalCount ??
+        fallbackPricing?.intervalCount ??
+        1,
+      trialDays:
+        serverPricePreview?.subscription?.trialDays ??
+        fallbackPricing?.trialDays ??
+        0,
+      setupFee:
+        serverPricePreview?.subscription?.setupFee ??
+        fallbackPricing?.setupFee ??
+        0,
+      autoRenew:
+        serverPricePreview?.subscription?.autoRenew ??
+        fallbackPricing?.autoRenew ??
+        true,
+    };
+  }, [serverPricePreview, A_SUB, selectedItem]);
+
+  const displayCurrency =
+    serverPricePreview?.currency || selectedItem?.currency || "USD";
 
   /* ---- Booking requirements & validation ---- */
   const needsBooking = !!(
@@ -1033,7 +1089,7 @@ export default function CheckoutPage() {
           }
         }
       ` }} />
-      <div className="mt-[5rem] px-4 py-10 bg-gray-50 min-h-screen">
+      <div className="px-4 py-10 bg-gray-50 min-h-screen">
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left: Details & Stripe */}
         <div className="lg:col-span-2 space-y-6">
@@ -1059,7 +1115,7 @@ export default function CheckoutPage() {
                         <span className="font-medium">
                           {formatCurrency(
                             serverPricePreview.subtotal,
-                            serverPricePreview.currency
+                            displayCurrency
                           )}
                         </span>
                       </div>
@@ -1068,7 +1124,7 @@ export default function CheckoutPage() {
                         <span className="font-medium">
                           {formatCurrency(
                             serverPricePreview.vat,
-                            serverPricePreview.currency
+                            displayCurrency
                           )}
                         </span>
                       </div>
@@ -1077,7 +1133,7 @@ export default function CheckoutPage() {
                         <span className="font-semibold">
                           {formatCurrency(
                             serverPricePreview.total,
-                            serverPricePreview.currency
+                            displayCurrency
                           )}
                         </span>
                       </div>
@@ -1092,7 +1148,7 @@ export default function CheckoutPage() {
                         <span className="font-medium">
                           {formatCurrency(
                             serverInstallmentsPreview.downPayment,
-                            selectedItem.currency
+                            displayCurrency
                           )}
                         </span>
                       </div>
@@ -1103,7 +1159,7 @@ export default function CheckoutPage() {
                         <span className="font-medium">
                           {formatCurrency(
                             serverInstallmentsPreview.installments?.[0] || 0,
-                            selectedItem.currency
+                            displayCurrency
                           )}
                         </span>
                       </div>
@@ -1112,7 +1168,7 @@ export default function CheckoutPage() {
                         <span className="font-semibold">
                           {formatCurrency(
                             serverInstallmentsPreview.total,
-                            selectedItem.currency
+                            displayCurrency
                           )}
                         </span>
                       </div>
@@ -1124,7 +1180,7 @@ export default function CheckoutPage() {
                       <p>
                         Due today:{" "}
                         <strong>
-                          {formatCurrency(dueTodayMajor, selectedItem.currency)}
+                          {formatCurrency(dueTodayMajor, displayCurrency)}
                         </strong>
                         . Future payments will be charged automatically
                         according to your plan.
@@ -1132,21 +1188,26 @@ export default function CheckoutPage() {
                     )}
                     {A_SUB && (
                       <p>
-                        {(A_SUB.requests?.[1] as any)?.body?.pricing
-                          ?.trialDays ? (
+                        {subscriptionDisplay.autoRenew === false ? (
+                          <>
+                            One-time payment of{" "}
+                            <strong>
+                              {formatCurrency(
+                                subscriptionDisplay.price,
+                                displayCurrency
+                              )}
+                            </strong>{" "}
+                            is due today.
+                          </>
+                        ) : subscriptionDisplay.trialDays > 0 ? (
                           <>
                             Trial active, nothing due today. Your subscription
-                            renews{" "}
-                            {(A_SUB.requests?.[1] as any)?.body?.pricing
-                              ?.intervalCount || 1}{" "}
-                            {
-                              (A_SUB.requests?.[1] as any)?.body?.pricing
-                                ?.interval
-                            }
-                            (s) at{" "}
+                            renews {subscriptionDisplay.intervalCount}{" "}
+                            {subscriptionDisplay.interval}
+                            {subscriptionDisplay.intervalCount > 1 ? "s" : ""} at{" "}
                             {formatCurrency(
-                              serverPricePreview?.total || A_SUB.amounts.periodAmountMajor,
-                              selectedItem.currency
+                              subscriptionDisplay.price,
+                              displayCurrency
                             )}
                             .
                           </>
@@ -1154,15 +1215,12 @@ export default function CheckoutPage() {
                           <>
                             Due today:{" "}
                             <strong>
-                              {formatCurrency(
-                                dueTodayMajor,
-                                selectedItem.currency
-                              )}
+                              {formatCurrency(dueTodayMajor, displayCurrency)}
                             </strong>
-                            {A_SUB.amounts.setupFeeMajor
+                            {subscriptionDisplay.setupFee
                               ? ` (includes setup fee ${formatCurrency(
-                                  A_SUB.amounts.setupFeeMajor,
-                                  selectedItem.currency
+                                  subscriptionDisplay.setupFee,
+                                  displayCurrency
                                 )})`
                               : ""}
                             .
@@ -1174,7 +1232,7 @@ export default function CheckoutPage() {
                       <p>
                         Due today:{" "}
                         <strong>
-                          {formatCurrency(dueTodayMajor, selectedItem.currency)}
+                          {formatCurrency(dueTodayMajor, displayCurrency)}
                         </strong>
                         .
                       </p>
@@ -1256,7 +1314,7 @@ export default function CheckoutPage() {
               <div className="flex items-center justify-between">
                 <span className="text-gray-600 text-sm">Due today</span>
                 <span className="text-base font-semibold">
-                  {formatCurrency(dueTodayMajor, selectedItem.currency)}
+                  {formatCurrency(dueTodayMajor, displayCurrency)}
                 </span>
               </div>
 
@@ -1266,7 +1324,7 @@ export default function CheckoutPage() {
                   {serverInstallmentsPreview.plan?.count || 0} ×{" "}
                   {formatCurrency(
                     serverInstallmentsPreview.installments?.[0] || 0,
-                    selectedItem.currency
+                    displayCurrency
                   )}{" "}
                   every{" "}
                   {serverInstallmentsPreview.plan?.intervalCount || 1}{" "}
@@ -1278,15 +1336,26 @@ export default function CheckoutPage() {
               )}
               {A_SUB && (
                 <div className="text-xs text-gray-600">
-                  Then{" "}
-                  {formatCurrency(
-                    serverPricePreview?.total || A_SUB.amounts.periodAmountMajor,
-                    selectedItem.currency
-                  )}{" "}
-                  {/* every{" "}
-                  {(A_SUB.requests?.[1] as any)?.body?.pricing?.intervalCount ||
-                    1}{" "}
-                  {(A_SUB.requests?.[1] as any)?.body?.pricing?.interval}(s) */}
+                  {subscriptionDisplay.autoRenew === false ? (
+                    <>
+                      One-time payment:{" "}
+                      {formatCurrency(
+                        subscriptionDisplay.price,
+                        displayCurrency
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      Then{" "}
+                      {formatCurrency(
+                        subscriptionDisplay.price,
+                        displayCurrency
+                      )}{" "}
+                      every {subscriptionDisplay.intervalCount}{" "}
+                      {subscriptionDisplay.interval}
+                      {subscriptionDisplay.intervalCount > 1 ? "s" : ""}
+                    </>
+                  )}
                 </div>
               )}
             </CardContent>

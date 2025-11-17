@@ -274,6 +274,17 @@ export default function CartPage() {
     const vatPercentage = Number(p.vatPercentage ?? 0);
     const taxInclusive = p.taxInclusive ?? true;
 
+    const buildSubscriptionDetails = () => ({
+      price: Number(p.subscriptionPrice ?? p.basePrice ?? item.price ?? 0),
+      interval: (p.interval || "month").toString(),
+      intervalCount: Number(p.intervalCount ?? 1),
+      trialDays: Number(p.trialDays ?? 0),
+      setupFee: Number(p.setupFee ?? 0),
+      autoRenew: p.autoRenew ?? true,
+      minTermMonths: Number(p.minTermMonths ?? 0),
+      proration: p.proration ?? true,
+    });
+
     // model/tier awareness
     const model: "one_time" | "subscription" =
       p.model === "subscription" || item.isRecurring
@@ -316,6 +327,7 @@ export default function CartPage() {
           unitPrice: tiers.length ? tiers[0]?.unitPrice ?? 0 : subtotal,
           model: "subscription",
           tierType: ti,
+          subscription: buildSubscriptionDetails(),
         };
       }
       
@@ -338,6 +350,7 @@ export default function CartPage() {
         unitPrice: period,
         model: "subscription",
         tierType: "volume",
+        subscription: buildSubscriptionDetails(),
       };
     }
 
@@ -499,9 +512,10 @@ export default function CartPage() {
     try {
       const resp = await PaymentService.postPricePreview(payload, token);
       const serverPreview = resp?.data;
+      const options = serverPreview?.data?.options || {};
       
-      if (serverPreview?.data?.options?.pay_in_full) {
-        const opt = serverPreview.data.options.pay_in_full;
+      if (options.pay_in_full) {
+        const opt = options.pay_in_full;
         // Extract quoteId from option level or top level of response
         const quoteId = opt.quoteId || serverPreview.data.quoteId || serverPreview.quoteId;
         
@@ -555,6 +569,37 @@ export default function CartPage() {
             },
           }));
         }
+      } else if (options.subscription) {
+        const opt = options.subscription;
+        const quoteId = opt.quoteId || serverPreview.data.quoteId || serverPreview.quoteId;
+        const subscriptionMeta = opt.subscription
+          ? {
+              price: Number(opt.subscription.price ?? opt.breakdown?.total ?? 0),
+              interval: (opt.subscription.interval || "month").toString(),
+              intervalCount: Number(opt.subscription.intervalCount ?? 1),
+              trialDays: Number(opt.subscription.trialDays ?? 0),
+              setupFee: Number(opt.subscription.setupFee ?? 0),
+              autoRenew: opt.subscription.autoRenew ?? true,
+              minTermMonths: Number(opt.subscription.minTermMonths ?? 0),
+              proration: opt.subscription.proration ?? true,
+            }
+          : undefined;
+
+        const serverPricePreview: PricePreview = {
+          ok: true,
+          currency: opt.currency || item.currency || "USD",
+          quantity: Number(opt.quantity || 1),
+          subtotal: Number(opt.breakdown?.subtotal || 0),
+          vat: Number(opt.breakdown?.vatAmount || 0),
+          total: Number(opt.breakdown?.total || 0),
+          unitPrice: typeof opt.breakdown?.unitPrice === "number" ? opt.breakdown.unitPrice : undefined,
+          model: opt.model as any,
+          tierType: opt.tiers?.type as any,
+          quoteId,
+          subscription: subscriptionMeta,
+        };
+        setPricePreviewById((prev) => ({ ...prev, [item.id]: serverPricePreview }));
+        ensureDefaultMode(item.id);
       } else {
         // Fallback to local preview if server response is unexpected
         const local = localPricePreview(item, qty);
@@ -1083,6 +1128,27 @@ export default function CartPage() {
                 "USD"
               ).toUpperCase();
               const displayAmount = pp?.total ?? item.price ?? 0;
+              const subscriptionDetails = pp?.subscription;
+              const subscriptionIntervalCount =
+                subscriptionDetails?.intervalCount ??
+                Number(item.pricing?.intervalCount || 1);
+              const subscriptionInterval =
+                subscriptionDetails?.interval ||
+                item.pricing?.interval ||
+                "month";
+              const subscriptionIntervalLabel =
+                subscriptionIntervalCount > 1
+                  ? `${subscriptionIntervalCount} ${subscriptionInterval}s`
+                  : subscriptionInterval;
+              const subscriptionAutoRenew =
+                subscriptionDetails?.autoRenew ??
+                (item.pricing?.autoRenew ?? true);
+              const subscriptionTrialDays =
+                subscriptionDetails?.trialDays ??
+                (item.pricing?.trialDays ?? 0);
+              const subscriptionSetupFee =
+                subscriptionDetails?.setupFee ??
+                (item.pricing?.setupFee ?? 0);
 
               return (
                 <div
@@ -1287,9 +1353,22 @@ export default function CartPage() {
                       )}
 
                       {choice === "subscription" && (
-                        <div className="text-md font-medium text-gray-600">
-                          Recurring billing: you’ll add a payment method at
-                          checkout.
+                        <div className="text-md font-medium text-gray-600 space-y-1">
+                          <div>
+                            Recurring billing: you’ll add a payment method at
+                            checkout.
+                          </div>
+                          {subscriptionTrialDays > 0 && (
+                            <div className="text-sm text-gray-500">
+                              {subscriptionTrialDays}-day trial included.
+                            </div>
+                          )}
+                          {subscriptionSetupFee > 0 && (
+                            <div className="text-sm text-gray-500">
+                              Setup fee:{" "}
+                              {formatCurrency(subscriptionSetupFee, displayCurrency)}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1328,24 +1407,14 @@ export default function CartPage() {
                         installmentsPreviewById[item.id]?.downPaymentAmount
                           ? "down payment"
                           : pp?.model === "subscription"
-                          ? (() => {
-                              const ic = Number(item.pricing?.intervalCount || 1);
-                              const interval = item.pricing?.interval || "month";
-                              const every = ic > 1 ? `${ic} ${interval}s` : interval;
-                              return `/ ${every}`;
-                            })()
+                          ? `/ ${subscriptionIntervalLabel}`
                           : "per course"}
                       </p>
                       {pp?.model === "subscription" && (
                         <p className="text-xs text-gray-500">
-                          {(item.pricing?.autoRenew) === false
+                          {subscriptionAutoRenew === false
                             ? "No renewal"
-                            : (() => {
-                                const ic = Number(item.pricing?.intervalCount || 1);
-                                const interval = item.pricing?.interval || "month";
-                                const every = ic > 1 ? `${ic} ${interval}s` : interval;
-                                return `Auto-renews every ${every}`;
-                              })()}
+                            : `Auto-renews every ${subscriptionIntervalLabel}`}
                         </p>
                       )}
                       {choice === "installments" &&

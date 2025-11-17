@@ -15,6 +15,7 @@ export const disableHeaderWithFooter = [
   "/password-recovery",
   "/create-new-password",
   "/not-found",
+  "/checkout",
   "/dashboard",
   "/dashboard/profile",
   "/dashboard/settings",

@@ -90,6 +90,17 @@ export interface CartItem {
 }
 
 /* -------- Price preview from server -------- */
+export type SubscriptionPreviewDetails = {
+  price: number;
+  interval: string;
+  intervalCount: number;
+  trialDays: number;
+  setupFee: number;
+  autoRenew: boolean;
+  minTermMonths: number;
+  proration: boolean;
+};
+
 export type PricePreview = {
   ok?: boolean;
   currency: string;
@@ -101,6 +112,7 @@ export type PricePreview = {
   model?: string; // "one_time" | "subscription"
   tierType?: string;
   quoteId?: string; // Quote ID from price-preview response
+  subscription?: SubscriptionPreviewDetails;
 };
 
 export type BillingChoice = "pay_in_full" | "installments" | "subscription";
