@@ -66,7 +66,7 @@ export default function Step4Verification({
               <span className="text-gray-500"> or drag and drop</span>
             </Label>
             <p className="text-xs text-gray-500 mt-1">
-              PDF, DOC, DOCX, JPG, PNG (Max 10MB)
+              PDF (Max 5MB)
             </p>
             {form.accreditationDocument && (
               <div className="mt-2 flex items-center justify-center gap-2 text-sm text-green-600">
@@ -110,7 +110,7 @@ export default function Step4Verification({
               <span className="text-gray-500"> or drag and drop</span>
             </Label>
             <p className="text-xs text-gray-500 mt-1">
-              PDF, DOC, DOCX, JPG, PNG (Max 10MB)
+              PDF (5MB Max)
             </p>
             {form.courseBrochure && (
               <div className="mt-2 flex items-center justify-center gap-2 text-sm text-green-600">

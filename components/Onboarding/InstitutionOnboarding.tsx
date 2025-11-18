@@ -55,22 +55,6 @@ const initialForm = {
   skipAndInviteLater: false,
 };
 
-const institutionTypes = [
-  "University",
-  "Polytechnic",
-  "Bootcamp",
-  "Training Center",
-  "Other",
-];
-const interestsOptions = [
-  "Upload tech professionals for recruitment",
-  "Enroll students in training",
-  "Host events/certifications jointly",
-  "Boost institutional visibility",
-];
-const uploadModes = ["Manual entry", "Bulk CSV upload", "API Integration"];
-const contactMethods = ["email", "phone", "whatsapp"];
-
 // File upload helper
 const uploadFile = async (file: File): Promise<string> => {
   return `https://files.example.com/${file.name}`;
