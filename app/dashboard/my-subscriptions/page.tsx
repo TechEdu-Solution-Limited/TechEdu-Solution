@@ -137,7 +137,7 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>("incomplete");
+  const [statusFilter, setStatusFilter] = useState<string>("active");
 
   const fetchEntitlements = useCallback(async () => {
     const token = getTokenFromCookies();
@@ -175,7 +175,7 @@ export default function Page() {
 
   const stats = useMemo(() => {
     const total = data.length;
-    const active = data.filter((d) => d.status === "incomplete").length;
+    const active = data.filter((d) => d.status === "active").length;
     const trialing = data.filter((d) => d.trialEnd && d.status === "trialing").length;
     const nextRenewal = data
       .map((d) => d.currentPeriodEnd)
@@ -208,10 +208,10 @@ export default function Page() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-            My Paid Features & Entitlements
+            My Subscriptions
           </h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
-            This page lists all your active entitlements—features unlocked via
+            This page lists all your active subscriptions—features unlocked via
             subscriptions, promotions, or manual credits.{" "}
             <strong>Quantity</strong> is your allowance,
             <strong> Consumed</strong> shows what you’ve used, and{" "}
@@ -291,7 +291,7 @@ export default function Page() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="h-10 rounded-md border border-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="incomplete">Incomplete</option>
+              <option value="active">Active</option>
             </select>
           </div>
         </CardHeader>

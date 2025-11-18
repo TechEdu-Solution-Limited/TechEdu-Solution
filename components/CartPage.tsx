@@ -713,6 +713,8 @@ export default function CartPage() {
       });
       if (response.status >= 400) {
         throw new Error(response?.data?.message || "Registration failed");
+      } else if (response.status >= 409) {
+        throw new Error(response?.data?.error?.details[0] || "An account with this email already exists");
       }
 
       toast.success("Account created! You're signed in.");
@@ -1051,13 +1053,13 @@ export default function CartPage() {
                   </Link>
                 </div>
 
-                {isAuthenticated && (
+                {/* {isAuthenticated && (
                   <div className="pt-6">
                     <Button variant="outline" onClick={handleSignOut}>
                       Sign out
                     </Button>
                   </div>
-                )}
+                )} */}
               </div>
             </div>
           </div>

@@ -22,6 +22,8 @@ import type {
   EarlyPayoffRequest,
   EarlyPayoffResponse,
   SavedPaymentMethod,
+  InstallmentsPlanStatusRequest,
+  InstallmentsPlanStatusResponse,
 } from "@/types/payment";
 import safeConsole from "../console";
 import { toMinor } from "../constants/currency";
@@ -331,24 +333,14 @@ export class PaymentService {
    * -------------------------------------------------------------- */
 
   /**
-   * Start payment setup process for installments or subscriptions.
-   * Creates Stripe customer (if needed) and returns the appropriate payment intent(s)
-   * based on quote mode (installments or subscription).
-   * 
-   * For installments: returns PaymentIntent (pi_) for down payment (if any) 
-   * and SetupIntent (seti_) for recurring installments.
-   * 
-   * For subscriptions: returns intent(s) based on trial and auto-renewal settings.
-   * 
-   * @param payload - Request body with user info and quoteId from price preview
-   * @param token - Authentication token
-   * @returns Response with customerId, clientSecret(s), and intentType
+   * POST /api/billing/installments/payment-setup
+   * Initiates the Installments/Subscription billing flow and returns PaymentIntent/SetupIntent secrets.
    */
   static async startInstallmentsSetup(
     payload: InstallmentsStartRequest,
     token: string
   ): Promise<ApiResponse<InstallmentsStartResponse>> {
-    return postApiRequest(`/api/billing/installments/start`, payload, {
+    return postApiRequest(`/api/billing/installments/payment-setup`, payload, {
       Authorization: `Bearer ${token}`,
     });
   }
@@ -357,9 +349,13 @@ export class PaymentService {
     payload: InstallmentsConfirmRequest,
     token: string
   ): Promise<ApiResponse<InstallmentsConfirmResponse>> {
-    return postApiRequest(`/api/billing/installments/confirm`, payload, {
-      Authorization: `Bearer ${token}`,
-    });
+    return postApiRequest(
+      `/api/billing/installments/create-schedule`,
+      payload,
+      {
+        Authorization: `Bearer ${token}`,
+      }
+    );
   }
 
   static async subscriptionPaymentSetup(
@@ -369,6 +365,20 @@ export class PaymentService {
     return postApiRequest(`/api/billing/subscriptions/payment-setup`, payload, {
       Authorization: `Bearer ${token}`,
     });
+  }
+
+   /**
+   * POST /api/billing/installments/plan-status
+   * Get current status and progress for an installment plan/schedule.
+   */
+   static async getInstallmentsPlanStatus(
+    payload: InstallmentsPlanStatusRequest,
+    token: string
+  ): Promise<ApiResponse<InstallmentsPlanStatusResponse>> {
+    return postApiRequest(
+      `/api/billing/installments/plan-status`, payload, {
+        Authorization: `Bearer ${token}`,
+      });
   }
 
   static async earlyPayoff(

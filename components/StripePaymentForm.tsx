@@ -1,6 +1,7 @@
+// /components/StripePaymentForm.tsx
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -67,7 +68,7 @@ const ZERO_DECIMAL = new Set([
 const toMajor = (minor: number, currency: string) =>
   ZERO_DECIMAL.has((currency || "USD").toUpperCase()) ? minor : minor / 100;
 
-/* ================= Inner PaymentForm (unchanged logic) ================= */
+/* ================= Inner PaymentForm ================= */
 
 interface PaymentFormProps {
   clientSecret: string;
@@ -80,6 +81,8 @@ interface PaymentFormProps {
   onClose?: () => void;
   productName?: string;
   bookingId?: string | null;
+  /** NEW: should this component redirect after a successful PaymentIntent? */
+  redirectOnSuccess?: boolean;
 }
 
 function PaymentForm({
@@ -93,10 +96,12 @@ function PaymentForm({
   onClose,
   productName = "Course",
   bookingId,
+  redirectOnSuccess = true,
 }: PaymentFormProps) {
   const inferredIsPayment = clientSecret?.startsWith("pi_");
   const inferredIsSetup = clientSecret?.startsWith("seti_");
-  const isPayment = mode === "payment" || (mode === "auto" && inferredIsPayment);
+  const isPayment =
+    mode === "payment" || (mode === "auto" && inferredIsPayment);
   const isSetup = mode === "setup" || (mode === "auto" && inferredIsSetup);
 
   const stripe = useStripe();
@@ -106,7 +111,9 @@ function PaymentForm({
     "[stripe] Using publishable key:",
     (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE || "").slice(0, 10),
     "… (test? ->",
-    (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE || "").startsWith("pk_test_"),
+    (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE || "").startsWith(
+      "pk_test_"
+    ),
     ")"
   );
 
@@ -119,13 +126,20 @@ function PaymentForm({
     cvc: false,
   });
 
-  const formatAmount = (amountMinor: number, cur: string) => {
-    const major = toMajor(amountMinor, cur);
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: cur.toUpperCase(),
-    }).format(major);
-  };
+    // 🔁 Reset UI whenever we switch between PaymentIntent and SetupIntent
+    useEffect(() => {
+      setSuccessUI(false);
+      setIsProcessing(false);
+      setError(null);
+  
+      // Optional: log stage change
+      safeConsole.log("🔄 [StripePaymentForm] Stage reset for new intent", {
+        mode,
+        hasClientSecret: !!clientSecret,
+        clientSecretPrefix: clientSecret?.slice(0, 7),
+      });
+    }, [clientSecret, mode]);
+  
 
   const handleCardChange =
     (field: "number" | "expiry" | "cvc") => (event: any) => {
@@ -216,6 +230,7 @@ function PaymentForm({
         const { error: submitError, paymentIntent } =
           await stripe.confirmCardPayment(clientSecret, {
             payment_method: paymentMethod!.id,
+            // return_url used by Stripe only for redirect-based flows (3DS etc.)
             return_url: `${
               window.location.origin
             }/payment-success?amount=${toMajor(
@@ -275,39 +290,54 @@ function PaymentForm({
           });
           setSuccessUI(true);
           onSuccess();
-          const successUrl = `/payment-success?payment_intent=${
-            paymentIntent.id
-          }&amount=${toMajor(
-            amount!,
-            currency!
-          )}&currency=${currency}&product_name=${encodeURIComponent(
-            productName
-          )}&redirect_status=succeeded&payment_method=${paymentMethod!.id}${
-            bookingId ? `&bookingId=${bookingId}` : ""
-          }`;
-          safeConsole.log(
-            "🔍 [StripePaymentForm] Redirecting to success URL:",
-            successUrl
-          );
-          window.location.href = successUrl;
+
+          if (redirectOnSuccess) {
+            const successUrl = `/payment-success?payment_intent=${
+              paymentIntent.id
+            }&amount=${toMajor(
+              amount!,
+              currency!
+            )}&currency=${currency}&product_name=${encodeURIComponent(
+              productName
+            )}&redirect_status=succeeded&payment_method=${paymentMethod!.id}${
+              bookingId ? `&bookingId=${bookingId}` : ""
+            }`;
+            safeConsole.log(
+              "🔍 [StripePaymentForm] Redirecting to success URL:",
+              successUrl
+            );
+            window.location.href = successUrl;
+          }
+
+          setIsProcessing(false);
           return;
         }
 
-        if (paymentIntent?.status === "requires_action") return; // 3DS
+        if (paymentIntent?.status === "requires_action") {
+          // 3DS or other next actions will be handled by Stripe (modal/redirect)
+          setIsProcessing(false);
+          return;
+        }
+
         if (paymentIntent?.status === "processing") {
           setSuccessUI(true);
           onSuccess();
-          const processingUrl = `/payment-success?payment_intent=${
-            paymentIntent.id
-          }&amount=${toMajor(
-            amount!,
-            currency!
-          )}&currency=${currency}&product_name=${encodeURIComponent(
-            productName
-          )}&redirect_status=processing&payment_method=${paymentMethod!.id}${
-            bookingId ? `&bookingId=${bookingId}` : ""
-          }`;
-          window.location.href = processingUrl;
+
+          if (redirectOnSuccess) {
+            const processingUrl = `/payment-success?payment_intent=${
+              paymentIntent.id
+            }&amount=${toMajor(
+              amount!,
+              currency!
+            )}&currency=${currency}&product_name=${encodeURIComponent(
+              productName
+            )}&redirect_status=processing&payment_method=${
+              paymentMethod!.id
+            }${bookingId ? `&bookingId=${bookingId}` : ""}`;
+            window.location.href = processingUrl;
+          }
+
+          setIsProcessing(false);
           return;
         }
 
@@ -321,7 +351,7 @@ function PaymentForm({
         return;
       }
 
-      // SetupIntent
+      // SetupIntent (card-on-file)
       const { error: setupErr, setupIntent } = await stripe.confirmCardSetup(
         clientSecret,
         {
@@ -345,12 +375,20 @@ function PaymentForm({
         setupIntent?.status === "succeeded" ||
         setupIntent?.status === "processing"
       ) {
+        safeConsole.log("✅ [StripePaymentForm] SetupIntent succeeded", {
+          setupIntentId: setupIntent.id,
+          status: setupIntent.status,
+        });
         setSuccessUI(true);
         onSetupSuccess?.(setupIntent.id);
         setIsProcessing(false);
         return;
       }
-      if (setupIntent?.status === "requires_action") return;
+
+      if (setupIntent?.status === "requires_action") {
+        setIsProcessing(false);
+        return;
+      }
 
       const message =
         process.env.NODE_ENV === "production"
@@ -472,13 +510,13 @@ function PaymentForm({
                 </div>
                 <div className="absolute top-4 right-4">
                   <div className="flex items-center gap-2">
-                    <img src="/icons/visa.png" alt="Visa" className="w-8 h-9" />
+                    <img src="/icons/visa.png" alt="Visa" className="w-8 h-7" />
                     <img
                       src="/icons/mastercard.png"
                       alt="Mastercard"
-                      className="w-8 h-8"
+                      className="w-8 h-7"
                     />
-                    <img src="/icons/amex.png" alt="AMEX" className="w-8 h-8" />
+                    <img src="/icons/amex.png" alt="AMEX" className="w-8 h-7" />
                   </div>
                 </div>
               </div>
@@ -551,31 +589,20 @@ function PaymentForm({
               <div className="flex items-center justify-center">
                 <CheckCircle className="w-5 h-5 mr-3" />
                 <span>
-                  {isPayment
-                    ? "Payment Successful!"
-                    : "Setup Complete!"}
+                  {isPayment ? "Payment Successful!" : "Setup Complete!"}
                 </span>
               </div>
             ) : isProcessing ? (
               <div className="flex items-center justify-center">
                 <Loader2 className="w-5 h-5 mr-3 animate-spin" />
                 <span>
-                  {isPayment
-                    ? "Processing Payment..."
-                    : "Saving Card..."}
+                  {isPayment ? "Processing Payment..." : "Saving Card..."}
                 </span>
               </div>
             ) : (
               <div className="flex items-center justify-center">
                 <CreditCard className="w-5 h-5 mr-3" />
-                <span>
-                  {isPayment && amount != null && currency
-                    ? `Pay ${new Intl.NumberFormat("en-US", {
-                        style: "currency",
-                        currency: currency.toUpperCase(),
-                      }).format(toMajor(amount, currency))}`
-                    : "Set up payment method"}
-                </span>
+                <span>{payCta}</span>
                 <ChevronRight className="w-5 h-5 ml-2" />
               </div>
             )}
@@ -599,8 +626,10 @@ interface StripePaymentFormProps {
   onClose?: () => void;
   productName?: string;
   bookingId?: string | null;
-  /** Add this: only for Connect flows */
+  /** Only for Connect flows */
   stripeAccountId?: string;
+  /** Whether to redirect to /payment-success after PI success */
+  redirectOnSuccess?: boolean;
 }
 
 export default function StripePaymentForm({
@@ -614,10 +643,10 @@ export default function StripePaymentForm({
   onClose,
   productName,
   bookingId,
-  stripeAccountId, // <— NEW
+  stripeAccountId,
+  redirectOnSuccess = true,
 }: StripePaymentFormProps) {
   const elementsStripe = useMemo(() => {
-    // If you pass a connected account id, Elements will send `Stripe-Account` header.
     if (!stripePublishableKey) return null;
     return loadStripe(
       stripePublishableKey,
@@ -643,6 +672,7 @@ export default function StripePaymentForm({
               onClose={onClose}
               productName={productName}
               bookingId={bookingId}
+              redirectOnSuccess={redirectOnSuccess}
             />
           </Elements>
         </div>

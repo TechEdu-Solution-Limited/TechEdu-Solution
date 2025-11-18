@@ -341,57 +341,48 @@ export interface InstallmentsPreviewResponse {
   plan: InstallmentPlan;
 }
 
-/** POST /api/billing/installments/start */
-export interface InstallmentsStartRequest {
+/** POST /api/billing/installments/payment-setup */
+export interface InstallmentsPaymentSetupRequest {
   user: { id: string; email: string; name: string };
   quoteId: string; // Quote ID from price preview response
 }
-export interface InstallmentsStartResponse {
+export interface InstallmentsPaymentSetupResponse {
   customerId: string;
-  paymentIntentClientSecret?: string; // PaymentIntent client_secret (for down payment if any)
-  setupIntentClientSecret?: string; // SetupIntent client_secret (for recurring installments)
-  intentType: "payment" | "setup" | "both"; // Type of intent(s) returned
-  clientSecret: string; // Primary client_secret (paymentIntentClientSecret if present, otherwise setupIntentClientSecret)
-}
-
-/** POST /api/billing/installments/confirm */
-export interface InstallmentsConfirmRequest {
-  user: { id: string; email: string; name: string };
-  quoteId: string;
+  paymentIntentClientSecret?: string;
+  setupIntentClientSecret?: string;
+  intentType: "payment_intent" | "setup_intent" | "both";
+  paymentIntentId?: string;
   setupIntentId?: string;
-  paymentMethodId?: string;
+  total: number;
+  downPayment: number;
+  installments: number[];
+  currency?: CurrencyCode;
 }
 
-export interface InstallmentsConfirmEcho {
-  user: { id: string; email: string; name: string };
-  productName: string;
-  currency: CurrencyCode;
-  pricing: {
-    model: PriceModel;
-    currency: CurrencyCode;
-    basePrice?: number;
-    unitName?: string;
-    allowQuantity?: boolean;
-    minQty?: number;
-    maxQty?: number;
-  };
-  quantity: number;
-  plan: InstallmentPlan;
+/** POST /api/billing/installments/create-schedule */
+export interface InstallmentsCreateScheduleRequest {
+  setupIntentId: string;
+  quoteId: string;
 }
 
-export interface InstallmentsConfirmFinal {
+export interface InstallmentsCreateScheduleResponse {
   ok: true;
   scheduleId: string;
-  total: number; // MAJOR
-  downPayment: number; // MAJOR
-  installments: number[]; // MAJOR
-  prices?: string[];
-  clientSecret?: string; // Stripe PaymentIntent client_secret if payment is required
+  planId: string;
+  status: "active" | "inactive" | "cancelled";
+  currency: CurrencyCode;
+  total: number;
+  downPayment: number;
+  installments: number[];
+  stripeProductId?: string;
+  stripePriceIds?: string[];
 }
 
-export type InstallmentsConfirmResponse =
-  | InstallmentsConfirmEcho
-  | InstallmentsConfirmFinal;
+// Backwards-compatible aliases
+export type InstallmentsStartRequest = InstallmentsPaymentSetupRequest;
+export type InstallmentsStartResponse = InstallmentsPaymentSetupResponse;
+export type InstallmentsConfirmRequest = InstallmentsCreateScheduleRequest;
+export type InstallmentsConfirmResponse = InstallmentsCreateScheduleResponse;
 
 /** POST /api/billing/subscriptions/payment-setup */
 export interface SubscriptionPaymentSetupRequest {
@@ -422,6 +413,41 @@ export interface EarlyPayoffResponse {
   currency: CurrencyCode;
 }
 
+/** POST /api/billing/installments/plan-status */
+export interface InstallmentsPlanStatusRequest {
+  scheduleId: string;
+}
+
+export interface InstallmentsPlanStatusResponse {
+  ok: true;
+  scheduleId: string;
+  planId: string;
+  status: "active" | "inactive" | "cancelled";
+  totals: {
+    currency: CurrencyCode;
+    total: number;
+    downPayment: number;
+    amountPaid: number;
+    amountRemaining: number;
+  };
+  installments: {
+    count: number;
+    amounts: number[];
+    successfulCharges: number;
+    failedCharges: number;
+  };
+  earlyPayoff: {
+    allowed: boolean;
+    used: boolean;
+    at?: string;
+    invoiceId?: string;
+  };
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+
 /* ------------------------------------------------------------------ */
 /* Payment method (replace any[])                                     */
 /* ------------------------------------------------------------------ */
@@ -436,20 +462,4 @@ export interface SavedPaymentMethod {
   isDefault?: boolean;
   /** Provider-specific fields */
   [k: string]: unknown;
-}
-
-/* ------------------------------------------------------------------ */
-/* Type guards (handy in UI)                                          */
-/* ------------------------------------------------------------------ */
-
-export function isInstallmentsConfirmFinal(
-  r: InstallmentsConfirmResponse
-): r is InstallmentsConfirmFinal {
-  return (r as any)?.ok === true && "scheduleId" in (r as any);
-}
-
-export function isInstallmentsConfirmEcho(
-  r: InstallmentsConfirmResponse
-): r is InstallmentsConfirmEcho {
-  return !(r as any)?.ok;
 }

@@ -1,4 +1,4 @@
-// CheckoutPage.tsx
+// /components/CheckoutPage.tsx
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -21,7 +21,11 @@ import type {
   CartItem,
   SubscriptionPreviewDetails,
 } from "@/types/cart";
-// Local minimal checkout builder (keeps this page self-contained)
+import type { InstallmentInterval } from "@/types/payment";
+import { CreditCard, Loader2, Upload, X, CheckCircle2 } from "lucide-react";
+
+/* ==================== Local helper types ==================== */
+
 type ExternalCheckoutAction =
   | {
       flow: "free";
@@ -51,6 +55,8 @@ function buildCheckoutRequests(pricing: any, ctx: any): ExternalCheckoutAction {
   if (pricing?.model === "free") {
     return { flow: "free", amounts: { totalMajor: 0 }, requests: [] };
   }
+
+  // Subscription billing
   if (pricing?.model === "subscription") {
     const periodAmountMajor = Number(pricing?.subscriptionPrice || 0) || 0;
     const setupFeeMajor = Number(pricing?.setupFee || 0) || 0;
@@ -72,6 +78,8 @@ function buildCheckoutRequests(pricing: any, ctx: any): ExternalCheckoutAction {
       ],
     };
   }
+
+  // Installments
   if (ctx?.installments?.enabled) {
     const downPaymentMajor = Number(ctx?.installments?.downPaymentValue || 0) || 0;
     const count = Math.max(1, Number(ctx?.installments?.count || 6));
@@ -96,6 +104,8 @@ function buildCheckoutRequests(pricing: any, ctx: any): ExternalCheckoutAction {
       ],
     };
   }
+
+  // One-time / pay-in-full
   const totalMajor = Number(pricing?.basePrice || 0) || 0;
   return {
     flow: "payment_intent",
@@ -114,9 +124,9 @@ function buildCheckoutRequests(pricing: any, ctx: any): ExternalCheckoutAction {
     ],
   };
 }
-import { CreditCard, Loader2, Upload, X, CheckCircle2 } from "lucide-react";
 
 /* ---------------- Currency utils ---------------- */
+
 const ZERO_DECIMAL = new Set([
   "BIF",
   "CLP",
@@ -146,6 +156,7 @@ const formatCurrency = (amount: number, currency?: string) =>
   }).format(amount);
 
 /* ---------------- Selection payload from Cart ---------------- */
+
 type CheckoutSelection = Array<{
   itemId: string;
   mode: BillingChoice;
@@ -229,7 +240,8 @@ function toPricingBlock(
   } as any;
 }
 
-/* ---------------- Type guards + narrowed clones ---------------- */
+/* ---------------- Type guards ---------------- */
+
 type CA = ExternalCheckoutAction;
 
 const asFree = (a: CA | null) =>
@@ -261,6 +273,7 @@ const asSubscription = (a: CA | null) =>
     : null;
 
 /* ================================================================= */
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { cartItems, removeFromCart } = useCart();
@@ -271,16 +284,21 @@ export default function CheckoutPage() {
   const [mode, setMode] = useState<"payment" | "setup" | null>(null);
   const [currency, setCurrency] = useState<string>("USD");
   const [amountMinor, setAmountMinor] = useState<number | undefined>(undefined);
-  
+
   // Store billing flow state for handling "both" intent type
   const [billingFlowState, setBillingFlowState] = useState<{
     isBillingFlow: boolean;
     setupIntentSecret?: string;
     paymentIntentSecret?: string;
     intentType?: "payment_intent" | "setup_intent" | "both";
+    setupIntentId?: string;
+    paymentIntentId?: string;
+    installments?: number[];
   } | null>(null);
+
   const [quoteExpired, setQuoteExpired] = useState(false);
   const [quoteRefreshing, setQuoteRefreshing] = useState(false);
+
   const isQuoteExpiredError = (error: any) => {
     const details = error?.response?.data?.error?.details;
     const message =
@@ -288,7 +306,9 @@ export default function CheckoutPage() {
     const detailMatch = Array.isArray(details)
       ? details.some(
           (d) =>
-            typeof d === "string" && d.toLowerCase().includes("quote") && d.toLowerCase().includes("expire")
+            typeof d === "string" &&
+            d.toLowerCase().includes("quote") &&
+            d.toLowerCase().includes("expire")
         )
       : false;
     return (
@@ -296,12 +316,6 @@ export default function CheckoutPage() {
       message.toLowerCase().includes("quote has expired") ||
       message.toLowerCase().includes("quote expired")
     );
-  };
-
-  const isCurrentQuoteExpired = () => {
-    if (quoteExpired) return true;
-    if (!serverPricePreview?.expiresAt) return false;
-    return new Date(serverPricePreview.expiresAt).getTime() <= Date.now();
   };
 
   const [busy, setBusy] = useState(false);
@@ -325,8 +339,12 @@ export default function CheckoutPage() {
       }
     | null
   >(null);
+
   const [preview, setPreview] = useState<any>(null);
-  const [selectedModeFromCart, setSelectedModeFromCart] = useState<"pay_in_full" | "installments" | "subscription" | null>(null);
+  const [selectedModeFromCart, setSelectedModeFromCart] = useState<
+    "pay_in_full" | "installments" | "subscription" | null
+  >(null);
+
   const [serverInstallmentsPreview, setServerInstallmentsPreview] = useState<
     | {
         total: number;
@@ -343,9 +361,13 @@ export default function CheckoutPage() {
     | null
   >(null);
 
-  // No data fetching on this page; preview is supplied by Cart via sessionStorage
+  const isCurrentQuoteExpired = () => {
+    if (quoteExpired) return true;
+    if (!serverPricePreview?.expiresAt) return false;
+    return new Date(serverPricePreview.expiresAt).getTime() <= Date.now();
+  };
 
-  /* Booking modal (moved here from Cart) */
+  /* Booking modal */
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [bookingFormData, setBookingFormData] = useState<{
     userNotes: string;
@@ -356,16 +378,29 @@ export default function CheckoutPage() {
   /* Load selection + preview from sessionStorage */
   useEffect(() => {
     try {
-      const selRaw = typeof window !== "undefined" ? sessionStorage.getItem("checkout.selection") : null;
+      const selRaw =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("checkout.selection")
+          : null;
       if (selRaw) {
         const parsed = JSON.parse(selRaw) as CheckoutSelection;
         setSelected(Array.isArray(parsed) ? parsed : []);
-        const b = (Array.isArray(parsed) ? parsed[0]?.booking : undefined) || {};
-        setBookingFormData({ userNotes: b.userNotes || "", attachments: b.attachments || [] });
+        const b =
+          (Array.isArray(parsed) ? parsed[0]?.booking : undefined) || {};
+        setBookingFormData({
+          userNotes: b.userNotes || "",
+          attachments: b.attachments || [],
+        });
       }
 
-      const previewRaw = typeof window !== "undefined" ? sessionStorage.getItem("checkout.preview") : null;
-      const modeRaw = typeof window !== "undefined" ? sessionStorage.getItem("checkout.mode") : null;
+      const previewRaw =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("checkout.preview")
+          : null;
+      const modeRaw =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("checkout.mode")
+          : null;
       if (previewRaw) setPreview(JSON.parse(previewRaw));
       if (modeRaw) setSelectedModeFromCart(modeRaw as any);
       if (!previewRaw) router.push("/cart");
@@ -383,17 +418,13 @@ export default function CheckoutPage() {
   const quantity: number = selected[0]?.quantity ?? 1;
   const booking = selected[0]?.booking;
 
-  /* Build the action using the external type */
-  const action = useMemo<ExternalCheckoutAction | null>(() => {
-    if (!selectedItem || !selectedMode) return null;
-
-    const pricing = toPricingBlock(
-      selectedItem,
-      selectedMode,
-      quantity
-    );
-
-    const user = {
+  const userRef = useMemo(() => {
+    const base: {
+      id: string;
+      email: string;
+      name: string;
+      stripeCustomerId?: string;
+    } = {
       id:
         (userData as any)?.id ||
         (userData as any)?._id ||
@@ -401,10 +432,20 @@ export default function CheckoutPage() {
         "",
       email: (userData as any)?.email || "",
       name: (userData as any)?.fullName || (userData as any)?.name || "",
-      ...((userData as any)?.stripeCustomerId
-        ? { stripeCustomerId: (userData as any).stripeCustomerId }
-        : {}),
     };
+    if ((userData as any)?.stripeCustomerId) {
+      base.stripeCustomerId = (userData as any).stripeCustomerId;
+    }
+    return base;
+  }, [userData]);
+
+  /* Build the action using the external type */
+  const action = useMemo<ExternalCheckoutAction | null>(() => {
+    if (!selectedItem || !selectedMode) return null;
+
+    const pricing = toPricingBlock(selectedItem, selectedMode, quantity);
+
+    const user = userRef;
 
     const ctx = {
       user,
@@ -414,7 +455,8 @@ export default function CheckoutPage() {
       isTeam: (() => {
         const bTeam = !!booking?.isTeam;
         const p: any = selectedItem.pricing || {};
-        const isPerUnit = p?.priceBasis === "per_unit" || p?.model === "per_unit";
+        const isPerUnit =
+          p?.priceBasis === "per_unit" || p?.model === "per_unit";
         const unitName = p?.unitName;
         const pricingTeam = isPerUnit && unitName === "team";
         return bTeam || pricingTeam;
@@ -422,10 +464,11 @@ export default function CheckoutPage() {
       participantType: (() => {
         if (booking?.participantType) return booking.participantType;
         const p: any = selectedItem.pricing || {};
-        const isPerUnit = p?.priceBasis === "per_unit" || p?.model === "per_unit";
+        const isPerUnit =
+          p?.priceBasis === "per_unit" || p?.model === "per_unit";
         const unitName = p?.unitName;
         const pricingTeam = isPerUnit && unitName === "team";
-        return (booking?.isTeam || pricingTeam) ? "team" : "individual";
+        return booking?.isTeam || pricingTeam ? "team" : "individual";
       })(),
       numberOfExpectedParticipants: quantity,
       userNotes: booking?.userNotes,
@@ -449,17 +492,14 @@ export default function CheckoutPage() {
     } as const;
 
     try {
-      return buildCheckoutRequests(
-        pricing as any,
-        ctx as any
-      ) as ExternalCheckoutAction;
+      return buildCheckoutRequests(pricing as any, ctx as any);
     } catch (e) {
       safeConsole.error("Failed to build checkout requests", e);
       return null;
     }
-  }, [selectedItem, selectedMode, quantity, booking, userData]);
+  }, [selectedItem, selectedMode, quantity, booking, userRef]);
 
-  /* Narrowed clones to avoid 'never' in JSX */
+  /* Narrowed clones */
   const A_FREE = asFree(action);
   const A_PAYMENT = asPayment(action);
   const A_INST = asInstallments(action);
@@ -482,7 +522,7 @@ export default function CheckoutPage() {
       }
       // Extract quoteId from option level or top level of response
       const quoteId = opt.quoteId || preview?.data?.quoteId || preview?.quoteId;
-      
+
       const subscriptionMeta = opt.subscription
         ? {
             price: Number(opt.subscription.price ?? opt.breakdown?.total ?? 0),
@@ -503,31 +543,42 @@ export default function CheckoutPage() {
         subtotal: Number(opt.breakdown?.subtotal || 0),
         vat: Number(opt.breakdown?.vatAmount || 0),
         total: Number(opt.breakdown?.total || 0),
-        unitPrice: typeof opt.breakdown?.unitPrice === "number" ? opt.breakdown.unitPrice : undefined,
+        unitPrice:
+          typeof opt.breakdown?.unitPrice === "number"
+            ? opt.breakdown.unitPrice
+            : undefined,
         model: opt.model,
         tierType: opt.tiers?.type,
         subscription: subscriptionMeta,
         expiresAt: opt.expiresAt || preview?.data?.expiresAt,
       });
-      
+
       // Debug: Log quoteId extraction
       if (!quoteId) {
-        safeConsole.warn("⚠️ [CheckoutPage] quoteId not found in preview response", {
-          hasOpt: !!opt,
-          optKeys: opt ? Object.keys(opt) : [],
-          hasPreviewData: !!preview?.data,
-          previewDataKeys: preview?.data ? Object.keys(preview.data) : [],
-          mode,
-        });
+        safeConsole.warn(
+          "⚠️ [CheckoutPage] quoteId not found in preview response",
+          {
+            hasOpt: !!opt,
+            optKeys: opt ? Object.keys(opt) : [],
+            hasPreviewData: !!preview?.data,
+            previewDataKeys: preview?.data ? Object.keys(preview.data) : [],
+            mode,
+          }
+        );
       } else {
         safeConsole.log("✅ [CheckoutPage] quoteId extracted:", quoteId);
       }
+
       if (mode === "installments" && opt.installments?.enabled) {
         setServerInstallmentsPreview({
-          total: Number(opt.installments?.totalFinanced || opt.breakdown?.total || 0),
+          total: Number(
+            opt.installments?.totalFinanced || opt.breakdown?.total || 0
+          ),
           downPayment: Number(opt.installments?.downPayment?.amount || 0),
           installments: Array.isArray(opt.installments?.schedule)
-            ? opt.installments.schedule.map((x: any) => Number(x?.amount || 0))
+            ? opt.installments.schedule.map((x: any) =>
+                Number(x?.amount || 0)
+              )
             : [],
           plan: {
             count: Number(opt.installments?.count || 0),
@@ -539,8 +590,11 @@ export default function CheckoutPage() {
                 selectedItem?.pricing?.installments?.intervalCount ||
                 1
             ),
-            downPaymentType: (opt.installments?.downPayment?.type || "percent") as any,
-            downPaymentValue: Number(opt.installments?.downPayment?.value || 0),
+            downPaymentType: (opt.installments?.downPayment?.type ||
+              "percent") as any,
+            downPaymentValue: Number(
+              opt.installments?.downPayment?.value || 0
+            ),
           },
         });
       } else {
@@ -550,7 +604,7 @@ export default function CheckoutPage() {
       setServerPricePreview(null);
       setServerInstallmentsPreview(null);
     }
-  }, [preview, selectedModeFromCart]);
+  }, [preview, selectedModeFromCart, selectedItem?.pricing]);
 
   useEffect(() => {
     if (serverPricePreview?.quoteId) {
@@ -558,19 +612,26 @@ export default function CheckoutPage() {
     }
   }, [serverPricePreview?.quoteId]);
 
-  /* Due today */
+  /* ---- Quote expiry helper ---- */
+
+  const isCurrentQuoteExpiredWrapper = () => isCurrentQuoteExpired();
+  const quoteHasExpired = isCurrentQuoteExpiredWrapper();
+
+  /* ---- Due today ---- */
+
   const dueTodayMajor = useMemo(() => {
     const mode = (selectedModeFromCart || "pay_in_full") as any;
     const opt = preview?.data?.options?.[mode];
-    if (opt?.mode === "pay_in_full") return Number(opt?.breakdown?.total || 0);
-    if (opt?.mode === "installments") return Number(opt?.installments?.downPayment?.amount || 0);
+    if (opt?.mode === "pay_in_full")
+      return Number(opt?.breakdown?.total || 0);
+    if (opt?.mode === "installments")
+      return Number(opt?.installments?.downPayment?.amount || 0);
     if (opt?.mode === "subscription") {
-      // For subscriptions, if there's a breakdown, use the first period's total
-      // Otherwise fall back to A_SUB calculation
       if (opt?.breakdown?.total !== undefined) {
         return Number(opt.breakdown.total || 0);
       }
     }
+
     // fallback
     if (A_FREE) return 0;
     if (A_PAYMENT) return A_PAYMENT.amounts.totalMajor;
@@ -579,8 +640,10 @@ export default function CheckoutPage() {
       return a.downPaymentMajor > 0 ? a.downPaymentMajor : a.perInstallmentMajor;
     }
     if (A_SUB) {
-      const trial = (A_SUB.requests?.[1] as any)?.body?.pricing?.trialDays ?? 0;
-      const firstPeriod = trial > 0 ? 0 : A_SUB.amounts.periodAmountMajor;
+      const fallbackPricing = (A_SUB.requests?.[1] as any)?.body?.pricing;
+      const trial = fallbackPricing?.trialDays ?? 0;
+      const firstPeriod =
+        trial > 0 ? 0 : A_SUB.amounts.periodAmountMajor;
       return (A_SUB.amounts.setupFeeMajor || 0) + firstPeriod;
     }
     return 0;
@@ -622,9 +685,9 @@ export default function CheckoutPage() {
 
   const displayCurrency =
     serverPricePreview?.currency || selectedItem?.currency || "USD";
-  const quoteHasExpired = isCurrentQuoteExpired();
 
   /* ---- Booking requirements & validation ---- */
+
   const needsBooking = !!(
     selectedItem?.requiresBooking || selectedItem?.isAttachmentRequired
   );
@@ -650,7 +713,8 @@ export default function CheckoutPage() {
   const openBookingModal = () => setBookingModalOpen(true);
   const closeBookingModal = () => setBookingModalOpen(false);
 
-  /* -------- Example upload function -------- */
+  /* ---- Attachment upload (placeholder) ---- */
+
   const handleAttachmentUpload = async (file: File) => {
     setIsUploadingAttachment(true);
     try {
@@ -668,6 +732,7 @@ export default function CheckoutPage() {
       setIsUploadingAttachment(false);
     }
   };
+
   const removeAttachment = (index: number) => {
     setBookingFormData((prev) => ({
       ...prev,
@@ -707,6 +772,8 @@ export default function CheckoutPage() {
     setTimeout(() => beginCheckout(), 0);
   };
 
+  /* ---- Regenerate quote ---- */
+
   const regenerateQuote = async () => {
     if (!selectedItem) return;
     setQuoteRefreshing(true);
@@ -737,14 +804,18 @@ export default function CheckoutPage() {
   };
 
   /* ---- Core checkout starter ---- */
+
   const beginCheckout = async () => {
     if (!action || !selectedItem) return;
     setBusy(true);
     setError(null);
     setBillingFlowState(null); // Clear billing flow state at start
     const token = getTokenFromCookies();
+
     if (isCurrentQuoteExpired()) {
-      toast.error("This quote has expired. Please generate a new quote to continue.");
+      toast.error(
+        "This quote has expired. Please generate a new quote to continue."
+      );
       setQuoteExpired(true);
       setBusy(false);
       return;
@@ -763,13 +834,14 @@ export default function CheckoutPage() {
       if (A_PAYMENT) {
         const req = A_PAYMENT.requests[0];
         const curr = (selectedItem.currency || "usd").toLowerCase();
-        // Use server preview total if available, otherwise fallback to calculated
-        const amountMajor = serverPricePreview?.total ?? A_PAYMENT.amounts.totalMajor;
+        const amountMajor =
+          serverPricePreview?.total ?? A_PAYMENT.amounts.totalMajor;
 
-        // Build request body with quoteId from preview if available
         const requestBody: any = {
           ...(req as any).body,
-          ...(serverPricePreview?.quoteId ? { quoteId: serverPricePreview.quoteId } : {}),
+          ...(serverPricePreview?.quoteId
+            ? { quoteId: serverPricePreview.quoteId }
+            : {}),
         };
 
         const resp = await PaymentService.createSimplePaymentIntent(
@@ -793,38 +865,38 @@ export default function CheckoutPage() {
 
         setClientSecret(secret);
         setMode("payment");
-        setCurrency(serverPricePreview?.currency || (selectedItem.currency || "USD").toUpperCase());
+        setCurrency(
+          serverPricePreview?.currency ||
+            (selectedItem.currency || "USD").toUpperCase()
+        );
         setAmountMinor(toMinor(amountMajor, curr));
         toast.success("Secure payment initialized");
         return;
       }
 
-      // SUBSCRIPTION → Direct call to /api/billing/subscriptions/payment-setup
+      // SUBSCRIPTION → /api/billing/subscriptions/payment-setup
       if (A_SUB) {
         const START = A_SUB.requests[0];
         const quoteId = serverPricePreview?.quoteId;
-        
+
         if (!quoteId) {
-          throw new Error("Missing quoteId from price preview. Please refresh and try again.");
+          throw new Error(
+            "Missing quoteId from price preview. Please refresh and try again."
+          );
         }
 
-        // Build request body with quoteId from price preview
         const requestBody = {
           ...(START as any).body,
           quoteId,
         };
 
-        // Call subscription payment-setup endpoint directly (NOT installments/start)
         const resp: any = await PaymentService.subscriptionPaymentSetup(
           requestBody,
           token || ""
         );
-        
-        // Handle response structure: resp.data is the outer response { success, message, data: {...} }
-        // Similar to createSimplePaymentIntent pattern: payload = resp?.data, then payload?.data?.field
+
         const payload: any = resp?.data;
-        
-        // Debug: Log the response structure to help diagnose issues
+
         safeConsole.log("🔍 [CheckoutPage] Subscription response", {
           hasResp: !!resp,
           hasRespData: !!resp?.data,
@@ -832,49 +904,61 @@ export default function CheckoutPage() {
           payloadKeys: payload ? Object.keys(payload) : [],
           dataKeys: payload?.data ? Object.keys(payload.data) : [],
         });
-        
-        // Handle response structure with multiple client secrets (access inner data object)
+
         const innerData = payload?.data || payload;
         const paymentIntentSecret = innerData?.paymentIntentClientSecret;
         const setupIntentSecret = innerData?.setupIntentClientSecret;
         const intentType = innerData?.intentType; // "payment_intent" | "setup_intent" | "both"
 
-        // Determine which client secret to use and what mode
         let clientSecretToUse: string | undefined;
         let modeToUse: "payment" | "setup" = "setup";
         let amountToUse: number | undefined;
 
         if (intentType === "payment_intent") {
-          // Use PaymentIntent only
           clientSecretToUse = paymentIntentSecret;
           modeToUse = "payment";
-          const curr = (serverPricePreview?.currency || selectedItem.currency || "USD").toLowerCase();
-          const amountMajor = innerData?.invoiceTotal ?? serverPricePreview?.total ?? A_SUB.amounts.periodAmountMajor;
+          const curr = (
+            serverPricePreview?.currency || selectedItem.currency || "USD"
+          ).toLowerCase();
+          const amountMajor =
+            innerData?.invoiceTotal ??
+            serverPricePreview?.total ??
+            A_SUB.amounts.periodAmountMajor;
           amountToUse = toMinor(amountMajor, curr);
         } else if (intentType === "both" && paymentIntentSecret) {
-          // Use PaymentIntent first when intentType is "both"
           clientSecretToUse = paymentIntentSecret;
           modeToUse = "payment";
-          const curr = (serverPricePreview?.currency || selectedItem.currency || "USD").toLowerCase();
-          const amountMajor = innerData?.invoiceTotal ?? serverPricePreview?.total ?? A_SUB.amounts.periodAmountMajor;
+          const curr = (
+            serverPricePreview?.currency || selectedItem.currency || "USD"
+          ).toLowerCase();
+          const amountMajor =
+            innerData?.invoiceTotal ??
+            serverPricePreview?.total ??
+            A_SUB.amounts.periodAmountMajor;
           amountToUse = toMinor(amountMajor, curr);
         } else if (intentType === "setup_intent" || setupIntentSecret) {
-          // Use SetupIntent for card-on-file (no immediate charge)
           clientSecretToUse = setupIntentSecret;
           modeToUse = "setup";
           amountToUse = undefined;
         } else {
-          // Fallback: try to use any available secret
           clientSecretToUse = paymentIntentSecret || setupIntentSecret;
           modeToUse = clientSecretToUse?.includes("pi_") ? "payment" : "setup";
           if (modeToUse === "payment") {
-            const curr = (serverPricePreview?.currency || selectedItem.currency || "USD").toLowerCase();
-            const amountMajor = innerData?.invoiceTotal ?? serverPricePreview?.total ?? A_SUB.amounts.periodAmountMajor;
+            const curr = (
+              serverPricePreview?.currency || selectedItem.currency || "USD"
+            ).toLowerCase();
+            const amountMajor =
+              innerData?.invoiceTotal ??
+              serverPricePreview?.total ??
+              A_SUB.amounts.periodAmountMajor;
             amountToUse = toMinor(amountMajor, curr);
           }
         }
 
-        if (!clientSecretToUse || !String(clientSecretToUse).includes("_secret_")) {
+        if (
+          !clientSecretToUse ||
+          !String(clientSecretToUse).includes("_secret_")
+        ) {
           safeConsole.error("❌ [CheckoutPage] Invalid subscription response", {
             clientSecretToUse,
             paymentIntentSecret,
@@ -889,17 +973,21 @@ export default function CheckoutPage() {
 
         setClientSecret(clientSecretToUse);
         setMode(modeToUse);
-        setCurrency((serverPricePreview?.currency || selectedItem.currency || "USD").toUpperCase());
+        setCurrency(
+          (serverPricePreview?.currency ||
+            selectedItem.currency ||
+            "USD"
+          ).toUpperCase()
+        );
         setAmountMinor(amountToUse);
-        
-        // Store billing flow state for handling "both" intent type
+
         setBillingFlowState({
           isBillingFlow: true,
           setupIntentSecret: setupIntentSecret,
           paymentIntentSecret: paymentIntentSecret,
           intentType: intentType,
         });
-        
+
         if (modeToUse === "payment") {
           toast.success("Complete your payment to continue");
         } else {
@@ -908,73 +996,96 @@ export default function CheckoutPage() {
         return;
       }
 
-      // INSTALLMENTS → Call /api/billing/installments/start
+      // INSTALLMENTS → /api/billing/installments/payment-setup
       if (A_INST) {
         const START = A_INST.requests[0];
         const quoteId = serverPricePreview?.quoteId;
-        
+
         if (!quoteId) {
-          throw new Error("Missing quoteId from price preview. Please refresh and try again.");
+          throw new Error(
+            "Missing quoteId from price preview. Please refresh and try again."
+          );
         }
 
-        // Build request body with quoteId from price preview
         const requestBody = {
           ...(START as any).body,
           quoteId,
         };
 
-        // Call installments start endpoint
         const resp = await PaymentService.startInstallmentsSetup(
           requestBody,
           token || ""
         );
-        const payload: any = resp?.data;
-        
-        // Handle response structure with multiple client secrets
+        const payload: any = (resp?.data as any)?.data || {};
+
         const paymentIntentSecret = payload?.paymentIntentClientSecret;
         const setupIntentSecret = payload?.setupIntentClientSecret;
-        const primaryClientSecret = payload?.clientSecret || paymentIntentSecret || setupIntentSecret;
-        const intentType = payload?.intentType; // "payment" | "setup" | "both"
+        const intentType =
+          (payload?.intentType as "payment_intent" | "setup_intent" | "both") ||
+          (paymentIntentSecret && setupIntentSecret
+            ? "both"
+            : paymentIntentSecret
+            ? "payment_intent"
+            : "setup_intent");
 
-        // Determine which client secret to use and what mode
+        const installmentsFromApi = Array.isArray(payload?.installments)
+          ? payload.installments
+          : [];
+
         let clientSecretToUse: string | undefined;
         let modeToUse: "payment" | "setup" = "setup";
         let amountToUse: number | undefined;
 
-        if (intentType === "payment" || (intentType === "both" && paymentIntentSecret)) {
-          // Use PaymentIntent for immediate charge (down payment)
-          clientSecretToUse = paymentIntentSecret || primaryClientSecret;
+        if (
+          intentType === "payment_intent" ||
+          (intentType === "both" && paymentIntentSecret)
+        ) {
+          clientSecretToUse = paymentIntentSecret;
           modeToUse = "payment";
-          const curr = (serverPricePreview?.currency || selectedItem.currency || "USD").toLowerCase();
-          const amountMajor = serverPricePreview?.total ?? A_INST.amounts.downPaymentMajor ?? 0;
+          const curr = (
+            serverPricePreview?.currency || selectedItem.currency || "USD"
+          ).toLowerCase();
+          const amountMajor =
+            payload?.downPayment ??
+            serverPricePreview?.total ??
+            A_INST.amounts.downPaymentMajor ??
+            0;
           amountToUse = toMinor(amountMajor, curr);
-        } else if (intentType === "setup" || setupIntentSecret) {
-          // Use SetupIntent for card-on-file (no immediate charge)
-          clientSecretToUse = setupIntentSecret || primaryClientSecret;
+        } else if (intentType === "setup_intent" || setupIntentSecret) {
+          clientSecretToUse = setupIntentSecret;
           modeToUse = "setup";
           amountToUse = undefined;
         } else {
-          // Fallback to primary client secret
-          clientSecretToUse = primaryClientSecret;
+          clientSecretToUse = paymentIntentSecret || setupIntentSecret;
         }
 
-        if (!clientSecretToUse || !String(clientSecretToUse).includes("_secret_")) {
+        if (
+          !clientSecretToUse ||
+          !String(clientSecretToUse).includes("_secret_")
+        ) {
           throw new Error("Invalid payment intent response from server");
         }
 
         setClientSecret(clientSecretToUse);
         setMode(modeToUse);
-        setCurrency((serverPricePreview?.currency || selectedItem.currency || "USD").toUpperCase());
+        setCurrency(
+          (serverPricePreview?.currency ||
+            selectedItem.currency ||
+            "USD"
+          ).toUpperCase()
+        );
         setAmountMinor(amountToUse);
-        
-        // Store billing flow state for handling "both" intent type
+
         setBillingFlowState({
           isBillingFlow: true,
           setupIntentSecret: setupIntentSecret,
           paymentIntentSecret: paymentIntentSecret,
           intentType: intentType,
+          setupIntentId: payload?.setupIntentId,
+          paymentIntentId: payload?.paymentIntentId,
+          installments: installmentsFromApi,
         });
-        
+
         if (modeToUse === "payment") {
           toast.success("Complete your payment to continue");
         } else {
@@ -984,8 +1095,9 @@ export default function CheckoutPage() {
       }
     } catch (e: any) {
       safeConsole.error(e);
-      setError(e?.error.details[0] || "Unable to start checkout");
-      toast.error(e?.error.details[0] || "Unable to start checkout");
+      const detailMessage = e?.error?.details?.[0];
+      setError(detailMessage || e?.message || "Unable to start checkout");
+      toast.error(detailMessage || e?.message || "Unable to start checkout");
       if (isQuoteExpiredError(e)) {
         setQuoteExpired(true);
       }
@@ -1006,87 +1118,127 @@ export default function CheckoutPage() {
   /* After SetupIntent succeeds (billing only) */
   const handleSetupSuccess = async (_setupIntentId: string) => {
     if (!A_INST && !A_SUB) return;
+
     const token = getTokenFromCookies();
+    const itemForCheckout = selectedItem;
+    if (!itemForCheckout) {
+      toast.error("Missing item context for checkout");
+      return;
+    }
 
     try {
-      // For subscriptions, the initial call to /api/billing/subscriptions/payment-setup 
-      // already creates and activates the subscription. When setup intent succeeds,
-      // the subscription is already active - no second API call needed.
+      // SUBSCRIPTIONS:
+      // For subscriptions, /api/billing/subscriptions/payment-setup already
+      // creates/activates the subscription when the SetupIntent succeeds.
       if (A_SUB) {
         toast.success("Subscription activated successfully");
-        if (selectedItem) removeFromCart(selectedItem.id);
-        router.push("/dashboard");
+        console.log("🔍 [CheckoutPage] Subscription activated successfully");
+        removeFromCart(itemForCheckout.id);
+        router.push("/dashboard/bookings");
         return;
       }
 
-      // For installments, we still need to confirm after setup intent succeeds
-      const CONFIRM = A_INST!.requests[1];
-      const user = CONFIRM.body.user;
+      // INSTALLMENTS:
       const quoteId = serverPricePreview?.quoteId;
-
       if (!quoteId) {
-        throw new Error("Missing quote from price preview");
+        toast.error(
+          "Missing quote reference. Please refresh your quote and try again."
+        );
+        return;
       }
 
-      // Installments confirm
       const resp = await PaymentService.confirmInstallments(
-        { user, quoteId, setupIntentId: _setupIntentId },
+        {
+          setupIntentId: _setupIntentId,
+          quoteId,
+        },
         token || ""
       );
 
-      const out: any = resp?.data;
-
-      // For installments, use existing logic
+      const result: any = resp?.data;
       const ok =
-        typeof out?.ok === "boolean"
-          ? out.ok
-          : typeof out?.success === "boolean"
-          ? out.success
+        typeof result?.ok === "boolean"
+          ? result.ok
+          : typeof result?.success === "boolean"
+          ? result.success
           : false;
 
-      // Check if there's a clientSecret in the response (for down payment)
-      if (out?.clientSecret && out?.clientSecret.includes("_secret_")) {
-        // Handle payment required
-        setClientSecret(out.clientSecret);
-        setMode("payment");
-        setCurrency((selectedItem?.currency || "USD").toUpperCase());
-        // Amount would need to be calculated from the response
-        toast.success("Payment required to activate plan");
-        return;
+      if (!ok) {
+        throw new Error(
+          result?.message ||
+            result?.error ||
+            "Failed to create installment schedule"
+        );
       }
 
-      if (!ok)
-        throw new Error(
-          out?.message || out?.error || "Failed to finalize billing"
-        );
+      safeConsole.log("✅ [Checkout] Installment schedule created", {
+        scheduleId: result?.scheduleId,
+        planId: result?.planId,
+        status: result?.status,
+      });
 
       toast.success("Installment plan activated");
-      if (selectedItem) removeFromCart(selectedItem.id);
-      router.push("/dashboard");
+      removeFromCart(itemForCheckout.id);
+      router.push("/dashboard/bookings");
     } catch (e: any) {
       safeConsole.error(e);
-      setError(e?.message || "Failed to finalize");
-      toast.error(e?.message || "Failed to finalize");
+      const msg = e?.message || "Failed to finalize installment plan";
+      setError(msg);
+      toast.error(msg);
     }
   };
 
   /* After PaymentIntent succeeds (one-time or billing down payment) */
   const handlePaymentSuccess = async () => {
+    safeConsole.log("⚡ [CheckoutPage] handlePaymentSuccess called", {
+      billingFlowState,
+      isBillingFlow: billingFlowState?.isBillingFlow,
+      intentType: billingFlowState?.intentType,
+      hasSetupSecret: !!billingFlowState?.setupIntentSecret,
+    });
+
     // If this is a billing flow with "both" intent type, proceed with setup after payment
-    if (billingFlowState?.isBillingFlow && billingFlowState?.intentType === "both" && billingFlowState?.setupIntentSecret) {
-      // Switch to setup mode for recurring installments
-      setClientSecret(billingFlowState.setupIntentSecret);
-      setMode("setup");
-      setAmountMinor(undefined);
-      setBillingFlowState(null); // Clear state to avoid loops
-      toast.success("Payment completed");
+    if (
+      billingFlowState?.isBillingFlow &&
+      billingFlowState?.intentType === "both" &&
+      billingFlowState?.setupIntentSecret
+    ) {
+      safeConsole.log("⚡ [CheckoutPage] Auto-triggering SetupIntent after successful PaymentIntent");
+    
+      // Show overlay or loader while Stripe SetupIntent initializes
+      const overlay = document.createElement("div");
+      overlay.className =
+        "fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]";
+      overlay.innerHTML = `
+        <div class="bg-white rounded-xl p-6 flex flex-col items-center shadow-xl">
+          <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p class="text-gray-800 font-medium text-sm">Setting up your billing securely…</p>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+    
+      // Delay just enough for user to see the loader
+      setTimeout(() => {
+        // Switch to setup intent automatically
+        setClientSecret(billingFlowState.setupIntentSecret || null);
+        setMode("setup");
+        setAmountMinor(undefined);
+        setBillingFlowState(null);
+        toast.info("Setting up your billing automatically...");
+    
+        // Remove loader after transition
+        setTimeout(() => {
+          document.body.removeChild(overlay);
+        }, 1500);
+      }, 800);
+    
       return;
     }
-    
+
     // For one-time payments or billing flows that don't need setup, complete checkout
     if (selectedItem) removeFromCart(selectedItem.id);
     setShowSuccessModal(true);
-    // Auto-redirect after 3 seconds
+
     setTimeout(() => {
       router.push("/dashboard/bookings");
     }, 3000);
@@ -1100,6 +1252,7 @@ export default function CheckoutPage() {
   };
 
   /* Guards */
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
@@ -1121,6 +1274,7 @@ export default function CheckoutPage() {
       </div>
     );
   }
+
   if (!selectedItem || !action) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
@@ -1148,7 +1302,9 @@ export default function CheckoutPage() {
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         @keyframes scaleIn {
           from {
             transform: scale(0);
@@ -1159,499 +1315,527 @@ export default function CheckoutPage() {
             opacity: 1;
           }
         }
-      ` }} />
+      `,
+        }}
+      />
       <div className="px-4 py-10 bg-gray-50 min-h-screen">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left: Details & Stripe */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Checkout</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-start gap-4">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg">
-                    {selectedItem.title || "Product"}
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                    {selectedItem.description}
-                  </p>
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left: Details & Stripe */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Checkout</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-start gap-4">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg">
+                      {selectedItem.title || "Product"}
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                      {selectedItem.description}
+                    </p>
 
-                  {quoteHasExpired && (
-                    <div className="mt-3 text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-[10px] p-3 space-y-2">
-                      <div>The quote for this product has expired. Generate a new quote to continue checkout.</div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-amber-900 border-amber-300"
-                        onClick={regenerateQuote}
-                        disabled={quoteRefreshing}
-                      >
-                        {quoteRefreshing ? (
-                          <>
-                            <Loader2 size={14} className="mr-2 animate-spin" />
-                            Refreshing…
-                          </>
-                        ) : (
-                          "Generate new quote"
-                        )}
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Server price preview (informational) */}
-                  {serverPricePreview && (
-                    <div className="mt-3 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-[10px] p-3">
-                      <div className="flex items-center justify-between">
-                        <span>Subtotal</span>
-                        <span className="font-medium">
-                          {formatCurrency(
-                            serverPricePreview.subtotal,
-                            displayCurrency
+                    {quoteHasExpired && (
+                      <div className="mt-3 text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-[10px] p-3 space-y-2">
+                        <div>
+                          The quote for this product has expired. Generate a new
+                          quote to continue checkout.
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-amber-900 border-amber-300"
+                          onClick={regenerateQuote}
+                          disabled={quoteRefreshing}
+                        >
+                          {quoteRefreshing ? (
+                            <>
+                              <Loader2
+                                size={14}
+                                className="mr-2 animate-spin"
+                              />
+                              Refreshing…
+                            </>
+                          ) : (
+                            "Generate new quote"
                           )}
-                        </span>
+                        </Button>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span>VAT</span>
-                        <span className="font-medium">
-                          {formatCurrency(
-                            serverPricePreview.vat,
-                            displayCurrency
-                          )}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>Total</span>
-                        <span className="font-semibold">
-                          {formatCurrency(
-                            serverPricePreview.total,
-                            displayCurrency
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Server installments preview summary */}
-                  {serverInstallmentsPreview && (
-                    <div className="mt-3 text-xs text-gray-600 bg-blue-50 border border-blue-100 rounded-[10px] p-3">
-                      <div className="flex items-center justify-between">
-                        <span>Down payment</span>
-                        <span className="font-medium">
-                          {formatCurrency(
-                            serverInstallmentsPreview.downPayment,
-                            displayCurrency
-                          )}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>
-                          {serverInstallmentsPreview.plan?.count || 0} payments of
-                        </span>
-                        <span className="font-medium">
-                          {formatCurrency(
-                            serverInstallmentsPreview.installments?.[0] || 0,
-                            displayCurrency
-                          )}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>Total financed</span>
-                        <span className="font-semibold">
-                          {formatCurrency(
-                            serverInstallmentsPreview.total,
-                            displayCurrency
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="mt-3 text-xs text-gray-600">
-                    {A_INST && (
-                      <p>
-                        Due today:{" "}
-                        <strong>
-                          {formatCurrency(dueTodayMajor, displayCurrency)}
-                        </strong>
-                        . Future payments will be charged automatically
-                        according to your plan.
-                      </p>
                     )}
-                    {A_SUB && (
-                      <p>
-                        {subscriptionDisplay.autoRenew === false ? (
-                          <>
-                            One-time payment of{" "}
-                            <strong>
+
+                    {/* Server price preview (informational) */}
+                    {serverPricePreview && (
+                      <div className="mt-3 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-[10px] p-3">
+                        <div className="flex items-center justify-between">
+                          <span>Subtotal</span>
+                          <span className="font-medium">
+                            {formatCurrency(
+                              serverPricePreview.subtotal,
+                              displayCurrency
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>VAT</span>
+                          <span className="font-medium">
+                            {formatCurrency(
+                              serverPricePreview.vat,
+                              displayCurrency
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Total</span>
+                          <span className="font-semibold">
+                            {formatCurrency(
+                              serverPricePreview.total,
+                              displayCurrency
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Server installments preview summary */}
+                    {serverInstallmentsPreview && (
+                      <div className="mt-3 text-xs text-gray-600 bg-blue-50 border border-blue-100 rounded-[10px] p-3">
+                        <div className="flex items-center justify-between">
+                          <span>Down payment</span>
+                          <span className="font-medium">
+                            {formatCurrency(
+                              serverInstallmentsPreview.downPayment,
+                              displayCurrency
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>
+                            {serverInstallmentsPreview.plan?.count || 0} payments
+                            of
+                          </span>
+                          <span className="font-medium">
+                            {formatCurrency(
+                              serverInstallmentsPreview.installments?.[0] || 0,
+                              displayCurrency
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Total financed</span>
+                          <span className="font-semibold">
+                            {formatCurrency(
+                              serverInstallmentsPreview.total,
+                              displayCurrency
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-3 text-xs text-gray-600">
+                      {A_INST && (
+                        <p>
+                          Due today:{" "}
+                          <strong>
+                            {formatCurrency(dueTodayMajor, displayCurrency)}
+                          </strong>
+                          . Future payments will be charged automatically
+                          according to your plan.
+                        </p>
+                      )}
+                      {A_SUB && (
+                        <p>
+                          {subscriptionDisplay.autoRenew === false ? (
+                            <>
+                              One-time payment of{" "}
+                              <strong>
+                                {formatCurrency(
+                                  subscriptionDisplay.price,
+                                  displayCurrency
+                                )}
+                              </strong>{" "}
+                              is due today.
+                            </>
+                          ) : subscriptionDisplay.trialDays > 0 ? (
+                            <>
+                              Trial active, nothing due today. Your
+                              subscription renews{" "}
+                              {subscriptionDisplay.intervalCount}{" "}
+                              {subscriptionDisplay.interval}
+                              {subscriptionDisplay.intervalCount > 1 ? "s" : ""}{" "}
+                              at{" "}
                               {formatCurrency(
                                 subscriptionDisplay.price,
                                 displayCurrency
                               )}
-                            </strong>{" "}
-                            is due today.
-                          </>
-                        ) : subscriptionDisplay.trialDays > 0 ? (
-                          <>
-                            Trial active, nothing due today. Your subscription
-                            renews {subscriptionDisplay.intervalCount}{" "}
-                            {subscriptionDisplay.interval}
-                            {subscriptionDisplay.intervalCount > 1 ? "s" : ""} at{" "}
-                            {formatCurrency(
-                              subscriptionDisplay.price,
-                              displayCurrency
-                            )}
-                            .
-                          </>
-                        ) : (
-                          <>
-                            Due today:{" "}
-                            <strong>
-                              {formatCurrency(dueTodayMajor, displayCurrency)}
-                            </strong>
-                            {subscriptionDisplay.setupFee
-                              ? ` (includes setup fee ${formatCurrency(
-                                  subscriptionDisplay.setupFee,
+                              .
+                            </>
+                          ) : (
+                            <>
+                              Due today:{" "}
+                              <strong>
+                                {formatCurrency(
+                                  dueTodayMajor,
                                   displayCurrency
-                                )})`
-                              : ""}
-                            .
-                          </>
-                        )}
-                      </p>
-                    )}
-                    {A_PAYMENT && (
-                      <p>
-                        Due today:{" "}
-                        <strong>
-                          {formatCurrency(dueTodayMajor, displayCurrency)}
-                        </strong>
-                        .
-                      </p>
-                    )}
+                                )}
+                              </strong>
+                              {subscriptionDisplay.setupFee
+                                ? ` (includes setup fee ${formatCurrency(
+                                    subscriptionDisplay.setupFee,
+                                    displayCurrency
+                                  )})`
+                                : ""}
+                              .
+                            </>
+                          )}
+                        </p>
+                      )}
+                      {A_PAYMENT && (
+                        <p>
+                          Due today:{" "}
+                          <strong>
+                            {formatCurrency(dueTodayMajor, displayCurrency)}
+                          </strong>
+                          .
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <Separator className="my-6" />
+                <Separator className="my-6" />
 
-              {!clientSecret && (
+                {!clientSecret && (
+                  <div className="flex items-center justify-between">
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push("/cart")}
+                    >
+                      Back to Cart
+                    </Button>
+                    <Button
+                      onClick={startCheckout}
+                      disabled={busy || quoteHasExpired}
+                      className="w-48 bg-[#0D1140] hover:bg-blue-700 text-white text-base py-3 px-6 rounded-[10px] font-semibold shadow-lg hover:shadow-xl transition-all"
+                    >
+                      <CreditCard size={20} className="mr-2" />
+                      {busy
+                        ? "Preparing…"
+                        : A_INST || A_SUB
+                        ? "Continue"
+                        : "Pay Now"}
+                    </Button>
+                  </div>
+                )}
+
+                {clientSecret && (
+                  <div className="mt-4">
+                    {error && (
+                      <div className="mb-3 text-sm text-red-600 bg-red-50 rounded p-2">
+                        {error}
+                      </div>
+                    )}
+                    <StripePaymentForm
+                      mode={mode === "setup" ? "setup" : "payment"}
+                      clientSecret={clientSecret}
+                      amount={mode === "payment" ? amountMinor : undefined}
+                      currency={(currency || "USD").toUpperCase()}
+                      onSuccess={handlePaymentSuccess}
+                      onSetupSuccess={handleSetupSuccess}
+                      onError={(e) => setError(e)}
+                      onClose={handleClose}
+                      productName={selectedItem.title || "Product"}
+                      bookingId={undefined}
+                      // ✅ Only auto-redirect for simple one-time payments
+                      redirectOnSuccess={!(A_INST || A_SUB)}
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right: Order Summary */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Order Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Item</span>
+                  <span className="font-medium text-right max-w-[60%] line-clamp-2">
+                    {selectedItem.title || "Product"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span>Billing</span>
+                  <span className="font-medium capitalize">
+                    {selectedMode?.replace("_", " ")}
+                  </span>
+                </div>
+                <Separator />
                 <div className="flex items-center justify-between">
-                  <Button
-                    variant="outline"
-                    onClick={() => router.push("/cart")}
-                  >
-                    Back to Cart
-                  </Button>
-                  <Button
-                    onClick={startCheckout}
-                    disabled={busy || quoteHasExpired}
-                    className="w-48 bg-[#0D1140] hover:bg-blue-700 text-white text-base py-3 px-6 rounded-[10px] font-semibold shadow-lg hover:shadow-xl transition-all"
-                  >
-                    <CreditCard size={20} className="mr-2" />
-                    {busy
-                      ? "Preparing…"
-                      : A_INST || A_SUB
-                      ? "Continue"
-                      : "Pay Now"}
-                  </Button>
+                  <span className="text-gray-600 text-sm">Due today</span>
+                  <span className="text-base font-semibold">
+                    {formatCurrency(dueTodayMajor, displayCurrency)}
+                  </span>
                 </div>
-              )}
 
-              {clientSecret && (
-                <div className="mt-4">
-                  {error && (
-                    <div className="mb-3 text-sm text-red-600 bg-red-50 rounded p-2">
-                      {error}
-                    </div>
-                  )}
-                  <StripePaymentForm
-                    mode={mode === "setup" ? "setup" : "payment"}
-                    clientSecret={clientSecret}
-                    amount={mode === "payment" ? amountMinor : undefined}
-                    currency={(currency || "USD").toUpperCase()}
-                    onSuccess={handlePaymentSuccess}
-                    onSetupSuccess={handleSetupSuccess}
-                    onError={(e) => setError(e)}
-                    onClose={handleClose}
-                    productName={selectedItem.title || "Product"}
-                    bookingId={undefined}
-                  />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right: Order Summary */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Order Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span>Item</span>
-                <span className="font-medium text-right max-w-[60%] line-clamp-2">
-                  {selectedItem.title || "Product"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span>Billing</span>
-                <span className="font-medium capitalize">
-                  {selectedMode?.replace("_", " ")}
-                </span>
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600 text-sm">Due today</span>
-                <span className="text-base font-semibold">
-                  {formatCurrency(dueTodayMajor, displayCurrency)}
-                </span>
-              </div>
-
-              {A_INST && serverInstallmentsPreview && (
-                <div className="text-xs text-gray-600">
-                  Future installments:{" "}
-                  {serverInstallmentsPreview.plan?.count || 0} ×{" "}
-                  {formatCurrency(
-                    serverInstallmentsPreview.installments?.[0] || 0,
-                    displayCurrency
-                  )}{" "}
-                  every{" "}
-                  {serverInstallmentsPreview.plan?.intervalCount || 1}{" "}
-                  {serverInstallmentsPreview.plan?.interval || "month"}
-                  {(serverInstallmentsPreview.plan?.intervalCount || 1) !== 1
-                    ? "s"
-                    : ""}
-                </div>
-              )}
-              {A_SUB && (
-                <div className="text-xs text-gray-600">
-                  {subscriptionDisplay.autoRenew === false ? (
-                    <>
-                      One-time payment:{" "}
-                      {formatCurrency(
-                        subscriptionDisplay.price,
-                        displayCurrency
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      Then{" "}
-                      {formatCurrency(
-                        subscriptionDisplay.price,
-                        displayCurrency
-                      )}{" "}
-                      every {subscriptionDisplay.intervalCount}{" "}
-                      {subscriptionDisplay.interval}
-                      {subscriptionDisplay.intervalCount > 1 ? "s" : ""}
-                    </>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Payment Success Modal */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[12px] shadow-xl max-w-md w-full p-8 text-center transform transition-all animate-in zoom-in-95 duration-300">
-            {/* Animated Checkmark */}
-            <div className="mb-6 flex justify-center">
-              <div className="relative">
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center transform transition-all duration-500" style={{ animation: "scaleIn 0.5s ease-out forwards" }}>
-                  <CheckCircle2 className="w-12 h-12 text-green-600" />
-                </div>
-                {/* Animated circle pulse */}
-                <div className="absolute inset-0 rounded-full border-4 border-green-600 opacity-0 animate-ping"></div>
-                <div className="absolute inset-0 rounded-full border-4 border-green-300 opacity-0 animate-ping" style={{ animationDelay: "0.5s", animationDuration: "1.5s" }}></div>
-              </div>
-            </div>
-
-            {/* Success Message */}
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">
-              Payment Successful!
-            </h2>
-            <p className="text-gray-600 mb-2">
-              Thank you for your purchase.
-            </p>
-            <p className="text-sm text-gray-500 mb-6">
-              Redirecting you to your dashboard...
-            </p>
-
-            {/* Loading indicator */}
-            <div className="flex justify-center">
-              <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-            </div>
+                {A_INST && serverInstallmentsPreview && (
+                  <div className="text-xs text-gray-600">
+                    Future installments:{" "}
+                    {serverInstallmentsPreview.plan?.count || 0} ×{" "}
+                    {formatCurrency(
+                      serverInstallmentsPreview.installments?.[0] || 0,
+                      displayCurrency
+                    )}{" "}
+                    every{" "}
+                    {serverInstallmentsPreview.plan?.intervalCount || 1}{" "}
+                    {serverInstallmentsPreview.plan?.interval || "month"}
+                    {(serverInstallmentsPreview.plan?.intervalCount || 1) !== 1
+                      ? "s"
+                      : ""}
+                  </div>
+                )}
+                {A_SUB && (
+                  <div className="text-xs text-gray-600">
+                    {subscriptionDisplay.autoRenew === false ? (
+                      <>
+                        One-time payment:{" "}
+                        {formatCurrency(
+                          subscriptionDisplay.price,
+                          displayCurrency
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        Then{" "}
+                        {formatCurrency(
+                          subscriptionDisplay.price,
+                          displayCurrency
+                        )}{" "}
+                        every {subscriptionDisplay.intervalCount}{" "}
+                        {subscriptionDisplay.interval}
+                        {subscriptionDisplay.intervalCount > 1 ? "s" : ""}
+                      </>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
-      )}
 
-      {/* Booking Modal */}
-      {bookingModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-[10px] max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  Additional Booking Details
-                </h2>
-                <button
-                  onClick={closeBookingModal}
-                  className="text-gray-400 hover:text-gray-600"
-                  aria-label="Close booking details"
-                >
-                  <X className="w-6 h-6" />
-                </button>
+        {/* Payment Success Modal */}
+        {showSuccessModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+            <div className="bg-white rounded-[12px] shadow-xl max-w-md w-full p-8 text-center transform transition-all animate-in zoom-in-95 duration-300">
+              <div className="mb-6 flex justify-center">
+                <div className="relative">
+                  <div
+                    className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center transform transition-all duration-500"
+                    style={{ animation: "scaleIn 0.5s ease-out forwards" }}
+                  >
+                    <CheckCircle2 className="w-12 h-12 text-green-600" />
+                  </div>
+                  <div className="absolute inset-0 rounded-full border-4 border-green-600 opacity-0 animate-ping"></div>
+                  <div
+                    className="absolute inset-0 rounded-full border-4 border-green-300 opacity-0 animate-ping"
+                    style={{
+                      animationDelay: "0.5s",
+                      animationDuration: "1.5s",
+                    }}
+                  ></div>
+                </div>
               </div>
 
-              <div className="space-y-6">
-                {/* Notes */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    User Notes{" "}
-                    <span className="ml-1 text-gray-500">
-                      ({selectedItem?.requiresBooking ? "Required" : "Optional"}
-                      )
-                    </span>
-                  </label>
-                  <textarea
-                    value={bookingFormData.userNotes}
-                    onChange={(e) =>
-                      setBookingFormData((p) => ({
-                        ...p,
-                        userNotes: e.target.value,
-                      }))
-                    }
-                    className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:border-transparent ${
-                      selectedItem?.requiresBooking &&
-                      bookingFormData.userNotes.trim().length === 0
-                        ? "border-red-400 focus:ring-red-300"
-                        : "border-gray-300 focus:ring-blue-500"
-                    }`}
-                    rows={4}
-                    placeholder="Any special requirements, questions, or additional information..."
-                  />
-                  {selectedItem?.requiresBooking &&
-                    bookingFormData.userNotes.trim().length === 0 && (
-                      <p className="mt-1 text-xs text-red-600">
-                        Please provide notes for this booking.
-                      </p>
-                    )}
+              <h2 className="text-2xl font-bold text-gray-900 mb-3">
+                Payment Successful!
+              </h2>
+              <p className="text-gray-600 mb-2">Thank you for your purchase.</p>
+              <p className="text-sm text-gray-500 mb-6">
+                Redirecting you to your dashboard...
+              </p>
+
+              <div className="flex justify-center">
+                <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Booking Modal */}
+        {bookingModalOpen && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-[10px] max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    Additional Booking Details
+                  </h2>
+                  <button
+                    onClick={closeBookingModal}
+                    className="text-gray-400 hover:text-gray-600"
+                    aria-label="Close booking details"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
                 </div>
 
-                {/* Attachments */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Attachments{" "}
-                    <span className="ml-1 text-gray-500">
-                      (
-                      {selectedItem?.isAttachmentRequired
-                        ? "Required"
-                        : "Optional"}
-                      )
-                    </span>
-                  </label>
-                  <div
-                    className={`border-2 border-dashed rounded-[10px] p-6 text-center ${
-                      selectedItem?.isAttachmentRequired &&
-                      bookingFormData.attachments.length === 0
-                        ? "border-red-400"
-                        : "border-gray-300"
-                    }`}
-                  >
-                    <input
-                      type="file"
-                      id="attachment-upload"
-                      multiple
-                      accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
-                      onChange={(e) => {
-                        const files = Array.from(e.target.files || []);
-                        files.forEach((file) => handleAttachmentUpload(file));
-                      }}
-                      className="hidden"
-                    />
-                    <label
-                      htmlFor="attachment-upload"
-                      className="cursor-pointer flex flex-col items-center"
-                    >
-                      <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-600">
-                        Click to upload files or drag and drop
-                      </span>
-                      <span className="text-xs text-gray-500 mt-1">
-                        PDF, DOC, DOCX, TXT, JPG, PNG
+                <div className="space-y-6">
+                  {/* Notes */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      User Notes{" "}
+                      <span className="ml-1 text-gray-500">
+                        (
+                        {selectedItem?.requiresBooking
+                          ? "Required"
+                          : "Optional"}
+                        )
                       </span>
                     </label>
+                    <textarea
+                      value={bookingFormData.userNotes}
+                      onChange={(e) =>
+                        setBookingFormData((p) => ({
+                          ...p,
+                          userNotes: e.target.value,
+                        }))
+                      }
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:border-transparent ${
+                        selectedItem?.requiresBooking &&
+                        bookingFormData.userNotes.trim().length === 0
+                          ? "border-red-400 focus:ring-red-300"
+                          : "border-gray-300 focus:ring-blue-500"
+                      }`}
+                      rows={4}
+                      placeholder="Any special requirements, questions, or additional information..."
+                    />
+                    {selectedItem?.requiresBooking &&
+                      bookingFormData.userNotes.trim().length === 0 && (
+                        <p className="mt-1 text-xs text-red-600">
+                          Please provide notes for this booking.
+                        </p>
+                      )}
                   </div>
 
-                  {selectedItem?.isAttachmentRequired &&
-                    bookingFormData.attachments.length === 0 && (
-                      <p className="mt-1 text-xs text-red-600">
-                        At least one attachment is required.
-                      </p>
+                  {/* Attachments */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Attachments{" "}
+                      <span className="ml-1 text-gray-500">
+                        (
+                        {selectedItem?.isAttachmentRequired
+                          ? "Required"
+                          : "Optional"}
+                        )
+                      </span>
+                    </label>
+                    <div
+                      className={`border-2 border-dashed rounded-[10px] p-6 text-center ${
+                        selectedItem?.isAttachmentRequired &&
+                        bookingFormData.attachments.length === 0
+                          ? "border-red-400"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      <input
+                        type="file"
+                        id="attachment-upload"
+                        multiple
+                        accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          files.forEach((file) =>
+                            handleAttachmentUpload(file)
+                          );
+                        }}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="attachment-upload"
+                        className="cursor-pointer flex flex-col items-center"
+                      >
+                        <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                        <span className="text-sm text-gray-600">
+                          Click to upload files or drag and drop
+                        </span>
+                        <span className="text-xs text-gray-500 mt-1">
+                          PDF, DOC, DOCX, TXT, JPG, PNG
+                        </span>
+                      </label>
+                    </div>
+
+                    {selectedItem?.isAttachmentRequired &&
+                      bookingFormData.attachments.length === 0 && (
+                        <p className="mt-1 text-xs text-red-600">
+                          At least one attachment is required.
+                        </p>
+                      )}
+
+                    {bookingFormData.attachments.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        {bookingFormData.attachments.map(
+                          (attachment, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md"
+                            >
+                              <span className="text-sm text-gray-700 truncate">
+                                {attachment.split("/").pop()}
+                              </span>
+                              <button
+                                onClick={() => removeAttachment(index)}
+                                className="text-red-500 hover:text-red-700"
+                                aria-label="Remove attachment"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )
+                        )}
+                      </div>
                     )}
 
-                  {bookingFormData.attachments.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      {bookingFormData.attachments.map((attachment, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md"
-                        >
-                          <span className="text-sm text-gray-700 truncate">
-                            {attachment.split("/").pop()}
-                          </span>
-                          <button
-                            onClick={() => removeAttachment(index)}
-                            className="text-red-500 hover:text-red-700"
-                            aria-label="Remove attachment"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {isUploadingAttachment && (
-                    <div className="mt-2 flex items-center text-sm text-blue-600">
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      Uploading...
-                    </div>
-                  )}
+                    {isUploadingAttachment && (
+                      <div className="mt-2 flex items-center text-sm text-blue-600">
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        Uploading...
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex justify-end space-x-3 mt-8">
-                <Button
-                  variant="outline"
-                  onClick={closeBookingModal}
-                  className="px-6"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={applyBookingAndProceed}
-                  disabled={!canContinue || isUploadingAttachment}
-                  className={`px-6 ${
-                    !canContinue || isUploadingAttachment
-                      ? "bg-gray-300 cursor-not-allowed"
-                      : "bg-blue-600 hover:bg-blue-700"
-                  }`}
-                >
-                  {isUploadingAttachment ? "Uploading…" : "Continue to Payment"}
-                </Button>
+                <div className="flex justify-end space-x-3 mt-8">
+                  <Button
+                    variant="outline"
+                    onClick={closeBookingModal}
+                    className="px-6"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={applyBookingAndProceed}
+                    disabled={!canContinue || isUploadingAttachment}
+                    className={`px-6 ${
+                      !canContinue || isUploadingAttachment
+                        ? "bg-gray-300 cursor-not-allowed"
+                        : "bg-blue-600 hover:bg-blue-700"
+                    }`}
+                  >
+                    {isUploadingAttachment
+                      ? "Uploading…"
+                      : "Continue to Payment"}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
     </>
   );
 }
