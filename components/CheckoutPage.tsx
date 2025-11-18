@@ -1134,7 +1134,7 @@ export default function CheckoutPage() {
         toast.success("Subscription activated successfully");
         console.log("🔍 [CheckoutPage] Subscription activated successfully");
         removeFromCart(itemForCheckout.id);
-        router.push("/dashboard/bookings");
+        router.push("/dashboard/my-subscriptions");
         return;
       }
 
