@@ -287,6 +287,7 @@ export default function Page() {
           </div>
           <div className="flex gap-2">
             <select
+            title="statusFilter"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="h-10 rounded-md border border-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"

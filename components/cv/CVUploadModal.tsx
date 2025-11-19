@@ -10,9 +10,9 @@ import {
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { STORAGE_FOLDERS, uploadFileToFirebase } from "@/lib/firebase";
 import { CVRatingResult, cvService } from "@/services/cv/cvServiceOptimized";
 import { toast } from "react-toastify";
+import { uploadToBackend } from "@/lib/uploads";
 
 /**
  * NOTE: 24-hour auto-deletion
@@ -141,12 +141,11 @@ export default function CVUploadModal({
     setMessage("Uploading to secure storage…");
     const cancel = simulateProgress(90);
 
-    // Upload to temp prefix for lifecycle cleanup
-    const url = await uploadFileToFirebase(
-      file,
-      STORAGE_FOLDERS.ATTACHMENTS,
-      "cv-rating"
-    );
+      // Upload to temp prefix for lifecycle cleanup
+      const url = await uploadToBackend(
+        file,
+        "cv-rating"
+      );
 
     cancel();
     setProgress(100);
