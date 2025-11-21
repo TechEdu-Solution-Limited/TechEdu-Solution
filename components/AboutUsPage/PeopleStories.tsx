@@ -9,17 +9,17 @@ const slides = [
   {
     name: "Amina O.",
     profession: "Ph.D Student",
-    image: "/assets/graduant.webp",
+    image: "/assets/amina.png",
     review:
       "The coaching I received helped me win a DAAD scholarship to Germany. The proposal template alone was gold.",
   },
-  {
-    name: "Ngozi B.",
-    profession: "HR Director, UK",
-    image: "/assets/graduant.webp",
-    review:
-      "We hired two analysts and one intern through CareerConnect in under a week.",
-  },
+  // {
+  //   name: "Ngozi B.",
+  //   profession: "HR Director, UK",
+  //   image: "/assets/graduant.webp",
+  //   review:
+  //     "We hired two analysts and one intern through CareerConnect in under a week.",
+  // },
   {
     name: "Dr. Susan",
     profession: "Dean of Research",

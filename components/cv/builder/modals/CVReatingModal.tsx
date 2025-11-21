@@ -1,448 +1,460 @@
+// components/cv/RatingModal.tsx
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useId } from "react";
+import { CVRatingResult } from "@/services/cv/cvServiceOptimized";
 import {
   X,
-  Upload,
+  CheckCircle2,
+  Gauge,
+  Sparkles,
   FileText,
-  AlertCircle,
-  CheckCircle,
-  Loader2,
+  Layers,
+  ShieldCheck,
+  AlertTriangle,
 } from "lucide-react";
-import { STORAGE_FOLDERS, uploadFileToFirebase } from "@/lib/firebase";
-import { UploadResult } from "firebase/storage";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
-type TemplateKey = "classic" | "modern" | "minimal" | "elegant";
+/* -------------------------- helpers & primitives -------------------------- */
 
-interface CVUploadModalProps {
-  isOpen: boolean;
+export interface RatingModalProps {
+  open: boolean;
+  data: CVRatingResult | null;
   onClose: () => void;
-  onUploadSuccess: (result: UploadResult & { file: File }) => void;
+  onStartEditing: () => void;
 }
 
-type Phase = "idle" | "uploading" | "ingesting" | "success" | "error";
-
-interface UploadStatus {
-  status: Phase;
-  message: string;
-  progress: number; // only used during "uploading"
+function formatFileSize(bytes: number = 0) {
+  if (!bytes) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
-export default function CVUploadModal({
-  isOpen,
-  onClose,
-  onUploadSuccess,
-}: CVUploadModalProps) {
-  const [isDragOver, setIsDragOver] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<UploadStatus>({
-    status: "idle",
-    message: "",
-    progress: 0,
-  });
+function clamp(n: number | undefined, min = 0, max = 100) {
+  const v = Number.isFinite(n as number) ? (n as number) : 0;
+  return Math.max(min, Math.min(max, v));
+}
 
-  // Request-body controls
-  const [selectedTemplate, setSelectedTemplate] =
-    useState<TemplateKey>("classic");
-  const [aiSegment, setAiSegment] = useState(true);
-  const [createDraft, setCreateDraft] = useState(true);
-  const [redact, setRedact] = useState(false);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
-
-    const files = Array.from(e.dataTransfer.files || []);
-    console.log("[CVUploadModal] drop event files:", files);
-
-    if (files.length > 0) {
-      void handleFileUpload(files[0]);
-    }
-  }, []);
-
-  const handleFileSelect = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files;
-      console.log("[CVUploadModal] file input change:", files);
-
-      if (files && files.length > 0) {
-        void handleFileUpload(files[0]);
-      }
-    },
-    []
+/** Circular gauge using a conic gradient with `currentColor` */
+function ScoreGauge({
+  value = 0,
+  label,
+  id,
+}: {
+  value?: number;
+  label?: string;
+  id?: string;
+}) {
+  const v = clamp(value);
+  const angle = (v / 100) * 360;
+  return (
+    <div className="flex flex-col items-center justify-center text-purple-600">
+      <div
+        role="img"
+        aria-labelledby={id}
+        className="relative h-28 w-28 sm:h-32 sm:w-32 rounded-full"
+        style={{
+          // foreground uses currentColor so you can theme via text-* utils
+          background: `conic-gradient(currentColor ${angle}deg, hsl(0 0% 90% / 0.4) ${angle}deg)`,
+        }}
+      >
+        <div className="absolute inset-2 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-inner">
+          <div className="text-center">
+            <div className="text-2xl sm:text-3xl font-bold">{v}</div>
+            <div className="text-[10px] sm:text-xs text-gray-500">/100</div>
+          </div>
+        </div>
+      </div>
+      {label && (
+        <div
+          id={id}
+          className="mt-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200"
+        >
+          {label}
+        </div>
+      )}
+    </div>
   );
+}
 
-  const handleFileUpload = async (file: File) => {
-    console.log(
-      "[CVUploadModal] Starting upload for file:",
-      file.name,
-      "size:",
-      file.size
-    );
+function Bar({ value = 0, label }: { value?: number; label?: string }) {
+  const v = clamp(value);
+  return (
+    <div className="w-full">
+      {!!label && (
+        <span className="sr-only">
+          {label}: {v} out of 100
+        </span>
+      )}
+      <div
+        className="w-full h-2.5 bg-gray-200/70 dark:bg-gray-700/60 rounded-full overflow-hidden"
+        role="progressbar"
+        aria-valuenow={v}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={label}
+      >
+        <div
+          className="h-full bg-gradient-to-r from-purple-600 to-blue-600 rounded-full transition-all"
+          style={{ width: `${v}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
-    try {
-      setUploadStatus({
-        status: "uploading",
-        message: "Uploading your CV...",
-        progress: 0,
-      });
+/* --------------------------------- main ---------------------------------- */
 
-      // Guard: block >10MB as per UI text
-      const maxBytes = 10 * 1024 * 1024;
-      if (file.size > maxBytes) {
-        throw new Error("File is larger than 10MB");
-      }
+export default function RatingModal({
+  open,
+  data,
+  onClose,
+  onStartEditing,
+}: RatingModalProps) {
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
 
-      // Simulated visible progress bar while upload runs
-      const progressInterval = setInterval(() => {
-        setUploadStatus((prev) => ({
-          ...prev,
-          progress: Math.min(prev.progress + 10, 90),
-        }));
-      }, 200);
-
-      // 1) Upload to Firebase
-      console.log("[CVUploadModal] Calling uploadFileToFirebase...");
-      const fileUrl = await uploadFileToFirebase(
-        file,
-        STORAGE_FOLDERS.ATTACHMENTS,
-        "cvs"
+  // Focus the close button on open (after dialog mount)
+  useEffect(() => {
+    if (!open) return;
+    const t = setTimeout(() => {
+      const btn = panelRef.current?.querySelector<HTMLButtonElement>(
+        '[data-close="true"]'
       );
-      console.log("[CVUploadModal] uploadFileToFirebase result:", fileUrl);
+      btn?.focus();
+    }, 50);
+    return () => clearTimeout(t);
+  }, [open]);
 
-      clearInterval(progressInterval);
+  const rating = data?.rating;
+  const fileMeta = data?.fileMeta;
 
-      setUploadStatus({
-        status: "ingesting",
-        message: "Processing your CV (AI segmentation)…",
-        progress: 100,
-      });
+  const sectionEntries = useMemo(() => {
+    const obj = rating?.sections || {};
+    // Optional: sort by score desc for more helpful ordering
+    return (Object.entries(obj) as [string, number][]).sort(
+      (a, b) => clamp(b[1]) - clamp(a[1])
+    );
+  }, [rating?.sections]);
 
-      // 2) Ingest via API
-      const body = {
-        url: fileUrl, // expected to be a public URL string
-        template: selectedTemplate,
-        aiSegment,
-        createDraft,
-        redact,
-      };
-      console.log("[CVUploadModal] Sending ingest request:", body);
-
-      const res = await fetch("/api/cv/ingest-from-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const msg = await res.text().catch(() => "");
-        console.error(
-          "[CVUploadModal] Ingestion failed",
-          res.status,
-          res.statusText,
-          msg
-        );
-        throw new Error(msg || `Ingestion failed with status ${res.status}`);
-      }
-
-      const data = await res.json().catch(() => ({}));
-      console.log("[CVUploadModal] Ingestion success, response:", data);
-
-      setUploadStatus({
-        status: "success",
-        message: "CV uploaded and processed successfully!",
-        progress: 100,
-      });
-
-      setTimeout(() => {
-        console.log("[CVUploadModal] Triggering onUploadSuccess callback");
-
-        // Keep the original callback signature (UploadResult & { file: File })
-        onUploadSuccess({
-          ref: {} as any,
-          metadata: {} as any,
-          state: "success" as any,
-          task: {} as any,
-          bytesTransferred: 0 as any,
-          totalBytes: 0 as any,
-          file,
-        } as unknown as UploadResult & { file: File });
-
-        handleClose();
-      }, 900);
-    } catch (error) {
-      console.error("[CVUploadModal] Error in handleFileUpload:", error);
-      setUploadStatus({
-        status: "error",
-        message: error instanceof Error ? error.message : "Upload failed",
-        progress: 0,
-      });
-    }
-  };
-
-  const resetUpload = () => {
-    setUploadStatus({
-      status: "idle",
-      message: "",
-      progress: 0,
-    });
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const handleClose = () => {
-    resetUpload();
-    onClose();
-  };
-
-  if (!isOpen) return null;
+  if (!open || !data || !rating) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-      // role="dialog"
-      // aria-modal="true"
-    >
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Upload Your CV
-          </h2>
-          <button
-            onClick={handleClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-[10px] transition-colors"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5 text-gray-500" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="p-6 space-y-6">
-          {/* Request-body options */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Template
-              </label>
-              <select
-                title="selectedTemplate"
-                value={selectedTemplate}
-                onChange={(e) =>
-                  setSelectedTemplate(e.target.value as TemplateKey)
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent
+        // width/height & container styling to match your sheet-like feel
+        className="w-full sm:w-[min(720px,calc(100vw-2rem))] max-h-[90vh] sm:max-h-[85vh] p-0 overflow-hidden rounded-2xl border border-gray-200/70 dark:border-gray-800 bg-white dark:bg-gray-900"
+      >
+        <div ref={panelRef} className="flex flex-col h-full">
+          <style jsx global>{`
+            @media (prefers-reduced-motion: no-preference) {
+              .rt-animate-up {
+                animation: rt-slideUp 0.2s ease-out both;
+              }
+              @keyframes rt-slideUp {
+                from {
+                  transform: translateY(10px);
+                  opacity: 0;
                 }
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-[10px] bg-white dark:bg-gray-800 text-sm"
-              >
-                <option value="classic">Classic</option>
-                <option value="modern">Modern</option>
-                <option value="minimal">Minimal</option>
-                <option value="elegant">Elegant</option>
-              </select>
-            </div>
+                to {
+                  transform: translateY(0);
+                  opacity: 1;
+                }
+              }
+            }
+          `}</style>
 
-            <div className="space-y-2">
-              <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4"
-                  checked={aiSegment}
-                  onChange={(e) => setAiSegment(e.target.checked)}
-                />
-                AI segment content
-              </label>
-              <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4"
-                  checked={createDraft}
-                  onChange={(e) => setCreateDraft(e.target.checked)}
-                />
-                Create draft
-              </label>
-              <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4"
-                  checked={redact}
-                  onChange={(e) => setRedact(e.target.checked)}
-                />
-                Redact PII
-              </label>
+          {/* Header */}
+          <div className="shrink-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur border-b border-gray-200 dark:border-gray-800 px-4 sm:px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-purple-600" />
+              <DialogHeader className="p-0">
+                <DialogTitle
+                  id={titleId}
+                  className="text-base sm:text-lg font-semibold"
+                >
+                  CV Rating &amp; Feedback
+                </DialogTitle>
+              </DialogHeader>
             </div>
+            <Button
+              data-close="true"
+              onClick={onClose}
+              variant="ghost"
+              size="icon"
+              className="hover:bg-gray-100 dark:hover:bg-gray-800"
+              aria-label="Close dialog"
+            >
+              <X className="h-5 w-5" />
+            </Button>
           </div>
 
-          {/* Upload Area / Status */}
-          {uploadStatus.status === "idle" && (
-            <div
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()} // allow clicking anywhere on the dropzone
-              className={`border-2 border-dashed rounded-[12px] p-8 text-center transition-all duration-300 cursor-pointer ${
-                isDragOver
-                  ? "border-blue-400 bg-blue-50 dark:bg-blue-900/20"
-                  : "border-gray-300 dark:border-gray-600 hover:border-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-              }`}
-            >
-              <div className="space-y-4">
-                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center mx-auto">
-                  <Upload className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    Drop your CV here or click to browse
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    Supported formats: PDF, DOC, DOCX, TXT (Max 10MB)
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation(); // avoid double-trigger
-                    fileInputRef.current?.click();
-                  }}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-[10px] font-medium transition-colors"
-                >
-                  Choose File
-                </button>
-
-                <input
-                  title="file"
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.doc,.docx,.txt"
-                  onChange={handleFileSelect}
-                  className="hidden"
+          {/* Content */}
+          <div
+            className="flex-1 min-h-0 px-4 sm:px-6 py-4 sm:py-6 overflow-y-auto overscroll-contain space-y-6 rt-animate-up"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
+            {/* Top row: Overall & badges */}
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-4">
+                <ScoreGauge
+                  value={rating.overall}
+                  label="Overall Score"
+                  id={`${titleId}-overall`}
                 />
-              </div>
-            </div>
-          )}
-
-          {uploadStatus.status !== "idle" && (
-            <div className="space-y-6">
-              {/* Status Icon */}
-              <div className="flex justify-center">
-                {uploadStatus.status === "uploading" && (
-                  <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 text-blue-600 dark:text-blue-400 animate-spin" />
+                <div className="space-y-2">
+                  <div className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-200 text-xs sm:text-sm font-medium">
+                    <Gauge className="h-4 w-4" />
+                    Score calculated from content, structure & ATS checks
                   </div>
-                )}
-                {uploadStatus.status === "ingesting" && (
-                  <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/40 rounded-full flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 text-indigo-600 dark:text-indigo-400 animate-spin" />
+                  <div className="flex flex-wrap gap-2">
+                    {rating.atsFriendly ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 text-xs font-medium">
+                        <CheckCircle2 className="h-4 w-4" />
+                        ATS Friendly
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 text-xs font-medium">
+                        <AlertTriangle className="h-4 w-4" />
+                        ATS Issues Detected
+                      </span>
+                    )}
+                    {typeof rating.keywordCoverage === "number" && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200 text-xs font-medium">
+                        <Layers className="h-4 w-4" />
+                        Keywords: {clamp(rating.keywordCoverage)}%
+                      </span>
+                    )}
+                    {!!rating.seniority && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200 text-xs font-medium capitalize">
+                        <ShieldCheck className="h-4 w-4" />
+                        {rating.seniority}
+                      </span>
+                    )}
                   </div>
-                )}
-                {uploadStatus.status === "success" && (
-                  <div className="w-16 h-16 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center">
-                    <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
-                  </div>
-                )}
-                {uploadStatus.status === "error" && (
-                  <div className="w-16 h-16 bg-red-100 dark:bg-red-900/40 rounded-full flex items-center justify-center">
-                    <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
-                  </div>
-                )}
-              </div>
-
-              {/* Status Message + Progress */}
-              <div className="text-center">
-                <h3
-                  className={`text-lg font-semibold mb-2 ${
-                    uploadStatus.status === "success"
-                      ? "text-green-600 dark:text-green-400"
-                      : uploadStatus.status === "error"
-                      ? "text-red-600 dark:text-red-400"
-                      : uploadStatus.status === "ingesting"
-                      ? "text-indigo-600 dark:text-indigo-400"
-                      : "text-blue-600 dark:text-blue-400"
-                  }`}
-                >
-                  {uploadStatus.message}
-                </h3>
-
-                {uploadStatus.status === "uploading" && (
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${uploadStatus.progress}%` }}
-                    />
-                  </div>
-                )}
+                </div>
               </div>
 
-              {/* Error actions */}
-              {uploadStatus.status === "error" && (
-                <div className="flex justify-center space-x-3">
-                  <button
-                    type="button"
-                    onClick={resetUpload}
-                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-[10px] transition-colors"
-                  >
-                    Try Again
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleClose}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-[10px] transition-colors"
-                  >
-                    Cancel
-                  </button>
+              {!!fileMeta && (
+                <div className="grid grid-cols-3 gap-3 w-full sm:w-auto">
+                  <MetaCard
+                    title="Size"
+                    value={formatFileSize(fileMeta.bytes || 0)}
+                  />
+                  <MetaCard
+                    title="Pages"
+                    value={String(fileMeta.pages ?? "–")}
+                  />
+                  <MetaCard
+                    title="Type"
+                    value={fileMeta.mime || fileMeta.ext || "—"}
+                  />
                 </div>
               )}
             </div>
-          )}
 
-          {/* Info Section */}
-          <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-[10px]">
-            <div className="flex items-start space-x-3">
-              <FileText className="h-5 w-5 text-gray-500 mt-0.5 flex-shrink-0" />
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                <p className="font-medium mb-1">What happens next?</p>
-                <ul className="space-y-1 text-xs">
-                  <li>• Your CV is securely uploaded</li>
-                  <li>• We analyze and extract information from your CV</li>
-                  <li>
-                    • You’ll edit the extracted data with your chosen template
-                  </li>
-                  <li>
-                    • Uploaded files may be deleted after a retention period
-                  </li>
-                </ul>
+            {/* Sections grid */}
+            {sectionEntries.length > 0 && (
+              <div>
+                <SectionHeading
+                  icon={<FileText className="h-4 w-4" />}
+                  title="Section Scores"
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {sectionEntries.map(([key, val]) => (
+                    <div
+                      key={key}
+                      className="rounded-xl border border-gray-200 dark:border-gray-800 p-3 sm:p-4"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium capitalize">
+                          {key}
+                        </span>
+                        <span className="text-sm font-semibold">
+                          {clamp(val)}
+                        </span>
+                      </div>
+                      <Bar value={val} label={`${key} score`} />
+                    </div>
+                  ))}
+                </div>
               </div>
+            )}
+
+            {/* Strengths & Gaps */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <ListCard
+                title="Strengths"
+                items={rating.strengths}
+                color="green"
+              />
+              <ListCard title="Gaps" items={rating.gaps} color="rose" />
             </div>
+
+            {/* Notes */}
+            {!!rating.notes && (
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-800 p-4 sm:p-5">
+                <h4 className="text-sm font-semibold mb-1">Notes</h4>
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {rating.notes}
+                </p>
+              </div>
+            )}
+
+            {/* Job Match */}
+            {!!rating.match && (
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-800 p-4 sm:p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold">Job Match</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">Score</span>
+                    <div className="min-w-[100px]">
+                      <Bar value={rating.match.score} label="Job match score" />
+                    </div>
+                    <span className="text-sm font-semibold w-8 text-right">
+                      {clamp(rating.match.score)}
+                    </span>
+                  </div>
+                </div>
+
+                {Array.isArray(rating.match.missingSkills) &&
+                  rating.match.missingSkills.length > 0 && (
+                    <div className="mt-2">
+                      <div className="text-xs text-gray-500 mb-1">
+                        Missing skills
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {rating.match.missingSkills.map((s, i) => (
+                          <span
+                            key={i}
+                            className="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-800"
+                          >
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                {Array.isArray(rating.match.reasons) &&
+                  rating.match.reasons.length > 0 && (
+                    <div className="mt-3">
+                      <div className="text-xs text-gray-500 mb-1">Reasons</div>
+                      <ul className="list-disc list-inside text-sm space-y-1">
+                        {rating.match.reasons.map((r, i) => (
+                          <li key={i}>{r}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="shrink-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur border-t border-gray-200 dark:border-gray-800 px-4 sm:px-6 py-3 flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="w-full sm:w-auto"
+              data-close="true"
+            >
+              Close
+            </Button>
+            <Button
+              onClick={onStartEditing}
+              className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-blue-600 text-white"
+            >
+              Start Editing This CV
+            </Button>
           </div>
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-[10px]"
-          >
-            Close
-          </button>
-        </div>
+/* -------------------------- presentational bits -------------------------- */
+
+function SectionHeading({
+  icon,
+  title,
+}: {
+  icon?: React.ReactNode;
+  title: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 mb-2">
+      <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800">
+        {icon}
       </div>
+      <h4 className="text-sm font-semibold">{title}</h4>
+    </div>
+  );
+}
+
+function MetaCard({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-3 text-center">
+      <div className="text-[11px] uppercase tracking-wide text-gray-500">
+        {title}
+      </div>
+      <div className="mt-0.5 text-sm font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function ListCard({
+  title,
+  items,
+  color = "gray",
+}: {
+  title: string;
+  items?: string[];
+  color?: "green" | "rose" | "gray";
+}) {
+  const palette =
+    color === "green"
+      ? {
+          dot: "bg-green-500",
+          header: "text-green-700 dark:text-green-300",
+          chip: "bg-green-50 dark:bg-green-900/20",
+        }
+      : color === "rose"
+      ? {
+          dot: "bg-rose-500",
+          header: "text-rose-700 dark:text-rose-300",
+          chip: "bg-rose-50 dark:bg-rose-900/20",
+        }
+      : {
+          dot: "bg-gray-500",
+          header: "text-gray-700 dark:text-gray-300",
+          chip: "bg-gray-100 dark:bg-gray-800",
+        };
+
+  return (
+    <div className="rounded-2xl border border-gray-200 dark:border-gray-800 p-4 sm:p-5">
+      <div className="flex items-center gap-2 mb-2">
+        <span className={`h-2 w-2 rounded-full ${palette.dot}`} />
+        <h4 className={`text-sm font-semibold ${palette.header}`}>{title}</h4>
+      </div>
+      {Array.isArray(items) && items.length > 0 ? (
+        <ul className="list-disc list-inside text-sm space-y-1">
+          {items.map((s, i) => (
+            <li key={i}>{s}</li>
+          ))}
+        </ul>
+      ) : (
+        <div className="text-xs text-gray-500">No items provided.</div>
+      )}
     </div>
   );
 }

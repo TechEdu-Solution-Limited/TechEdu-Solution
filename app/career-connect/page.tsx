@@ -103,7 +103,7 @@ const SuccessStories: Story[] = [
   {
     name: "Tomi A.",
     country: "UK",
-    image: "/assets/tomi.webp",
+    image: "/assets/sami.jpg",
     review:
       "It was the first time I got interview feedback and not just rejection silence.",
     role: "Graduate Trainee (Data)",

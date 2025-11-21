@@ -163,7 +163,7 @@ const sanpleCV: CVSample[] = [
 const GlobalTestimonials: Story[] = [
   {
     name: "Sami R.",
-    image: "/assets/ngozi.webp",
+    image: "/assets/sami.jpg",
     review:
       "I submitted a CV created here and got two callbacks, one in Germany and one in the UAE.",
     role: "Data Graduate",

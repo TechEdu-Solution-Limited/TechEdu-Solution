@@ -227,7 +227,7 @@ const WhatUsersSay: Story[] = [
   {
     name: "Michael R.",
     country: "UK",
-    image: "/assets/employer.webp",
+    image: "/assets/michael.jpg",
     review:
       "The AI governance framework helped us implement responsible AI practices across our organization.",
     role: "CTO",
