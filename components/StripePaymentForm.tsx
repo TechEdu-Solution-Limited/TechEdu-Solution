@@ -83,6 +83,8 @@ interface PaymentFormProps {
   bookingId?: string | null;
   /** NEW: should this component redirect after a successful PaymentIntent? */
   redirectOnSuccess?: boolean;
+  /** NEW: auto-run SetupIntent when in chained billing flow (intentType="both") */
+  autoSubmitSetup?: boolean;
 }
 
 function PaymentForm({
@@ -97,6 +99,7 @@ function PaymentForm({
   productName = "Course",
   bookingId,
   redirectOnSuccess = true,
+  autoSubmitSetup = false,
 }: PaymentFormProps) {
   const inferredIsPayment = clientSecret?.startsWith("pi_");
   const inferredIsSetup = clientSecret?.startsWith("seti_");
@@ -126,20 +129,22 @@ function PaymentForm({
     cvc: false,
   });
 
-    // 🔁 Reset UI whenever we switch between PaymentIntent and SetupIntent
-    useEffect(() => {
-      setSuccessUI(false);
-      setIsProcessing(false);
-      setError(null);
-  
-      // Optional: log stage change
-      safeConsole.log("🔄 [StripePaymentForm] Stage reset for new intent", {
-        mode,
-        hasClientSecret: !!clientSecret,
-        clientSecretPrefix: clientSecret?.slice(0, 7),
-      });
-    }, [clientSecret, mode]);
-  
+  // Track if we've already auto-submitted SetupIntent for this stage
+  const [autoSubmittedOnce, setAutoSubmittedOnce] = useState(false);
+
+  // 🔁 Reset UI whenever we switch between PaymentIntent and SetupIntent
+  useEffect(() => {
+    setSuccessUI(false);
+    setIsProcessing(false);
+    setError(null);
+    setAutoSubmittedOnce(false);
+
+    safeConsole.log("🔄 [StripePaymentForm] Stage reset for new intent", {
+      mode,
+      hasClientSecret: !!clientSecret,
+      clientSecretPrefix: clientSecret?.slice(0, 7),
+    });
+  }, [clientSecret, mode]);
 
   const handleCardChange =
     (field: "number" | "expiry" | "cvc") => (event: any) => {
@@ -163,34 +168,49 @@ function PaymentForm({
     },
   } as const;
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
+  // Core processor used by both manual submit and auto-submit
+  const processPayment = async (autoTriggered: boolean = false) => {
     if (!stripe || !elements) return;
 
     const hasSecretPart = clientSecret && clientSecret.includes("_secret_");
     const looksLikePI = clientSecret?.startsWith("pi_");
     const looksLikeSI = clientSecret?.startsWith("seti_");
 
+    if (autoTriggered) {
+      // Ensure we only auto-trigger once per stage
+      setAutoSubmittedOnce(true);
+    }
+
     if (!clientSecret || clientSecret.length < 50 || !hasSecretPart) {
-      setError("Invalid client secret. Please try again.");
+      const msg = "Invalid client secret. Please try again.";
+      setError(msg);
+      onError(msg);
       return;
     }
     if (isPayment && !looksLikePI) {
-      setError("Invalid payment intent. Please try again.");
+      const msg = "Invalid payment intent. Please try again.";
+      setError(msg);
+      onError(msg);
       return;
     }
     if (isSetup && !looksLikeSI) {
-      setError("Invalid setup intent. Please try again.");
+      const msg = "Invalid setup intent. Please try again.";
+      setError(msg);
+      onError(msg);
       return;
     }
     if (isPayment && (amount == null || !currency)) {
-      setError("Missing amount or currency for payment.");
+      const msg = "Missing amount or currency for payment.";
+      setError(msg);
+      onError(msg);
       return;
     }
 
     const cardNumberElement = elements.getElement(CardNumberElement);
     if (!cardNumberElement) {
-      setError("Card number input not ready");
+      const msg = "Card number input not ready";
+      setError(msg);
+      onError(msg);
       return;
     }
 
@@ -207,6 +227,7 @@ function PaymentForm({
       if (pmError) {
         const message = pmError.message || "Card error";
         setError(message);
+        onError(message);
         setIsProcessing(false);
         return;
       }
@@ -343,6 +364,7 @@ function PaymentForm({
 
         const message =
           process.env.NODE_ENV === "production"
+          
             ? "Something went wrong"
             : `Payment status: ${paymentIntent?.status || "unknown"}`;
         setError(message);
@@ -386,6 +408,7 @@ function PaymentForm({
       }
 
       if (setupIntent?.status === "requires_action") {
+        // 3DS or MFA handled by Stripe
         setIsProcessing(false);
         return;
       }
@@ -405,6 +428,87 @@ function PaymentForm({
       setIsProcessing(false);
     }
   };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    await processPayment(false);
+  };
+
+  // 🔁 Auto-submit SetupIntent when:
+  //  - we are in `mode="setup"`
+  //  - this is a chained billing flow (`autoSubmitSetup === true`)
+  //  - card details are already complete (from the PaymentIntent step)
+  //  - we haven't auto-submitted yet
+  useEffect(() => {
+    if (
+      isSetup &&
+      autoSubmitSetup &&
+      !autoSubmittedOnce &&
+      stripe &&
+      elements &&
+      !isProcessing &&
+      !successUI &&
+      clientSecret
+    ) {
+      // When auto-submitting after PaymentIntent, the card was just successfully used
+      // so we can proceed even if cardComplete state hasn't been updated yet
+      const checkCardAndSubmit = async () => {
+        const cardNumberElement = elements.getElement(CardNumberElement);
+        if (!cardNumberElement) {
+          safeConsole.log(
+            "⏳ [StripePaymentForm] Waiting for card element to be ready..."
+          );
+          return;
+        }
+
+        // In auto-submit mode (chained from PaymentIntent), we trust the card is valid
+        // since it was just used successfully. Proceed if form is complete OR in auto-submit mode
+        const shouldProceed = isFormComplete || autoSubmitSetup;
+
+        if (shouldProceed) {
+          safeConsole.log(
+            "⚡ [StripePaymentForm] Auto-submitting SetupIntent for chained billing flow",
+            {
+              isFormComplete,
+              autoSubmitSetup,
+              hasCardElement: !!cardNumberElement,
+              mode,
+              clientSecretPrefix: clientSecret?.slice(0, 10),
+            }
+          );
+          await processPayment(true);
+        } else {
+          safeConsole.log(
+            "⏳ [StripePaymentForm] Waiting for card to be complete...",
+            {
+              cardComplete,
+              isFormComplete,
+            }
+          );
+        }
+      };
+
+      // Small delay to ensure elements are ready after mode switch
+      // This gives Stripe Elements time to initialize with the new clientSecret
+      const timeoutId = setTimeout(() => {
+        void checkCardAndSubmit();
+      }, 150);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [
+    isSetup,
+    autoSubmitSetup,
+    autoSubmittedOnce,
+    stripe,
+    elements,
+    isFormComplete,
+    isProcessing,
+    successUI,
+    clientSecret,
+    cardComplete,
+    mode,
+  ]);
 
   const payCta =
     isPayment && amount != null && currency
@@ -630,6 +734,8 @@ interface StripePaymentFormProps {
   stripeAccountId?: string;
   /** Whether to redirect to /payment-success after PI success */
   redirectOnSuccess?: boolean;
+  /** Auto-run SetupIntent when chained from a billing flow (intentType="both") */
+  autoSubmitSetup?: boolean;
 }
 
 export default function StripePaymentForm({
@@ -645,6 +751,7 @@ export default function StripePaymentForm({
   bookingId,
   stripeAccountId,
   redirectOnSuccess = true,
+  autoSubmitSetup = false,
 }: StripePaymentFormProps) {
   const elementsStripe = useMemo(() => {
     if (!stripePublishableKey) return null;
@@ -673,6 +780,7 @@ export default function StripePaymentForm({
               productName={productName}
               bookingId={bookingId}
               redirectOnSuccess={redirectOnSuccess}
+              autoSubmitSetup={autoSubmitSetup}
             />
           </Elements>
         </div>

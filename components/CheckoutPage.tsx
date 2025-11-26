@@ -296,6 +296,9 @@ export default function CheckoutPage() {
     installments?: number[];
   } | null>(null);
 
+  // NEW: whether SetupIntent should auto-submit (for `intentType="both"` flows)
+  const [autoSubmitSetup, setAutoSubmitSetup] = useState(false);
+
   const [quoteExpired, setQuoteExpired] = useState(false);
   const [quoteRefreshing, setQuoteRefreshing] = useState(false);
 
@@ -352,7 +355,7 @@ export default function CheckoutPage() {
         installments: number[];
         plan?: {
           count: number;
-          interval: "day" | "week" | "month" | "year";
+          interval: InstallmentInterval;
           intervalCount: number;
           downPaymentType: "percent" | "amount";
           downPaymentValue: number;
@@ -483,8 +486,7 @@ export default function CheckoutPage() {
               intervalCount:
                 selectedItem.pricing?.installments?.intervalCount ?? 1,
               downPaymentType:
-                selectedItem.pricing?.installments?.downPaymentType ??
-                "percent",
+                selectedItem.pricing?.installments?.downPaymentType ?? "percent",
               downPaymentValue:
                 selectedItem.pricing?.installments?.downPaymentValue ?? 20,
             }
@@ -584,7 +586,7 @@ export default function CheckoutPage() {
             count: Number(opt.installments?.count || 0),
             interval: (opt.installments?.interval ||
               selectedItem?.pricing?.installments?.interval ||
-              "month") as "day" | "week" | "month" | "year",
+              "month") as InstallmentInterval,
             intervalCount: Number(
               opt.installments?.intervalCount ||
                 selectedItem?.pricing?.installments?.intervalCount ||
@@ -810,6 +812,7 @@ export default function CheckoutPage() {
     setBusy(true);
     setError(null);
     setBillingFlowState(null); // Clear billing flow state at start
+    setAutoSubmitSetup(false); // reset any previous auto-submit flag
     const token = getTokenFromCookies();
 
     if (isCurrentQuoteExpired()) {
@@ -1203,8 +1206,10 @@ export default function CheckoutPage() {
       billingFlowState?.intentType === "both" &&
       billingFlowState?.setupIntentSecret
     ) {
-      safeConsole.log("⚡ [CheckoutPage] Auto-triggering SetupIntent after successful PaymentIntent");
-    
+      safeConsole.log(
+        "⚡ [CheckoutPage] Auto-triggering SetupIntent after successful PaymentIntent"
+      );
+
       // Show overlay or loader while Stripe SetupIntent initializes
       const overlay = document.createElement("div");
       overlay.className =
@@ -1216,22 +1221,31 @@ export default function CheckoutPage() {
         </div>
       `;
       document.body.appendChild(overlay);
-    
+
       // Delay just enough for user to see the loader
       setTimeout(() => {
         // Switch to setup intent automatically
         setClientSecret(billingFlowState.setupIntentSecret || null);
         setMode("setup");
         setAmountMinor(undefined);
+
+        // 🚀 Tell StripePaymentForm to auto-submit SetupIntent once ready
+        setAutoSubmitSetup(true);
+
+        // We’ve consumed the billing state; clear it so we don’t repeat
         setBillingFlowState(null);
         toast.info("Setting up your billing automatically...");
-    
+
         // Remove loader after transition
         setTimeout(() => {
-          document.body.removeChild(overlay);
+          try {
+            document.body.removeChild(overlay);
+          } catch {
+            // ignore
+          }
         }, 1500);
       }, 800);
-    
+
       return;
     }
 
@@ -1249,6 +1263,7 @@ export default function CheckoutPage() {
     setMode(null);
     setAmountMinor(undefined);
     setBillingFlowState(null);
+    setAutoSubmitSetup(false);
   };
 
   /* Guards */
@@ -1549,6 +1564,8 @@ export default function CheckoutPage() {
                       bookingId={undefined}
                       // ✅ Only auto-redirect for simple one-time payments
                       redirectOnSuccess={!(A_INST || A_SUB)}
+                      // ✅ Auto-submit SetupIntent when coming from a chained billing flow
+                      autoSubmitSetup={autoSubmitSetup}
                     />
                   </div>
                 )}
