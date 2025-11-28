@@ -588,11 +588,11 @@ export const dashboardSidebarConfig = {
             icon: FileText,
             href: "/dashboard/jobs-management/new",
           },
-          {
-            label: "Jobs Posted",
-            icon: Briefcase,
-            href: "/dashboard/jobs-management",
-          },
+          // {
+          //   label: "Jobs Posted",
+          //   icon: Briefcase,
+          //   href: "/dashboard/jobs-management",
+          // },
           {
             label: "Applications",
             icon: ClipboardList,
