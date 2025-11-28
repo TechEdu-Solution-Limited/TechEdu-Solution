@@ -6,6 +6,7 @@ import {
   setCookie,
   deleteTokenFromCookies,
   deleteRefreshTokenFromCookies,
+  clearAllCookies,
 } from "@/lib/cookies";
 import { getDeviceInfo } from "@/utils/getDeviceInfo";
 
@@ -78,6 +79,57 @@ const createHeaders = (
 };
 
 /**
+ * Force logout user by clearing all cookies and redirecting to home
+ * This is used when account is deactivated or unauthorized
+ */
+const forceLogout = () => {
+  safeConsole.warn("Forcing logout due to unauthorized/deactivated account");
+  
+  // Clear all cookies
+  clearAllCookies();
+  deleteTokenFromCookies();
+  deleteRefreshTokenFromCookies();
+
+  // Redirect to home page
+  if (typeof window !== "undefined") {
+    window.location.href = "/";
+  }
+};
+
+/**
+ * Check if error indicates account is deactivated
+ */
+const isAccountDeactivated = (error: any): boolean => {
+  if (!error || error.status !== 401) {
+    return false;
+  }
+
+  // Check error structure: error.error?.details array contains deactivation message
+  const errorDetails = error.error?.details || error.details || [];
+  const errorMessage = error.message || error.error?.message || "";
+  
+  // Check if any detail or message contains deactivation text
+  const deactivationIndicators = [
+    "This account has been deactivated",
+    "account has been deactivated",
+    "deactivated",
+    "UNAUTHORIZED",
+  ];
+
+  const hasDeactivationMessage = 
+    errorDetails.some((detail: string) =>
+      deactivationIndicators.some((indicator) =>
+        detail?.toLowerCase().includes(indicator.toLowerCase())
+      )
+    ) ||
+    deactivationIndicators.some((indicator) =>
+      errorMessage.toLowerCase().includes(indicator.toLowerCase())
+    );
+
+  return hasDeactivationMessage;
+};
+
+/**
  * Generic API request function
  */
 export const apiRequest = async <T = any>(
@@ -101,14 +153,29 @@ export const apiRequest = async <T = any>(
     const data = isJson && responseText ? JSON.parse(responseText) : {};
 
     if (!response.ok) {
+      // Check if account is deactivated before throwing
+      const errorData = {
+        ...data,
+        status: response.status,
+      };
+      
+      if (isAccountDeactivated(errorData)) {
+        safeConsole.error("Account deactivated detected in apiRequest, forcing logout:", errorData);
+        forceLogout();
+      }
+      
       // Throw the entire backend error object if available
-      throw data;
+      throw errorData;
     }
 
     return { data, status: response.status, message: data.message };
   } catch (error: any) {
-    // If error is already an object from backend, just throw it
+    // If error is already an object from backend, check for deactivation
     if (error && typeof error === "object") {
+      if (isAccountDeactivated(error)) {
+        safeConsole.error("Account deactivated detected in apiRequest catch, forcing logout:", error);
+        forceLogout();
+      }
       throw error;
     }
     // Otherwise, throw a generic error
@@ -383,6 +450,13 @@ export const apiRequestWithRefresh = async <T = any>(
     );
     return response;
   } catch (error: any) {
+    // Check if account is deactivated - if so, force logout immediately
+    if (isAccountDeactivated(error)) {
+      safeConsole.error("Account deactivated, forcing logout:", error);
+      forceLogout();
+      throw error;
+    }
+
     // If token is expired (401), try to refresh
     if (error.status === 401 && token) {
       try {
@@ -416,6 +490,12 @@ export const apiRequestWithRefresh = async <T = any>(
         }
       } catch (refreshError) {
         safeConsole.error("Token refresh failed:", refreshError);
+        
+        // Check if refresh error also indicates deactivation
+        if (isAccountDeactivated(refreshError)) {
+          forceLogout();
+        }
+        
         // If refresh fails, clear tokens and throw original error
         throw error;
       }
