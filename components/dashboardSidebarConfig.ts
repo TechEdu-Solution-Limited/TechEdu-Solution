@@ -613,11 +613,11 @@ export const dashboardSidebarConfig = {
             icon: SubscriptIcon,
             href: "/dashboard/my-subscriptions",
           },
-          {
-            label: "Interviews",
-            icon: Calendar,
-            href: "/dashboard/interviews",
-          },
+          // {
+          //   label: "Interviews",
+          //   icon: Calendar,
+          //   href: "/dashboard/interviews",
+          // },
           {
             label: "My Bookings",
             icon: BookOpen,
