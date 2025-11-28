@@ -125,7 +125,7 @@ export default function NewJobPage() {
       const token = getCookie("token");
       setCompaniesLoading(true);
       try {
-        const response = await getApiRequest("api/companies", token as string);
+        const response = await getApiRequest("/api/companies", token as string);
         const result = response.data;
 
         if (result.success && result.data?.companies) {
