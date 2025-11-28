@@ -415,7 +415,7 @@ export default function SingleJobPage({
                   <div className="relative">
                     <Image
                       src={
-                        job.companyLogo || "/assets/default-company-logo.png"
+                        job.companyLogo || "/assets/logo.avif"
                       }
                       alt={job.companyName}
                       width={100}
@@ -607,7 +607,7 @@ export default function SingleJobPage({
               <CardContent className="space-y-6">
                 <div className="flex items-center gap-4">
                   <Image
-                    src={job.companyLogo || "/assets/default-company-logo.png"}
+                    src={job.companyLogo || "/assets/logo.avif"}
                     alt={job.companyName}
                     width={64}
                     height={64}

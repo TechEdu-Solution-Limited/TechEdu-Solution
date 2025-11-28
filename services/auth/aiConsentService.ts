@@ -72,7 +72,7 @@ export const aiConsentService = {
     const json = await doFetch<{
       success: boolean;
       data?: { ok?: boolean; aiTraining?: boolean };
-    }>("/api/auth/ai/consent/training", "POST", { allow });
+    }>("/api/auth/ai/consent/accept", "POST", { allow });
     return json?.data?.ok === true && json?.data?.aiTraining === allow;
   },
 };

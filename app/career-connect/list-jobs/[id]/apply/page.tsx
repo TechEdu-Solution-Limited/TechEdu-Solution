@@ -468,6 +468,7 @@ function JobApplicationContent() {
                           onClick={() => setSelectedCV(cv.id)}
                         >
                           <input
+                          title="cv"
                             type="radio"
                             name="cv"
                             value={cv.id}
@@ -603,6 +604,7 @@ function JobApplicationContent() {
                               onClick={() => setSelectedCoverLetter(cl.id)}
                             >
                               <input
+                              title="cover"
                                 type="radio"
                                 name="coverLetter"
                                 value={cl.id}

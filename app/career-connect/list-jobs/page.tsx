@@ -636,7 +636,7 @@ function JobCard({
           <div className="flex items-center space-x-3">
             <Avatar className="h-12 w-12">
               <AvatarImage
-                src={job.companyLogo || "/assets/logo.png"}
+                src={job.companyLogo || "/assets/logo.avif"}
                 alt={job.company}
               />
               <AvatarFallback>{job.company?.charAt(0)}</AvatarFallback>

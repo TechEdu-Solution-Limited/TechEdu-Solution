@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
-import { getApiRequest } from "@/lib/apiFetch";
+import { getApiRequest, apiRequest } from "@/lib/apiFetch";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,8 +22,10 @@ import {
   AlertCircle,
   Inbox,
   ExternalLink,
+  X,
 } from "lucide-react";
 import { getTokenFromCookies } from "@/lib/cookies";
+import { toast } from "react-toastify";
 
 type Subscription = {
   _id: string;
@@ -138,6 +140,16 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("active");
+  const [cancelingId, setCancelingId] = useState<string | null>(null);
+  const [cancelDialog, setCancelDialog] = useState<{
+    open: boolean;
+    subscriptionId: string | null;
+    cancelImmediately: boolean;
+  }>({
+    open: false,
+    subscriptionId: null,
+    cancelImmediately: false,
+  });
 
   const fetchEntitlements = useCallback(async () => {
     const token = getTokenFromCookies();
@@ -200,6 +212,49 @@ export default function Page() {
     setRefreshing(true);
     await fetchEntitlements();
     setRefreshing(false);
+  };
+
+  const handleCancelSubscription = async (subscriptionId: string, cancelImmediately: boolean = false) => {
+    const token = getTokenFromCookies();
+    if (!token) {
+      toast.error("Authentication required");
+      return;
+    }
+
+    setCancelingId(subscriptionId);
+    try {
+      const response = await apiRequest(
+        `/api/me/subscriptions/${subscriptionId}`,
+        "DELETE",
+        { cancelImmediately },
+        token
+      );
+
+      if (response.data?.success) {
+        toast.success(response.data?.message || "Subscription canceled successfully");
+        // Update the subscription in the list
+        setData((prev) =>
+          prev.map((sub) =>
+            sub._id === subscriptionId
+              ? {
+                  ...sub,
+                  status: response.data?.data?.status || "canceled",
+                  cancelAtPeriodEnd: response.data?.data?.cancelAtPeriodEnd || false,
+                }
+              : sub
+          )
+        );
+        setCancelDialog({ open: false, subscriptionId: null, cancelImmediately: false });
+      } else {
+        throw new Error(response.data?.message || "Failed to cancel subscription");
+      }
+    } catch (err: any) {
+      const errorMessage =
+        err?.data?.message || err?.message || "Failed to cancel subscription";
+      toast.error(errorMessage);
+    } finally {
+      setCancelingId(null);
+    }
   };
 
   return (
@@ -293,6 +348,8 @@ export default function Page() {
               className="h-10 rounded-md border border-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="canceled">Canceled</option>
             </select>
           </div>
         </CardHeader>
@@ -403,6 +460,26 @@ export default function Page() {
                               </Button>
                             </a>
                           )}
+                          {s.status !== "canceled" && s.status !== "incomplete" && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() =>
+                                setCancelDialog({
+                                  open: true,
+                                  subscriptionId: s._id,
+                                  cancelImmediately: false,
+                                })
+                              }
+                              disabled={cancelingId === s._id}
+                            >
+                              {cancelingId === s._id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <X className="w-3 h-3 text-white bg-red-500 hover:bg-red-600" />
+                              )}
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -413,6 +490,110 @@ export default function Page() {
           )}
         </CardContent>
       </Card>
+
+      {/* Cancel Subscription Dialog */}
+      {cancelDialog.open && cancelDialog.subscriptionId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Cancel Subscription</h2>
+              <button
+                onClick={() =>
+                  setCancelDialog({
+                    open: false,
+                    subscriptionId: null,
+                    cancelImmediately: false,
+                  })
+                }
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Are you sure you want to cancel this subscription?
+            </p>
+            <div className="space-y-3 mb-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="cancelOption"
+                  checked={!cancelDialog.cancelImmediately}
+                  onChange={() =>
+                    setCancelDialog((prev) => ({
+                      ...prev,
+                      cancelImmediately: false,
+                    }))
+                  }
+                  className="w-4 h-4"
+                />
+                <div>
+                  <div className="font-medium">Cancel at period end</div>
+                  <div className="text-xs text-gray-500">
+                    Your subscription will remain active until the end of the current billing period.
+                  </div>
+                </div>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="cancelOption"
+                  checked={cancelDialog.cancelImmediately}
+                  onChange={() =>
+                    setCancelDialog((prev) => ({
+                      ...prev,
+                      cancelImmediately: true,
+                    }))
+                  }
+                  className="w-4 h-4"
+                />
+                <div>
+                  <div className="font-medium">Cancel immediately</div>
+                  <div className="text-xs text-gray-500">
+                    Your subscription will be canceled right away. Access will end immediately.
+                  </div>
+                </div>
+              </label>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setCancelDialog({
+                    open: false,
+                    subscriptionId: null,
+                    cancelImmediately: false,
+                  })
+                }
+                disabled={cancelingId === cancelDialog.subscriptionId}
+              >
+                Keep Subscription
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() =>
+                  handleCancelSubscription(
+                    cancelDialog.subscriptionId!,
+                    cancelDialog.cancelImmediately
+                  )
+                }
+                title="Cancel Subscription"
+                className="text-white bg-red-500 hover:bg-red-600"
+                disabled={cancelingId === cancelDialog.subscriptionId}
+              >
+                {cancelingId === cancelDialog.subscriptionId ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Canceling...
+                  </>
+                ) : (
+                  "Confirm Cancel"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
