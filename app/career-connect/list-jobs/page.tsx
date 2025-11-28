@@ -735,7 +735,7 @@ function JobViewCard({ job }: { job: Job }) {
         <div className="flex items-center space-x-3">
           <Avatar className="h-16 w-16">
             <AvatarImage
-              src={job.companyLogo || "/assets/logo.png"}
+              src={job.companyLogo || "/assets/logo.avif"}
               alt={job.company}
             />
             <AvatarFallback className="text-lg">
