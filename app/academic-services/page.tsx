@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { Suspense } from "react";
 import SmartTools from "@/components/AcademicServices/SmartToolsToAccelerate";
 import StudentSuccessStories from "@/components/AcademicServices/StudentSuccessStories";
 import HowAcademicWorks from "@/components/AcademicServices/HowAcademicWorks";
@@ -123,13 +124,15 @@ export default function AcademicServices() {
         panelClassName="bg-gray-50"
       /> */}
 
-      <CatalogPage
-        productType="Academic Support Services"
-        title="Academic Support Services"
-        description="Get expert academic assistance, mentorship, and support to excel in your educational journey"
-        emptyStateTitle="No Academic Services Found"
-        emptyStateDescription="We couldn't find any academic support services matching your current filters. Try adjusting your search criteria or browse our complete catalog of academic services."
-      />
+      <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
+        <CatalogPage
+          productType="Academic Support Services"
+          title="Academic Support Services"
+          description="Get expert academic assistance, mentorship, and support to excel in your educational journey"
+          emptyStateTitle="No Academic Services Found"
+          emptyStateDescription="We couldn't find any academic support services matching your current filters. Try adjusting your search criteria or browse our complete catalog of academic services."
+        />
+      </Suspense>
 
       <StudentSuccessStories />
       <SmartTools />

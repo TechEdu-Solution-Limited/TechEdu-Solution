@@ -248,15 +248,15 @@ const Footer = () => {
             >
               <FaFacebookSquare size={18} />
             </Link>
-            <Link
+            {/* <Link
               href="#"
               aria-label="X (formerly Twitter)"
               className="hover:text-gray-400 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
             >
               <FaXTwitter size={18} />
-            </Link>
+            </Link> */}
             <Link
-              href="#"
+              href="https://www.youtube.com/@TechEduSolution"
               aria-label="YouTube"
               className="hover:text-red-600 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-600"
             >

@@ -1,5 +1,5 @@
 import CatalogPage from '@/components/CatalogPage'
-import React from 'react'
+import React, { Suspense } from 'react'
 import { 
   BookOpen, 
   Download, 
@@ -171,11 +171,13 @@ const ResourcesPage = () => {
         </div>
       </section>
 
-      <CatalogPage
-        productType="Tools"
-        title="All Resources"
-        description="Browse our complete library of expert-curated learning materials"
-      />
+      <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
+        <CatalogPage
+          productType="Tools"
+          title="All Resources"
+          description="Browse our complete library of expert-curated learning materials"
+        />
+      </Suspense>
     </main>
   )
 }

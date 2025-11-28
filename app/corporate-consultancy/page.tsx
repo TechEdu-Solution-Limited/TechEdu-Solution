@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { Suspense } from "react";
 import {
   BookOpenCheck,
   GraduationCap,
@@ -370,11 +371,13 @@ export default function CorporateConsultancy() {
         panelClassName="bg-gray-50"
       /> */}
 
-      <CatalogPage
-        productType="Corporate & Business Consultancy"
-        title="Corporate Consultancy Services"
-        description="Get expert corporate consultancy services, mentorship, and support to excel in your corporate journey"
-      />
+      <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
+        <CatalogPage
+          productType="Corporate & Business Consultancy"
+          title="Corporate Consultancy Services"
+          description="Get expert corporate consultancy services, mentorship, and support to excel in your corporate journey"
+        />
+      </Suspense>
 
       {/* HOW WE'VE HELPED */}
       <section

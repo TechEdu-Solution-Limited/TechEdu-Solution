@@ -2,7 +2,7 @@
 
 import CatalogPage from "@/components/CatalogPage";
 import FreeBookingModal from "@/components/FreeBookingModal";
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 
 const FreeConsultation = () => {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
@@ -29,17 +29,19 @@ const FreeConsultation = () => {
           Book your free consultation today.
         </p>
       </header>
-      <CatalogPage
-        productType="Marketing, Consultation & Free Services"
-        category="consultation"
-        subcategory="booking"
-        service="free booking"
-        title="Free Consultation Services"
-        description="Book your free consultation with our experts. From career guidance to tech mentorship, we're here to help you succeed."
-        emptyStateTitle="No Free Consultations Found"
-        emptyStateDescription="We couldn't find any free consultation services matching your current filters. Try adjusting your search criteria or browse our complete catalog."
-        onBookNow={handleBookNow}
-      />
+      <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
+        <CatalogPage
+          productType="Marketing, Consultation & Free Services"
+          category="consultation"
+          subcategory="booking"
+          service="free booking"
+          title="Free Consultation Services"
+          description="Book your free consultation with our experts. From career guidance to tech mentorship, we're here to help you succeed."
+          emptyStateTitle="No Free Consultations Found"
+          emptyStateDescription="We couldn't find any free consultation services matching your current filters. Try adjusting your search criteria or browse our complete catalog."
+          onBookNow={handleBookNow}
+        />
+      </Suspense>
 
       {selectedProduct && (
         <FreeBookingModal

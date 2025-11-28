@@ -2,7 +2,7 @@
 
 import StoryCarousel, { Story } from "@/components/Stories/StoryCarousel";
 import CatalogPage from "@/components/CatalogPage";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import {
   generatePricingMetadata,
   generateServiceStructuredData,
@@ -344,13 +344,15 @@ export default function Pricing() {
 
         {/* SERVICE DETAILS - Now using Catalog Component */}
         <div className="max-w-7xl mx-auto -mb-32">
-          <CatalogPage
-            productType={PRODUCT_TYPE_MAPPING[tab]}
-            title={serviceCategories[tab].title}
-            description={serviceCategories[tab].description}
-            emptyStateTitle={EMPTY_STATE_MESSAGES[tab].title}
-            emptyStateDescription={EMPTY_STATE_MESSAGES[tab].description}
-          />
+          <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
+            <CatalogPage
+              productType={PRODUCT_TYPE_MAPPING[tab]}
+              title={serviceCategories[tab].title}
+              description={serviceCategories[tab].description}
+              emptyStateTitle={EMPTY_STATE_MESSAGES[tab].title}
+              emptyStateDescription={EMPTY_STATE_MESSAGES[tab].description}
+            />
+          </Suspense>
         </div>
       </section>
 

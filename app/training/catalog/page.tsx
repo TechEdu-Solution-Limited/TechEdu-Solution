@@ -1,7 +1,7 @@
 import CatalogPage from "@/components/CatalogPage";
 import Image from "next/image";
 import Link from "next/link";
-import React from "react";
+import React, { Suspense } from "react";
 
 interface PageLink {
   text: string;
@@ -21,11 +21,13 @@ const page = () => {
         </p>
       </header>
 
-      <CatalogPage
-        productType="Training & Certification"
-        title="Training & Certification Programs"
-        description="Discover comprehensive training programs and certifications to advance your career"
-      />
+      <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
+        <CatalogPage
+          productType="Training & Certification"
+          title="Training & Certification Programs"
+          description="Discover comprehensive training programs and certifications to advance your career"
+        />
+      </Suspense>
 
       <section className="bg-white py-16 px-4 md:px-16 mx-auto">
         <div className="bg-gray-200 flex flex-wrap justify-center gap-4 px-6 py-10 sm:p-12 md:p-24 rounded-[15px]">

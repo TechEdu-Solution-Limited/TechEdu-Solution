@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { Suspense } from "react";
 import {
   BookOpenCheck,
   FileText,
@@ -245,13 +246,15 @@ export default function CareerDevelopment() {
         panelClassName="bg-gray-50"
       /> */}
 
-      <CatalogPage
-        productType="Career Development & Mentorship"
-        title="Career Development"
-        description="Get expert career development services to excel in your career journey"
-        emptyStateTitle="No Career Services Found"
-        emptyStateDescription="We couldn't find any career development services matching your current filters. Try adjusting your search criteria or explore our full range of career services."
-      />
+      <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
+        <CatalogPage
+          productType="Career Development & Mentorship"
+          title="Career Development"
+          description="Get expert career development services to excel in your career journey"
+          emptyStateTitle="No Career Services Found"
+          emptyStateDescription="We couldn't find any career development services matching your current filters. Try adjusting your search criteria or explore our full range of career services."
+        />
+      </Suspense>
 
       <StoryCarousel
         stories={realSuccessStories}
