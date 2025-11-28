@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -55,6 +55,20 @@ export default function RecruiterStep7PostJob({
   errors,
   handleChange,
 }: RecruiterStep7PostJobProps) {
+  // Local state for requiredSkills input to allow comma-separated typing
+  const [requiredSkillsInput, setRequiredSkillsInput] = useState(
+    form.requiredSkills?.join(", ") || ""
+  );
+
+  // Sync local state when form.requiredSkills changes externally
+  useEffect(() => {
+    if (form.requiredSkills && form.requiredSkills.length > 0) {
+      setRequiredSkillsInput(form.requiredSkills.join(", "));
+    } else if (!form.requiredSkills || form.requiredSkills.length === 0) {
+      setRequiredSkillsInput("");
+    }
+  }, [form.requiredSkills]);
+
   const handleCheckboxChange = (checked: boolean) => {
     handleChange({
       target: { name: "skipForNow", type: "checkbox", checked },
@@ -149,15 +163,20 @@ export default function RecruiterStep7PostJob({
                 id="requiredSkills"
                 name="requiredSkills"
                 placeholder="e.g., React, Node.js, PostgreSQL"
-                value={form.requiredSkills?.join(", ") || ""}
+                value={requiredSkillsInput}
                 onChange={(e) => {
+                  // Update local state to allow comma-separated typing
+                  setRequiredSkillsInput(e.target.value);
+                }}
+                onBlur={(e) => {
+                  // Convert to array and update form.requiredSkills on blur
                   const skillsArray = e.target.value
                     .split(",")
                     .map((s) => s.trim())
                     .filter((s) => s);
                   handleChange({
-                    target: { name: "requiredSkills", value: skillsArray },
-                  });
+                    target: { name: "requiredSkills" as keyof Step7FormValues, value: skillsArray },
+                  } as any);
                 }}
                 className={
                   errors.requiredSkills ? "border-red-500" : "rounded-[10px]"
@@ -166,6 +185,9 @@ export default function RecruiterStep7PostJob({
               {errors.requiredSkills && (
                 <p className="text-red-500 text-sm">{errors.requiredSkills}</p>
               )}
+              <p className="text-xs text-gray-500 mt-1">
+                Separate multiple skills with commas
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -174,13 +196,15 @@ export default function RecruiterStep7PostJob({
                 id="tags"
                 name="tags"
                 placeholder="e.g., Full-time, Remote, Fintech"
-                value={form.tagsInput || ""}
+                value={form.tagsInput || form.tags?.join(", ") || ""}
                 onChange={(e) => {
+                  // Store raw input value to allow commas
                   handleChange({
                     target: { name: "tagsInput", value: e.target.value },
                   });
                 }}
                 onBlur={(e) => {
+                  // Convert to array on blur
                   const tagsArray = e.target.value
                     .split(",")
                     .map((t) => t.trim())
@@ -194,6 +218,9 @@ export default function RecruiterStep7PostJob({
               {errors.tags && (
                 <p className="text-red-500 text-sm">{errors.tags}</p>
               )}
+              <p className="text-xs text-gray-500 mt-1">
+                Separate multiple tags with commas
+              </p>
             </div>
 
             <div className="space-y-2">

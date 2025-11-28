@@ -458,15 +458,57 @@ export default function RecruiterOnboarding() {
     if (stepTitle === "Post Job") {
       // Optional step - validation only if not skipping
       if (!form.skipForNow) {
-        if (!form.jobTitle) newErrors.jobTitle = "Job title is required.";
-        if (!form.jobDescription)
-          newErrors.jobDescription = "Job description is required.";
-        if (!form.employmentType)
-          newErrors.employmentType = "Employment type is required.";
-        if (!form.location) newErrors.location = "Location is required.";
-        if (!form.requiredSkills)
-          newErrors.requiredSkills = "Required Skills are required.";
-        if (!form.tags) newErrors.location = "Tags are required.";
+        if (!form.jobTitle || form.jobTitle.trim() === "") {
+          newErrors.jobTitle = "Job title should not be empty";
+        }
+        if (!form.jobDescription || form.jobDescription.trim() === "") {
+          newErrors.jobDescription = "Job description should not be empty";
+        }
+        if (!form.employmentType || form.employmentType.trim() === "") {
+          newErrors.employmentType = "Employment type is required";
+        } else {
+          const validTypes = ["full-time", "part-time", "contract", "internship"];
+          if (!validTypes.includes(form.employmentType.toLowerCase())) {
+            newErrors.employmentType =
+              "Employment type must be one of the following values: full-time, part-time, contract, internship";
+          }
+        }
+        if (!form.location || form.location.trim() === "") {
+          newErrors.location = "Location should not be empty";
+        }
+        if (!form.salaryRange || form.salaryRange.trim() === "") {
+          newErrors.salaryRange = "Salary range should not be empty";
+        }
+        // Validate requiredSkills array
+        if (
+          !form.requiredSkills ||
+          !Array.isArray(form.requiredSkills) ||
+          form.requiredSkills.length === 0
+        ) {
+          newErrors.requiredSkills =
+            "Required skills must contain at least 1 element";
+        } else {
+          // Check each skill is not empty
+          const hasEmptySkill = form.requiredSkills.some(
+            (skill: any) => !skill || (typeof skill === "string" && skill.trim() === "")
+          );
+          if (hasEmptySkill) {
+            newErrors.requiredSkills =
+              "Each value in required skills should not be empty";
+          }
+        }
+        // Validate tags array
+        if (!form.tags || !Array.isArray(form.tags) || form.tags.length === 0) {
+          newErrors.tags = "Tags must contain at least 1 element";
+        } else {
+          // Check each tag is not empty
+          const hasEmptyTag = form.tags.some(
+            (tag: any) => !tag || (typeof tag === "string" && tag.trim() === "")
+          );
+          if (hasEmptyTag) {
+            newErrors.tags = "Each value in tags should not be empty";
+          }
+        }
       }
     }
 
@@ -549,23 +591,45 @@ export default function RecruiterOnboarding() {
           };
           break;
         case 6: // Post Job
-          if (form.skipForNow) {
-            // If skipping, only send the skip flag
+          // Ensure skipForNow is explicitly checked (handle boolean coercion)
+          const isSkipping = Boolean(form.skipForNow);
+          
+          if (isSkipping) {
+            // If skipping, only send the skip flag - backend should skip validation
+            // NOTE: Backend must check skipForNow before validating fields
+            // If backend validation still runs, it's a backend bug that needs fixing
             stepData = {
               skipForNow: true,
             };
+            safeConsole.log(
+              "⏭️ [RecruiterOnboarding] Skipping job posting, sending only skipForNow flag",
+              { stepData, formSkipForNow: form.skipForNow }
+            );
           } else {
             // If not skipping, send all job data
+            // Ensure arrays are properly formatted and non-empty strings are filtered
+            const cleanedRequiredSkills = (form.requiredSkills || [])
+              .map((skill: any) => typeof skill === "string" ? skill.trim() : String(skill).trim())
+              .filter((skill: string) => skill && skill.length > 0);
+            
+            const cleanedTags = (form.tags || [])
+              .map((tag: any) => typeof tag === "string" ? tag.trim() : String(tag).trim())
+              .filter((tag: string) => tag && tag.length > 0);
+
             stepData = {
-              jobTitle: form.jobTitle,
-              jobDescription: form.jobDescription,
-              employmentType: form.employmentType,
-              requiredSkills: form.requiredSkills,
-              tags: form.tags,
-              location: form.location,
-              salaryRange: form.salaryRange,
+              jobTitle: form.jobTitle?.trim() || "",
+              jobDescription: form.jobDescription?.trim() || "",
+              employmentType: form.employmentType?.trim() || "",
+              requiredSkills: cleanedRequiredSkills,
+              tags: cleanedTags,
+              location: form.location?.trim() || "",
+              salaryRange: form.salaryRange?.trim() || "",
               skipForNow: false,
             };
+            safeConsole.log(
+              "📝 [RecruiterOnboarding] Submitting job posting data",
+              stepData
+            );
           }
           break;
         default:
@@ -649,13 +713,48 @@ export default function RecruiterOnboarding() {
         setStepSuccess("");
       }, 1000);
     } catch (error: any) {
-      // Use the consistent error handling from apiFetch
-      if (error.details && Array.isArray(error.details)) {
-        setSubmitError(error.details.join(", "));
+      // Special handling for step 6 (Post Job) when skipping
+      if (step === 6 && form.skipForNow) {
+        const errorMessage =
+          error?.message || error?.data?.message || "Unknown error";
+        const errorDetails = error?.data?.error?.details || error?.details || [];
+        
+        // Check if this is a validation error when skipForNow is true
+        const isValidationError = Array.isArray(errorDetails) && 
+          errorDetails.some((detail: string) => 
+            typeof detail === "string" && 
+            (detail.includes("should not be empty") || 
+             detail.includes("must be") || 
+             detail.includes("required"))
+          );
+        
+        if (isValidationError) {
+          safeConsole.error(
+            "❌ [RecruiterOnboarding] Backend validation error when skipForNow=true",
+            {
+              error,
+              stepData: { skipForNow: true },
+              message: "Backend is validating fields even when skipForNow is true. This is a backend bug."
+            }
+          );
+          setSubmitError(
+            "The server is still validating job fields even though you chose to skip. " +
+            "This appears to be a server-side issue. Please contact support or try again later."
+          );
+        } else {
+          setSubmitError(
+            errorMessage || "Failed to skip job posting step. Please try again."
+          );
+        }
       } else {
-        setSubmitError(
-          error.message || `Failed to save step ${step + 1}. Please try again.`
-        );
+        // Use the consistent error handling from apiFetch
+        if (error.details && Array.isArray(error.details)) {
+          setSubmitError(error.details.join(", "));
+        } else {
+          setSubmitError(
+            error.message || `Failed to save step ${step + 1}. Please try again.`
+          );
+        }
       }
     } finally {
       setStepSubmitting(null);
