@@ -151,9 +151,9 @@ export default function RatingModal({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
         // width/height & container styling to match your sheet-like feel
-        className="w-full sm:w-[min(720px,calc(100vw-2rem))] max-h-[90vh] sm:max-h-[85vh] p-0 overflow-hidden rounded-2xl border border-gray-200/70 dark:border-gray-800 bg-white dark:bg-gray-900"
+        className="w-full sm:w-[min(720px,calc(100vw-2rem))] h-[90vh] sm:h-[85vh] max-h-[90vh] sm:max-h-[85vh] p-0 overflow-hidden rounded-2xl border border-gray-200/70 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col"
       >
-        <div ref={panelRef} className="flex flex-col h-full">
+        <div ref={panelRef} className="flex flex-col h-full min-h-0 overflow-hidden">
           <style jsx global>{`
             @media (prefers-reduced-motion: no-preference) {
               .rt-animate-up {
@@ -200,7 +200,9 @@ export default function RatingModal({
           {/* Content */}
           <div
             className="flex-1 min-h-0 px-4 sm:px-6 py-4 sm:py-6 overflow-y-auto overscroll-contain space-y-6 rt-animate-up"
-            style={{ WebkitOverflowScrolling: "touch" }}
+            style={{ 
+              WebkitOverflowScrolling: "touch",
+            }}
           >
             {/* Top row: Overall & badges */}
             <div className="flex flex-col gap-4">
