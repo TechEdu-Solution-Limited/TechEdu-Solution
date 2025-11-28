@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -210,6 +211,9 @@ export default function CatalogPage({
   service,
   onBookNow,
 }: CatalogPageProps) {
+  const searchParams = useSearchParams();
+  const initialSearch = searchParams.get("search") || "";
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -218,7 +222,7 @@ export default function CatalogPage({
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch);
   const [selectedCategory, setSelectedCategory] = useState("");
 
   // Basic filters
@@ -252,6 +256,14 @@ export default function CatalogPage({
 
   // ⬇️ Pull team data (members + admin)
   const { members, loading: teamLoading, fetchTeamData } = teamFetcher();
+
+  // Update search when URL param changes
+  useEffect(() => {
+    const urlSearch = searchParams.get("search") || "";
+    if (urlSearch !== search) {
+      setSearch(urlSearch);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchTeamData();

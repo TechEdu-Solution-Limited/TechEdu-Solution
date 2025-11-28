@@ -466,8 +466,14 @@ const page = () => {
 
   const planClick = (key: PlanKey) => {
     if (key === "free") handleFreeClick();
-    // else if (key === "pro") handleOpenPro();
-    // else if (key === "coaching") handleCoaching();
+    else if (key === "pro") {
+      // Navigate to career-development page with search query
+      router.push("/career-development?search=cv Builder pro plan");
+    }
+    else if (key === "coaching") {
+      // Navigate to career-development page (CatalogPage section)
+      router.push("/career-development");
+    }
   };
 
   const plansMemo = useMemo(() => PRICING_PLANS, []);
