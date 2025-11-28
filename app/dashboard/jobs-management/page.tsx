@@ -64,7 +64,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import { Job } from "@/types/jobs";
-import { getApiRequest, deleteApiRequest, apiRequest } from "@/lib/apiFetch";
+import { getApiRequest, deleteApiRequest, apiRequest, getUserMe } from "@/lib/apiFetch";
 import { getCookie, getTokenFromCookies } from "@/lib/cookies";
 
 import { safeConsole } from "@/lib/console";
@@ -73,6 +73,24 @@ const useJobs = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  const fetchCurrentUser = async (token: string) => {
+    try {
+      const userResponse = await getUserMe(token);
+      const userId = 
+        userResponse?.data?.data?._id || 
+        userResponse?.data?._id || 
+        userResponse?.data?.data?.id ||
+        userResponse?.data?.id ||
+        null;
+      setCurrentUserId(userId);
+      return userId;
+    } catch (error: any) {
+      safeConsole.error("Failed to fetch current user:", error);
+      return null;
+    }
+  };
 
   const fetchJobs = async () => {
     try {
@@ -84,6 +102,12 @@ const useJobs = () => {
       if (!token) {
         setError("Authentication required. Please log in.");
         return;
+      }
+
+      // Get current user ID to filter jobs
+      const userId = await fetchCurrentUser(token);
+      if (!userId) {
+        safeConsole.warn("Could not get current user ID, showing all jobs");
       }
 
       // Use getApiRequest to call the external API endpoint
@@ -129,7 +153,19 @@ const useJobs = () => {
           previousVersions: job.previousVersions || [],
           recruiterId: job.recruiterId || "",
         }));
-        setJobs(transformedJobs);
+
+        // Filter jobs to only show those posted by the current recruiter
+        const filteredJobs = userId 
+          ? transformedJobs.filter((job) => job.recruiterId === userId)
+          : transformedJobs;
+
+        setJobs(filteredJobs);
+        
+        safeConsole.log("📊 Jobs filtered by recruiter:", {
+          totalJobs: transformedJobs.length,
+          filteredJobs: filteredJobs.length,
+          currentUserId: userId,
+        });
       } else {
         setError(response.message || "Failed to fetch jobs");
       }
