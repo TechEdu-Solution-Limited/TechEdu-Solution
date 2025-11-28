@@ -64,12 +64,12 @@ export default function JobsPage() {
       setLoading(true);
       setError(null);
 
-      const token = getCookie("token");
+      // const token = getCookie("token");
 
-      if (!token) {
-        setError("Authentication required");
-        return;
-      }
+      // if (!token) {
+      //   setError("Authentication required");
+      //   return;
+      // }
 
       // Use getApiRequest to call the external API endpoint
       const response = await getApiRequest<{
@@ -77,7 +77,7 @@ export default function JobsPage() {
         message: string;
         data: any[];
         meta?: any;
-      }>("/api/ats/job-posts", token);
+      }>("/api/ats/job-posts");
 
       if (response.status >= 200 && response.status < 300) {
         // Handle the actual API response structure

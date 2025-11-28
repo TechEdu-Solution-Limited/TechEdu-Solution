@@ -91,7 +91,70 @@ export default function JobDetailPage() {
         if (response.status >= 200 && response.status < 300) {
           // Handle nested data structure: response.data.data contains the actual job
           const jobData = response.data?.data || response.data;
-          setJob(jobData);
+          
+          // Helper to process skills/tags that might be arrays with comma-separated strings
+          const processArrayField = (field: any): string[] => {
+            if (!field) return [];
+            if (Array.isArray(field)) {
+              return field.flatMap((item: any) => {
+                if (typeof item === "string" && item.includes(",")) {
+                  return item.split(",").map((s: string) => s.trim()).filter((s: string) => s);
+                }
+                return typeof item === "string" ? item.trim() : String(item).trim();
+              }).filter((s: string) => s);
+            }
+            if (typeof field === "string") {
+              return field.split(",").map((s: string) => s.trim()).filter((s: string) => s);
+            }
+            return [];
+          };
+
+          // Handle companyId - it might be an object with _id and name, or just a string
+          const companyIdObj = jobData.companyId as any;
+          const companyId = typeof companyIdObj === "object" && companyIdObj !== null
+            ? (companyIdObj._id || "")
+            : typeof companyIdObj === "string"
+            ? companyIdObj
+            : "";
+          
+          const companyName = (jobData as any).companyName || 
+            (typeof companyIdObj === "object" && companyIdObj !== null
+              ? (companyIdObj.name || "")
+              : "");
+
+          // Transform the API response to match our Job interface
+          const transformedJob: Job = {
+            _id: jobData._id,
+            title: jobData.title,
+            description: jobData.description,
+            location: jobData.location,
+            employmentType: jobData.employmentType,
+            requiredSkills: processArrayField(jobData.requiredSkills),
+            tags: processArrayField(jobData.tags),
+            salaryRange: jobData.salaryRange || "",
+            company: companyName || jobData.company || "",
+            companyId: companyId,
+            department: jobData.department || "",
+            contactEmail: jobData.contactEmail || "",
+            contactPhone: jobData.contactPhone || "",
+            website: jobData.website || "",
+            recruiter: jobData.recruiter || "",
+            recruiterId: jobData.recruiterId || "",
+            isFeatured: jobData.isFeatured || false,
+            isUrgent: jobData.isUrgent || false,
+            expiryDate: jobData.expiryDate || "",
+            isDeleted: jobData.isDeleted || false,
+            deletedAt: jobData.deletedAt || "",
+            createdAt: jobData.createdAt,
+            updatedAt: jobData.updatedAt,
+            slug: jobData.slug || "",
+            experienceLevel: jobData.experienceLevel || "",
+            companyLogo: jobData.companyLogo || "",
+            version: jobData.version || 1,
+            previousVersions: jobData.previousVersions || [],
+          };
+          
+          setJob(transformedJob);
         } else {
           setError(response.message || "Failed to fetch job details");
         }

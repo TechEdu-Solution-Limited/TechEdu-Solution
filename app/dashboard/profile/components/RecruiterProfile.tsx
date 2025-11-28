@@ -33,7 +33,25 @@ export default function RecruiterProfile({
 }: RecruiterProfileProps) {
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [draft, setDraft] = useState(userProfile.profile);
+  
+  // Initialize draft with proper structure including nested company object
+  const initializeDraft = () => {
+    const profile = userProfile?.profile || {};
+    return {
+      ...profile,
+      // Ensure company object exists in draft
+      company: profile.company || {},
+    };
+  };
+  
+  const [draft, setDraft] = useState(initializeDraft());
+  
+  // Update draft when userProfile changes
+  useEffect(() => {
+    if (userProfile?.profile) {
+      setDraft(initializeDraft());
+    }
+  }, [userProfile]);
   // Expanded stepFieldMapping to include all fields rendered in the UI
   const stepFieldMapping = {
     2: ["recruitingName", "positionAtCompany", "contactEmail", "phoneNumber"],
@@ -124,7 +142,11 @@ export default function RecruiterProfile({
   };
 
   const handleEdit = () => {
-    setDraft(userProfile.profile || {});
+    const profile = userProfile?.profile || {};
+    setDraft({
+      ...profile,
+      company: profile.company || {},
+    });
     setEditMode(true);
   };
 
@@ -146,12 +168,33 @@ export default function RecruiterProfile({
   const handleChange = (field: string, value: any) => {
     setDraft((prev: any) => ({ ...prev, [field]: value }));
   };
+  
+  // Helper to handle company field changes
+  const handleCompanyChange = (field: string, value: any) => {
+    setDraft((prev: any) => ({
+      ...prev,
+      company: {
+        ...(prev.company || {}),
+        [field]: value,
+      },
+    }));
+  };
 
   const handleArrayChange = (field: string, value: string[]) => {
     setDraft((prev: any) => ({ ...prev, [field]: value }));
   };
 
-  const currentProfile = editMode ? draft : userProfile.profile || {};
+  // Get current profile data with proper company access
+  const getCurrentProfile = () => {
+    const profile = editMode ? draft : (userProfile?.profile || {});
+    return {
+      ...profile,
+      // Ensure company object is always available
+      company: profile.company || {},
+    };
+  };
+  
+  const currentProfile = getCurrentProfile();
 
   const companySizes = [
     "1-10 employees",
@@ -231,10 +274,10 @@ export default function RecruiterProfile({
               {userProfile.fullName}
             </h2>
             <p className="text-sm text-gray-500 mb-2 text-center">
-              {currentProfile.jobTitle || "Recruiter"}
+              {currentProfile.positionAtCompany || "Recruiter"}
             </p>
             <p className="text-xs text-gray-400 mb-4 text-center">
-              {currentProfile.companyName || "Company not specified"}
+              {currentProfile.company?.name || currentProfile.recruitingName || "Company not specified"}
             </p>
 
             <div className="flex flex-col gap-2 w-full mt-4">
@@ -251,15 +294,17 @@ export default function RecruiterProfile({
               <div className="flex items-center gap-2 text-gray-700">
                 <Building size={16} />
                 <span className="text-sm">
-                  {currentProfile.companyName || "Not provided"}
+                  {currentProfile.company?.name || "Not provided"}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-gray-700">
-                <MapPin size={16} />
-                <span className="text-sm">
-                  {currentProfile.location || "Not provided"}
-                </span>
-              </div>
+              {currentProfile.hiringRegions && currentProfile.hiringRegions.length > 0 && (
+                <div className="flex items-center gap-2 text-gray-700">
+                  <MapPin size={16} />
+                  <span className="text-sm">
+                    {currentProfile.hiringRegions.join(", ")}
+                  </span>
+                </div>
+              )}
             </div>
 
             <button
@@ -272,17 +317,17 @@ export default function RecruiterProfile({
         ) : (
           <>
             <input
-              value={draft.jobTitle || ""}
-              onChange={(e) => handleChange("jobTitle", e.target.value)}
-              placeholder="Job Title"
-              disabled={!isFieldEditable("jobTitle")}
+              value={draft.positionAtCompany || ""}
+              onChange={(e) => handleChange("positionAtCompany", e.target.value)}
+              placeholder="Position at Company"
+              disabled={!isFieldEditable("positionAtCompany")}
               className={`w-full text-xl font-bold text-[#011F72] mb-1 text-center border-b border-blue-100 focus:outline-none ${
-                isFieldCompleted("jobTitle") ? "bg-gray-100 text-gray-400" : ""
+                isFieldCompleted("positionAtCompany") ? "bg-gray-100 text-gray-400" : ""
               }`}
             />
             <input
-              value={draft.companyName || ""}
-              onChange={(e) => handleChange("companyName", e.target.value)}
+              value={draft.company?.name || ""}
+              onChange={(e) => handleCompanyChange("name", e.target.value)}
               placeholder={
                 isFieldCompleted("companyName") ? "Completed" : "Company Name"
               }
@@ -307,12 +352,18 @@ export default function RecruiterProfile({
                 }`}
               />
               <input
-                value={draft.location || ""}
-                onChange={(e) => handleChange("location", e.target.value)}
-                placeholder="Location"
-                disabled={!isFieldEditable("location")}
+                value={draft.hiringRegions?.join(", ") || ""}
+                onChange={(e) => {
+                  const regions = e.target.value
+                    .split(",")
+                    .map((r: string) => r.trim())
+                    .filter((r: string) => r);
+                  handleArrayChange("hiringRegions", regions);
+                }}
+                placeholder="Hiring Regions (comma-separated)"
+                disabled={!isFieldEditable("hiringRegions")}
                 className={`border-b border-blue-100 focus:outline-none text-sm ${
-                  isFieldCompleted("location")
+                  isFieldCompleted("hiringRegions")
                     ? "bg-gray-100 text-gray-400"
                     : ""
                 }`}
@@ -358,12 +409,12 @@ export default function RecruiterProfile({
               </label>
               {!editMode ? (
                 <p className="text-blue-900">
-                  {currentProfile.companyName || "Not specified"}
+                  {currentProfile.company?.name || "Not specified"}
                 </p>
               ) : (
                 <input
-                  value={draft.companyName || ""}
-                  onChange={(e) => handleChange("companyName", e.target.value)}
+                  value={draft.company?.name || ""}
+                  onChange={(e) => handleCompanyChange("name", e.target.value)}
                   placeholder={
                     isFieldCompleted("companyName")
                       ? "Completed"
@@ -384,12 +435,12 @@ export default function RecruiterProfile({
               </label>
               {!editMode ? (
                 <p className="text-blue-900">
-                  {currentProfile.companySize || "Not specified"}
+                  {currentProfile.company?.size || "Not specified"}
                 </p>
               ) : (
                 <select
-                  value={draft.companySize || ""}
-                  onChange={(e) => handleChange("companySize", e.target.value)}
+                  value={draft.company?.size || ""}
+                  onChange={(e) => handleCompanyChange("size", e.target.value)}
                   disabled={!isFieldEditable("companySize")}
                   className={`w-full mt-1 border border-blue-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     isFieldCompleted("companySize")
@@ -412,12 +463,12 @@ export default function RecruiterProfile({
               </label>
               {!editMode ? (
                 <p className="text-blue-900">
-                  {currentProfile.industry || "Not specified"}
+                  {currentProfile.company?.industry || "Not specified"}
                 </p>
               ) : (
                 <select
-                  value={draft.industry || ""}
-                  onChange={(e) => handleChange("industry", e.target.value)}
+                  value={draft.company?.industry || ""}
+                  onChange={(e) => handleCompanyChange("industry", e.target.value)}
                   disabled={!isFieldEditable("industry")}
                   className={`w-full mt-1 border border-blue-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     isFieldCompleted("industry")
@@ -440,14 +491,18 @@ export default function RecruiterProfile({
               </label>
               {!editMode ? (
                 <p className="text-blue-900">
-                  {currentProfile.companyWebsite ? (
+                  {currentProfile.company?.website ? (
                     <a
-                      href={currentProfile.companyWebsite}
+                      href={
+                        currentProfile.company.website.startsWith("http")
+                          ? currentProfile.company.website
+                          : `https://${currentProfile.company.website}`
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:underline"
                     >
-                      {currentProfile.companyWebsite}
+                      {currentProfile.company.website}
                     </a>
                   ) : (
                     "Not provided"
@@ -455,9 +510,9 @@ export default function RecruiterProfile({
                 </p>
               ) : (
                 <input
-                  value={draft.companyWebsite || ""}
+                  value={draft.company?.website || ""}
                   onChange={(e) =>
-                    handleChange("companyWebsite", e.target.value)
+                    handleCompanyChange("website", e.target.value)
                   }
                   type="url"
                   placeholder="https://company.com"
@@ -496,34 +551,34 @@ export default function RecruiterProfile({
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {hiringGoals.map((goal) => (
-                    <label key={goal} className="flex items-center gap-2">
+                  {recruitmentFocusAreas.map((area) => (
+                    <label key={area} className="flex items-center gap-2">
                       <input
                         type="checkbox"
-                        checked={draft.hiringGoals?.includes(goal) || false}
+                        checked={draft.recruitmentFocusAreas?.includes(area) || false}
                         onChange={(e) => {
-                          if (isFieldCompleted("hiringGoals")) return;
-                          const current = draft.hiringGoals || [];
+                          if (isFieldCompleted("recruitmentFocusAreas")) return;
+                          const current = draft.recruitmentFocusAreas || [];
                           if (e.target.checked) {
-                            handleArrayChange("hiringGoals", [
+                            handleArrayChange("recruitmentFocusAreas", [
                               ...current,
-                              goal,
+                              area,
                             ]);
                           } else {
                             handleArrayChange(
-                              "hiringGoals",
-                              current.filter((g: string) => g !== goal)
+                              "recruitmentFocusAreas",
+                              current.filter((a: string) => a !== area)
                             );
                           }
                         }}
-                        disabled={isFieldCompleted("hiringGoals")}
+                        disabled={isFieldCompleted("recruitmentFocusAreas")}
                         className={`rounded border-green-300 text-green-600 focus:ring-green-500 ${
-                          isFieldCompleted("hiringGoals")
+                          isFieldCompleted("recruitmentFocusAreas")
                             ? "bg-gray-100 cursor-not-allowed"
                             : ""
                         }`}
                       />
-                      <span className="text-sm">{goal}</span>
+                      <span className="text-sm">{area}</span>
                     </label>
                   ))}
                 </div>
@@ -531,44 +586,36 @@ export default function RecruiterProfile({
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block">
-                Target Roles
+                Preferred Hiring Model
               </label>
               {!editMode ? (
                 <div className="flex flex-wrap gap-2">
-                  {currentProfile.targetRoles?.map((role: string) => (
-                    <span
-                      key={role}
-                      className="bg-blue-50 text-blue-800 px-2 py-1 rounded text-xs font-medium"
-                    >
-                      {role}
+                  {currentProfile.preferredHiringModel ? (
+                    <span className="bg-blue-50 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+                      {currentProfile.preferredHiringModel}
                     </span>
-                  ))}
+                  ) : (
+                    <span className="text-gray-500 text-sm">Not specified</span>
+                  )}
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <textarea
-                    rows={4}
-                    value={draft.targetRoles?.join(", ") || ""}
-                    onChange={(e) => {
-                      const roles = e.target.value
-                        .split(",")
-                        .map((role) => role.trim())
-                        .filter((role) => role);
-                      handleArrayChange("targetRoles", roles);
-                    }}
-                    placeholder="Enter target roles separated by commas (e.g., Software Engineer, Product Manager, Data Scientist)"
-                    disabled={!isFieldEditable("targetRoles")}
-                    className={`w-full border border-blue-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      isFieldCompleted("targetRoles")
-                        ? "bg-gray-100 text-gray-400"
-                        : ""
-                    }`}
-                  />
-                  <p className="text-xs text-gray-500">
-                    Enter the specific roles you're hiring for, separated by
-                    commas
-                  </p>
-                </div>
+                <select
+                  value={draft.preferredHiringModel || ""}
+                  onChange={(e) => handleChange("preferredHiringModel", e.target.value)}
+                  disabled={!isFieldEditable("preferredHiringModel")}
+                  className={`w-full border border-blue-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    isFieldCompleted("preferredHiringModel")
+                      ? "bg-gray-100 text-gray-400"
+                      : ""
+                  }`}
+                >
+                  <option value="">Select Hiring Model</option>
+                  {preferredHiringModels.map((model) => (
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
+                  ))}
+                </select>
               )}
             </div>
           </div>
@@ -611,31 +658,41 @@ export default function RecruiterProfile({
             </div>
             <div className="bg-blue-50/60 rounded-[10px] p-4">
               <label className="text-sm font-medium text-gray-700">
-                Urgency Level
+                Hiring Regions
               </label>
               {!editMode ? (
-                <p className="text-blue-900 capitalize">
-                  {currentProfile.urgencyLevel || "Not specified"}
-                </p>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {currentProfile.hiringRegions?.length > 0 ? (
+                    currentProfile.hiringRegions.map((region: string) => (
+                      <span
+                        key={region}
+                        className="bg-blue-50 text-blue-800 px-2 py-1 rounded text-xs font-medium"
+                      >
+                        {region}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-500 text-sm">Not specified</span>
+                  )}
+                </div>
               ) : (
-                <select
-                  value={draft.urgencyLevel || ""}
-                  onChange={(e) => handleChange("urgencyLevel", e.target.value)}
-                  disabled={!isFieldEditable("urgencyLevel")}
+                <input
+                  value={draft.hiringRegions?.join(", ") || ""}
+                  onChange={(e) => {
+                    const regions = e.target.value
+                      .split(",")
+                      .map((r: string) => r.trim())
+                      .filter((r: string) => r);
+                    handleArrayChange("hiringRegions", regions);
+                  }}
+                  placeholder="Enter regions separated by commas (e.g., Africa, Europe, Asia)"
+                  disabled={!isFieldEditable("hiringRegions")}
                   className={`w-full mt-1 border border-blue-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    isFieldCompleted("urgencyLevel")
+                    isFieldCompleted("hiringRegions")
                       ? "bg-gray-100 text-gray-400"
                       : ""
                   }`}
-                >
-                  <option value="">Select Urgency Level</option>
-                  <option value="low">Low - Planning ahead</option>
-                  <option value="medium">
-                    Medium - Need within 1-3 months
-                  </option>
-                  <option value="high">High - Need immediately</option>
-                  <option value="urgent">Urgent - Critical need</option>
-                </select>
+                />
               )}
             </div>
           </div>
@@ -645,56 +702,115 @@ export default function RecruiterProfile({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h3 className="text-lg font-bold text-[#011F72] flex items-center gap-2 mb-4">
-              <FileText size={20} /> Hiring Requirements
+              <FileText size={20} /> Referral Information
             </h3>
             {!editMode ? (
-              <div className="bg-blue-50/60 rounded-[10px] p-4">
+              <div className="bg-blue-50/60 rounded-[10px] p-4 space-y-2">
                 <p className="text-blue-900">
-                  {currentProfile.hiringRequirements ||
-                    "No specific requirements specified"}
+                  <span className="font-medium">Referral Source:</span>{" "}
+                  {currentProfile.referralSource || "Not specified"}
                 </p>
+                {currentProfile.referralCodeOrName && (
+                  <p className="text-blue-900">
+                    <span className="font-medium">Referral Code/Name:</span>{" "}
+                    {currentProfile.referralCodeOrName}
+                  </p>
+                )}
               </div>
             ) : (
-              <textarea
-                rows={4}
-                value={draft.hiringRequirements || ""}
-                onChange={(e) =>
-                  handleChange("hiringRequirements", e.target.value)
-                }
-                placeholder="Describe your specific hiring requirements, qualifications needed, and any other relevant details..."
-                disabled={!isFieldEditable("hiringRequirements")}
-                className={`w-full border border-blue-200 rounded-[10px] p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  isFieldCompleted("hiringRequirements")
-                    ? "bg-gray-100 text-gray-400"
-                    : ""
-                }`}
-              />
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">
+                    Referral Source
+                  </label>
+                  <input
+                    value={draft.referralSource || ""}
+                    onChange={(e) => handleChange("referralSource", e.target.value)}
+                    placeholder="How did you hear about us?"
+                    disabled={!isFieldEditable("referralSource")}
+                    className={`w-full border border-blue-200 rounded-[10px] p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      isFieldCompleted("referralSource")
+                        ? "bg-gray-100 text-gray-400"
+                        : ""
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">
+                    Referral Code/Name (Optional)
+                  </label>
+                  <input
+                    value={draft.referralCodeOrName || ""}
+                    onChange={(e) => handleChange("referralCodeOrName", e.target.value)}
+                    placeholder="Enter referral code or name if applicable"
+                    disabled={!isFieldEditable("referralCodeOrName")}
+                    className={`w-full border border-blue-200 rounded-[10px] p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      isFieldCompleted("referralCodeOrName")
+                        ? "bg-gray-100 text-gray-400"
+                        : ""
+                    }`}
+                  />
+                </div>
+              </div>
             )}
           </div>
           <div>
             <h3 className="text-lg font-bold text-[#011F72] flex items-center gap-2 mb-4">
-              <Briefcase size={20} /> Company Culture
+              <Briefcase size={20} /> Company Details
             </h3>
             {!editMode ? (
-              <div className="bg-blue-50/60 rounded-[10px] p-4">
-                <p className="text-blue-900">
-                  {currentProfile.companyCulture ||
-                    "No company culture information provided"}
-                </p>
+              <div className="bg-blue-50/60 rounded-[10px] p-4 space-y-2">
+                {currentProfile.company?.rcNumber && (
+                  <p className="text-blue-900">
+                    <span className="font-medium">RC Number:</span>{" "}
+                    {currentProfile.company.rcNumber}
+                  </p>
+                )}
+                {currentProfile.company?.type && (
+                  <p className="text-blue-900">
+                    <span className="font-medium">Company Type:</span>{" "}
+                    {currentProfile.company.type}
+                  </p>
+                )}
+                {!currentProfile.company?.rcNumber && !currentProfile.company?.type && (
+                  <p className="text-blue-900">No additional company details</p>
+                )}
               </div>
             ) : (
-              <textarea
-                rows={4}
-                value={draft.companyCulture || ""}
-                onChange={(e) => handleChange("companyCulture", e.target.value)}
-                placeholder="Describe your company culture, values, work environment, and what makes your company unique..."
-                disabled={!isFieldEditable("companyCulture")}
-                className={`w-full border border-blue-200 rounded-[10px] p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  isFieldCompleted("companyCulture")
-                    ? "bg-gray-100 text-gray-400"
-                    : ""
-                }`}
-              />
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">
+                    RC Number
+                  </label>
+                  <input
+                    value={draft.company?.rcNumber || ""}
+                    onChange={(e) => handleCompanyChange("rcNumber", e.target.value)}
+                    placeholder="Enter RC Number"
+                    disabled={!isFieldEditable("rcNumber")}
+                    className={`w-full border border-blue-200 rounded-[10px] p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      isFieldCompleted("rcNumber")
+                        ? "bg-gray-100 text-gray-400"
+                        : ""
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">
+                    Company Type
+                  </label>
+                  <input
+                    value={draft.company?.type || ""}
+                    onChange={(e) => handleCompanyChange("type", e.target.value)}
+                    placeholder="Enter Company Type"
+                    disabled={!isFieldEditable("companyType")}
+                    className={`w-full border border-blue-200 rounded-[10px] p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      isFieldCompleted("companyType")
+                        ? "bg-gray-100 text-gray-400"
+                        : ""
+                    }`}
+                  />
+                </div>
+              </div>
             )}
           </div>
         </div>

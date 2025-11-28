@@ -70,6 +70,7 @@ export interface JobFormData {
   isFeatured?: boolean;
   isUrgent?: boolean;
   expiryDate?: string;
+  experienceLevel?: string;
 }
 
 export interface JobApplication {

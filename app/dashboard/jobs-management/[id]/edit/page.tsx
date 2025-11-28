@@ -91,6 +91,7 @@ export default function EditJobPage() {
     isFeatured: false,
     isUrgent: false,
     expiryDate: "",
+    experienceLevel: "",
   });
 
   useEffect(() => {
@@ -116,6 +117,52 @@ export default function EditJobPage() {
           // Handle nested data structure: response.data.data contains the actual job
           const job = response.data?.data || response.data;
 
+          // Handle requiredSkills and tags - they might be strings or arrays
+          // Sometimes arrays contain comma-separated strings, so we need to flatten them
+          const processSkills = (skills: any): string[] => {
+            if (!skills) return [];
+            if (Array.isArray(skills)) {
+              // Flatten array: if any element is a comma-separated string, split it
+              return skills.flatMap((skill: any) => {
+                if (typeof skill === "string" && skill.includes(",")) {
+                  return skill.split(",").map((s: string) => s.trim()).filter((s: string) => s);
+                }
+                return typeof skill === "string" ? skill.trim() : String(skill).trim();
+              }).filter((s: string) => s);
+            }
+            if (typeof skills === "string") {
+              return skills.split(",").map((s: string) => s.trim()).filter((s: string) => s);
+            }
+            return [];
+          };
+
+          const processTags = (tags: any): string[] => {
+            if (!tags) return [];
+            if (Array.isArray(tags)) {
+              // Flatten array: if any element is a comma-separated string, split it
+              return tags.flatMap((tag: any) => {
+                if (typeof tag === "string" && tag.includes(",")) {
+                  return tag.split(",").map((t: string) => t.trim()).filter((t: string) => t);
+                }
+                return typeof tag === "string" ? tag.trim() : String(tag).trim();
+              }).filter((t: string) => t);
+            }
+            if (typeof tags === "string") {
+              return tags.split(",").map((t: string) => t.trim()).filter((t: string) => t);
+            }
+            return [];
+          };
+
+          const requiredSkills = processSkills(job.requiredSkills);
+          const tags = processTags(job.tags);
+
+          // Handle companyId - it might be an object with _id and name, or just a string
+          const companyName = (job as any).companyName || 
+            ((job as any).companyId && typeof (job as any).companyId === "object" 
+              ? (job as any).companyId.name 
+              : null) || 
+            job.company || "";
+
           setFormData({
             title: job.title || "",
             description: job.description || "",
@@ -124,10 +171,10 @@ export default function EditJobPage() {
               job.employmentType && job.employmentType.trim() !== ""
                 ? job.employmentType
                 : "full-time",
-            requiredSkills: job.requiredSkills || [],
-            tags: job.tags || [],
+            requiredSkills: requiredSkills,
+            tags: tags,
             salaryRange: job.salaryRange || "",
-            company: job.company || "",
+            company: companyName,
             department: job.department || "",
             contactEmail: job.contactEmail || "",
             contactPhone: job.contactPhone || "",
@@ -136,6 +183,7 @@ export default function EditJobPage() {
             isFeatured: job.isFeatured || false,
             isUrgent: job.isUrgent || false,
             expiryDate: job.expiryDate || "",
+            experienceLevel: job.experienceLevel || "",
           });
         } else {
           setError(response.message || "Failed to fetch job details");
@@ -204,10 +252,22 @@ export default function EditJobPage() {
         return;
       }
 
+      // Only send editable fields to the API
+      const updatePayload = {
+        title: formData.title,
+        description: formData.description,
+        employmentType: formData.employmentType,
+        location: formData.location,
+        salaryRange: formData.salaryRange,
+        requiredSkills: formData.requiredSkills,
+        tags: formData.tags,
+        experienceLevel: formData.experienceLevel || undefined,
+      };
+
       const response = await updateApiRequest(
         `/api/ats/job-posts/${jobId}`,
         token,
-        formData
+        updatePayload
       );
 
       if (response?.data?.success) {
@@ -383,14 +443,14 @@ export default function EditJobPage() {
                     Company
                   </Label>
                   <Input
-                    className="rounded-2xl border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                    className="rounded-2xl border-slate-200 bg-gray-50 text-gray-500 cursor-not-allowed"
                     id="company"
                     placeholder="e.g., TechCorp Solutions"
                     value={formData.company}
-                    onChange={(e) =>
-                      handleInputChange("company", e.target.value)
-                    }
+                    disabled
+                    readOnly
                   />
+                  <p className="text-xs text-gray-500">Company cannot be changed</p>
                 </div>
 
                 <div className="space-y-2">
@@ -416,7 +476,7 @@ export default function EditJobPage() {
                     htmlFor="employmentType"
                     className="text-sm font-semibold text-slate-700"
                   >
-                    Employment Type
+                    Employment Type *
                   </Label>
                   <Select
                     value={formData.employmentType}
@@ -433,6 +493,31 @@ export default function EditJobPage() {
                       <SelectItem value="contract">Contract</SelectItem>
                       <SelectItem value="internship">Internship</SelectItem>
                       <SelectItem value="remote">Remote</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="experienceLevel"
+                    className="text-sm font-semibold text-slate-700"
+                  >
+                    Experience Level *
+                  </Label>
+                  <Select
+                    value={formData.experienceLevel || ""}
+                    onValueChange={(value) =>
+                      handleInputChange("experienceLevel", value)
+                    }
+                  >
+                    <SelectTrigger className="rounded-2xl border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300">
+                      <SelectValue placeholder="Select experience level" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white rounded-2xl">
+                      <SelectItem value="entry">Entry Level</SelectItem>
+                      <SelectItem value="mid">Mid Level</SelectItem>
+                      <SelectItem value="senior">Senior Level</SelectItem>
+                      <SelectItem value="executive">Executive</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -463,14 +548,14 @@ export default function EditJobPage() {
                     Department
                   </Label>
                   <Input
-                    className="rounded-2xl border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                    className="rounded-2xl border-slate-200 bg-gray-50 text-gray-500 cursor-not-allowed"
                     id="department"
                     placeholder="e.g., Engineering, Marketing"
                     value={formData.department}
-                    onChange={(e) =>
-                      handleInputChange("department", e.target.value)
-                    }
+                    disabled
+                    readOnly
                   />
+                  <p className="text-xs text-gray-500">Department cannot be changed</p>
                 </div>
               </div>
             </CardContent>
@@ -614,18 +699,18 @@ export default function EditJobPage() {
                     htmlFor="contactEmail"
                     className="text-sm font-semibold text-slate-700"
                   >
-                    Contact Email *
+                    Contact Email
                   </Label>
                   <Input
-                    className="rounded-2xl border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                    className="rounded-2xl border-slate-200 bg-gray-50 text-gray-500 cursor-not-allowed"
                     id="contactEmail"
                     type="email"
                     placeholder="hr@company.com"
                     value={formData.contactEmail}
-                    onChange={(e) =>
-                      handleInputChange("contactEmail", e.target.value)
-                    }
+                    disabled
+                    readOnly
                   />
+                  <p className="text-xs text-gray-500">Contact email cannot be changed</p>
                 </div>
 
                 <div className="space-y-2">
@@ -636,14 +721,14 @@ export default function EditJobPage() {
                     Contact Phone
                   </Label>
                   <Input
-                    className="rounded-2xl border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                    className="rounded-2xl border-slate-200 bg-gray-50 text-gray-500 cursor-not-allowed"
                     id="contactPhone"
                     placeholder="+1 (555) 123-4567"
                     value={formData.contactPhone}
-                    onChange={(e) =>
-                      handleInputChange("contactPhone", e.target.value)
-                    }
+                    disabled
+                    readOnly
                   />
+                  <p className="text-xs text-gray-500">Contact phone cannot be changed</p>
                 </div>
 
                 <div className="space-y-2">
@@ -654,14 +739,14 @@ export default function EditJobPage() {
                     Company Website
                   </Label>
                   <Input
-                    className="rounded-2xl border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                    className="rounded-2xl border-slate-200 bg-gray-50 text-gray-500 cursor-not-allowed"
                     id="website"
                     placeholder="https://company.com"
                     value={formData.website}
-                    onChange={(e) =>
-                      handleInputChange("website", e.target.value)
-                    }
+                    disabled
+                    readOnly
                   />
+                  <p className="text-xs text-gray-500">Website cannot be changed</p>
                 </div>
 
                 <div className="space-y-2">
@@ -672,14 +757,14 @@ export default function EditJobPage() {
                     Recruiter Name
                   </Label>
                   <Input
-                    className="rounded-2xl border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                    className="rounded-2xl border-slate-200 bg-gray-50 text-gray-500 cursor-not-allowed"
                     id="recruiter"
                     placeholder="John Doe"
                     value={formData.recruiter}
-                    onChange={(e) =>
-                      handleInputChange("recruiter", e.target.value)
-                    }
+                    disabled
+                    readOnly
                   />
+                  <p className="text-xs text-gray-500">Recruiter name cannot be changed</p>
                 </div>
 
                 <div className="space-y-2">
@@ -690,14 +775,14 @@ export default function EditJobPage() {
                     Expiry Date
                   </Label>
                   <Input
-                    className="rounded-2xl border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                    className="rounded-2xl border-slate-200 bg-gray-50 text-gray-500 cursor-not-allowed"
                     id="expiryDate"
                     type="date"
                     value={formData.expiryDate}
-                    onChange={(e) =>
-                      handleInputChange("expiryDate", e.target.value)
-                    }
+                    disabled
+                    readOnly
                   />
+                  <p className="text-xs text-gray-500">Expiry date cannot be changed</p>
                 </div>
               </div>
 
