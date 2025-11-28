@@ -17,7 +17,9 @@ type TemplateKey = "classic" | "modern" | "minimal" | "elegant";
 interface CVUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUploadSuccess: (result: UploadResult & { file: File }) => void;
+  onUploadSuccess?: (result: UploadResult & { file: File }) => void;
+  onUpload?: (file: File) => Promise<void>;
+  loading?: boolean;
 }
 
 type Phase = "idle" | "uploading" | "ingesting" | "success" | "error";
@@ -32,6 +34,8 @@ export default function CVUploadModal({
   isOpen,
   onClose,
   onUploadSuccess,
+  onUpload,
+  loading,
 }: CVUploadModalProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>({
@@ -89,6 +93,23 @@ export default function CVUploadModal({
         message: "Uploading your CV...",
         progress: 0,
       });
+
+      // If onUpload is provided, use it (for rating flow)
+      if (onUpload) {
+        await onUpload(file);
+        setUploadStatus({
+          status: "success",
+          message: "CV uploaded successfully!",
+          progress: 100,
+        });
+        // Don't close automatically - let the parent handle it
+        return;
+      }
+
+      // Otherwise, use the original ingestion flow
+      if (!onUploadSuccess) {
+        throw new Error("Either onUpload or onUploadSuccess must be provided");
+      }
 
       // Simulate visible progress while Firebase uploads
       const progressInterval = setInterval(() => {
@@ -307,26 +328,26 @@ export default function CVUploadModal({
             </div>
           )}
 
-          {uploadStatus.status !== "idle" && (
+          {(uploadStatus.status !== "idle" || loading) && (
             <div className="space-y-6">
               {/* Status Icon */}
               <div className="flex justify-center">
-                {uploadStatus.status === "uploading" && (
+                {(uploadStatus.status === "uploading" || loading) && (
                   <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center">
                     <Loader2 className="h-8 w-8 text-blue-600 dark:text-blue-400 animate-spin" />
                   </div>
                 )}
-                {uploadStatus.status === "ingesting" && (
+                {uploadStatus.status === "ingesting" && !loading && (
                   <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/40 rounded-full flex items-center justify-center">
                     <Loader2 className="h-8 w-8 text-indigo-600 dark:text-indigo-400 animate-spin" />
                   </div>
                 )}
-                {uploadStatus.status === "success" && (
+                {uploadStatus.status === "success" && !loading && (
                   <div className="w-16 h-16 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center">
                     <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
                   </div>
                 )}
-                {uploadStatus.status === "error" && (
+                {uploadStatus.status === "error" && !loading && (
                   <div className="w-16 h-16 bg-red-100 dark:bg-red-900/40 rounded-full flex items-center justify-center">
                     <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
                   </div>
@@ -337,23 +358,25 @@ export default function CVUploadModal({
               <div className="text-center">
                 <h3
                   className={`text-lg font-semibold mb-2 ${
-                    uploadStatus.status === "success"
+                    uploadStatus.status === "success" && !loading
                       ? "text-green-600 dark:text-green-400"
-                      : uploadStatus.status === "error"
+                      : uploadStatus.status === "error" && !loading
                       ? "text-red-600 dark:text-red-400"
-                      : uploadStatus.status === "ingesting"
+                      : uploadStatus.status === "ingesting" && !loading
                       ? "text-indigo-600 dark:text-indigo-400"
                       : "text-blue-600 dark:text-blue-400"
                   }`}
                 >
-                  {uploadStatus.message}
+                  {loading && !uploadStatus.message
+                    ? "Processing your CV..."
+                    : uploadStatus.message || "Uploading your CV..."}
                 </h3>
 
-                {uploadStatus.status === "uploading" && (
+                {(uploadStatus.status === "uploading" || loading) && (
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                     <div
                       className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${uploadStatus.progress}%` }}
+                      style={{ width: `${uploadStatus.progress || 50}%` }}
                     />
                   </div>
                 )}
