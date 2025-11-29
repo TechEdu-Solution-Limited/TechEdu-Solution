@@ -468,7 +468,7 @@ const page = () => {
     if (key === "free") handleFreeClick();
     else if (key === "pro") {
       // Navigate to career-development page with search query
-      router.push("/career-development?search=cv Builder pro plan");
+      router.push("/career-development#catalog?search=cv Builder pro plan");
     }
     else if (key === "coaching") {
       // Navigate to career-development page (CatalogPage section)
