@@ -156,11 +156,6 @@ export default function TemplateSelection() {
     return null;
   }
 
-  const handleContinue = () => {
-    // Navigate to the CV builder with selected template, starting a fresh CV
-    router.push(`/dashboard/cv-builder/${selectedTemplate}?new=1`);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
