@@ -21,6 +21,7 @@ interface Step3TeamProfileProps {
 }
 
 const programmingLanguages = [
+  // Software Development
   "JavaScript",
   "Python",
   "Java",
@@ -39,11 +40,28 @@ const programmingLanguages = [
   "SQL",
   "HTML/CSS",
   "Shell Scripting",
+  // Data Analysis & Business Intelligence
+  "Python (Data Science)",
+  "R (Statistical Analysis)",
+  "SQL (Database Querying)",
+  "Power Query/M",
+  "DAX",
+  "VBA",
+  // Education & Training
+  "Scratch",
+  "Blockly",
+  "Educational Programming Tools",
+  // Administration & Business
+  "Excel/Spreadsheet Formulas",
+  "Google Apps Script",
+  "Automation Scripts",
+  // Not Applicable
+  "None/Not Applicable",
   "Other",
 ];
 
 const frameworksAndTools = [
-  // Development Frameworks
+  // Software Development Frameworks
   "React",
   "Vue.js",
   "Angular",
@@ -64,7 +82,7 @@ const frameworksAndTools = [
   "AWS",
   "Azure",
   "Google Cloud",
-  // Business & Project Management
+  // Project Management & Collaboration
   "Jira",
   "Trello",
   "Asana",
@@ -73,46 +91,159 @@ const frameworksAndTools = [
   "Slack",
   "Microsoft Teams",
   "Zoom",
-  // Design & Analytics
+  "Basecamp",
+  "ClickUp",
+  // Design & Creative
   "Figma",
   "Adobe Creative Suite",
+  "Canva",
+  "Sketch",
+  // Data Analysis & Business Intelligence
   "Tableau",
   "Power BI",
   "Google Analytics",
   "Mixpanel",
+  "Excel (Advanced)",
+  "Google Sheets",
+  "SPSS",
+  "SAS",
+  "Stata",
+  "QlikView",
+  "Looker",
+  "Apache Spark",
+  "Hadoop",
   // CRM & Sales
   "Salesforce",
   "HubSpot",
   "Pipedrive",
   "Zoho CRM",
+  "Microsoft Dynamics",
+  // Education & Learning Management
+  "Moodle",
+  "Blackboard",
+  "Canvas LMS",
+  "Google Classroom",
+  "Kahoot",
+  "Coursera for Business",
+  "Udemy Business",
+  "LinkedIn Learning",
+  // Human Resources Management
+  "BambooHR",
+  "Workday",
+  "ADP",
+  "Zenefits",
+  "Paycom",
+  "Greenhouse",
+  "Lever",
+  "LinkedIn Recruiter",
+  "Indeed Hiring Platform",
+  // Business & Administration
+  "Microsoft Office 365",
+  "Google Workspace",
+  "QuickBooks",
+  "SAP",
+  "Oracle ERP",
+  "Microsoft Dynamics 365",
+  "Xero",
+  "FreshBooks",
+  // Communication & Video Conferencing
+  "Webex",
+  "GoToMeeting",
+  "BlueJeans",
+  "RingCentral",
+  // Other
   "Other",
 ];
 
 const softSkills = [
+  // Communication & Interpersonal
   "Communication",
-  "Leadership",
-  "Problem Solving",
-  "Time Management",
-  "Emotional Intelligence",
-  "Creativity",
-  "Adaptability",
-  "Teamwork",
-  "Critical Thinking",
-  "Negotiation",
-  "Strategic Planning",
+  "Active Listening",
+  "Written Communication",
+  "Verbal Communication",
   "Client Relations",
-  "Project Management",
+  "Stakeholder Management",
   "Public Speaking",
-  "Mentoring",
-  "Conflict Resolution",
-  "Decision Making",
   "Presentation Skills",
   "Cross-functional Collaboration",
+  // Leadership & Management
+  "Leadership",
+  "Team Leadership",
+  "People Management",
+  "Mentoring",
+  "Coaching",
+  "Delegation",
+  "Strategic Planning",
+  "Change Management",
+  // Problem Solving & Analysis
+  "Problem Solving",
+  "Critical Thinking",
+  "Analytical Thinking",
+  "Data Analysis",
+  "Research Skills",
+  "Decision Making",
+  "Root Cause Analysis",
+  // Project & Process Management
+  "Project Management",
+  "Time Management",
+  "Task Prioritization",
+  "Process Improvement",
+  "Agile/Scrum Methodology",
+  "Risk Management",
+  "Quality Assurance",
+  // Business & Professional
+  "Business Acumen",
+  "Financial Literacy",
+  "Negotiation",
+  "Sales Skills",
+  "Customer Service",
+  "Relationship Building",
+  "Networking",
+  // Education & Training
+  "Curriculum Development",
+  "Instructional Design",
+  "Training Delivery",
+  "Assessment & Evaluation",
+  "Educational Technology",
+  // Human Resources
+  "Recruitment",
+  "Talent Acquisition",
+  "Employee Relations",
+  "Performance Management",
+  "Compensation & Benefits",
+  "HR Analytics",
+  "Diversity & Inclusion",
+  // Administration & Operations
+  "Administrative Skills",
+  "Documentation",
+  "Record Keeping",
+  "Compliance",
+  "Policy Development",
+  "Vendor Management",
+  // Personal & Emotional
+  "Emotional Intelligence",
+  "Empathy",
+  "Adaptability",
+  "Resilience",
+  "Stress Management",
+  "Work-Life Balance",
+  // Creative & Innovation
+  "Creativity",
+  "Innovation",
+  "Design Thinking",
+  "Creative Problem Solving",
+  // Team & Collaboration
+  "Teamwork",
+  "Collaboration",
+  "Conflict Resolution",
+  "Consensus Building",
+  "Cultural Sensitivity",
+  // Other
   "Other",
 ];
 
 const preferredTechStack = [
-  // Technical Stacks
+  // Software Development Stacks
   "MERN Stack",
   "MEAN Stack",
   "LAMP Stack",
@@ -121,19 +252,67 @@ const preferredTechStack = [
   "Microservices",
   "Cloud Native",
   "DevOps",
+  "Full Stack Development",
+  "Frontend Development",
+  "Backend Development",
+  "Mobile Development",
+  // Data & Analytics
   "Data Science",
+  "Data Analytics",
+  "Business Intelligence",
+  "Big Data",
+  "Data Warehousing",
+  "Machine Learning",
   "AI/ML",
-  // Business & Corporate Solutions
+  "Predictive Analytics",
+  "Statistical Analysis",
+  // Cloud & Infrastructure
+  "Cloud Computing (AWS/Azure/GCP)",
+  "Cloud Migration",
+  "Infrastructure as Code",
+  "Containerization",
+  // Business & Enterprise Solutions
   "Enterprise Software",
   "CRM Systems",
   "ERP Solutions",
-  "Business Intelligence",
   "Digital Transformation",
   "Process Automation",
-  "Cloud Migration",
+  "Workflow Automation",
+  "Business Process Management",
   "Security & Compliance",
-  "Mobile Solutions",
   "E-commerce Platforms",
+  // Education Technology
+  "Learning Management Systems (LMS)",
+  "Educational Technology",
+  "E-Learning Platforms",
+  "Student Information Systems",
+  "Assessment & Testing Platforms",
+  "Virtual Classroom Solutions",
+  // Human Resources Technology
+  "HRIS (Human Resources Information Systems)",
+  "Talent Management Systems",
+  "Recruitment Technology",
+  "Performance Management Systems",
+  "Payroll Systems",
+  "Benefits Administration",
+  // Business Intelligence & Reporting
+  "Business Intelligence Platforms",
+  "Reporting & Dashboards",
+  "Data Visualization",
+  "Financial Analytics",
+  "HR Analytics",
+  // Administration & Operations
+  "Office Productivity Suites",
+  "Document Management Systems",
+  "Project Management Platforms",
+  "Collaboration Tools",
+  "Communication Platforms",
+  // Consulting & Advisory
+  "Business Consulting Tools",
+  "Financial Planning Software",
+  "Risk Management Systems",
+  "Compliance Management",
+  // Other
   "Other",
 ];
 
@@ -436,7 +615,7 @@ export function Step3TeamProfile({
 
       <div>
         <Label className="text-sm font-medium text-gray-700 mb-3 block">
-          Programming Languages * (Select all that apply)
+          Programming Languages & Relevant Technologies * (Select all that apply)
         </Label>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {programmingLanguages.map((lang) => (
