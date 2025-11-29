@@ -389,19 +389,19 @@ const LoginPage = () => {
           </Link>
         </div>
 
-        <div className="w-full flex items-center justify-center gap-4">
+        {/* <div className="w-full flex items-center justify-center gap-4">
           <span className="w-28 h-[2px] rounded-[10px] bg-gray-600"></span>
           <div className="text-center text-sm text-gray-600 py-2">
             or continue with
           </div>
           <span className="w-28 h-[2px] rounded-[10px] bg-gray-600"></span>
-        </div>
+        </div> */}
 
-        <button
+        {/* <button
           type="button"
           className="w-full flex items-center justify-center gap-2 border-2 border-gray-200 py-3 rounded-[10px] text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Login with Google"
-          // onClick={handleGoogleLogin}
+          onClick={handleGoogleLogin}
           disabled
         >
           <Image src="/icons/search.png" height={20} width={20} alt="Google" />
@@ -421,7 +421,7 @@ const LoginPage = () => {
             alt="LinkedIn"
           />
           Login with LinkedIn
-        </button>
+        </button> */}
 
         <p className="text-[1rem] text-center mt-4">
           Don't have an account?{" "}
