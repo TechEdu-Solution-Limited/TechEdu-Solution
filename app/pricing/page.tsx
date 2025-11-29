@@ -3,6 +3,7 @@
 import StoryCarousel, { Story } from "@/components/Stories/StoryCarousel";
 import CatalogPage from "@/components/CatalogPage";
 import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   generatePricingMetadata,
   generateServiceStructuredData,
@@ -263,8 +264,55 @@ const addOns = [
 ];
 
 export default function Pricing() {
-  const [tab, setTab] = useState<TabType>("academic services");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Get initial tab from URL params or default to "academic services"
+  const tabParam = searchParams.get("tab");
+  const validTabs: TabType[] = [
+    "academic services",
+    "career development",
+    "corporate & business consultancy",
+    "training",
+    "career connect",
+  ];
+  const initialTab = (tabParam && validTabs.includes(tabParam as TabType))
+    ? (tabParam as TabType)
+    : "academic services";
+
+  const [tab, setTab] = useState<TabType>(initialTab);
   const [products, setProducts] = useState<any[]>([]);
+
+  // Update URL when tab changes (but not when URL changes)
+  useEffect(() => {
+    const currentTabParam = searchParams.get("tab");
+    // Only update URL if it's different from current state
+    if (tab !== currentTabParam) {
+      const params = new URLSearchParams(searchParams.toString());
+      if (tab) {
+        params.set("tab", tab);
+      } else {
+        params.delete("tab");
+      }
+      const newUrl = params.toString() ? `?${params.toString()}` : "/pricing";
+      router.replace(newUrl, { scroll: false });
+    }
+  }, [tab, router, searchParams]);
+
+  // Update tab when URL param changes (e.g., browser back/forward)
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && validTabs.includes(tabParam as TabType)) {
+      const newTab = tabParam as TabType;
+      if (newTab !== tab) {
+        setTab(newTab);
+      }
+    } else if (!tabParam && tab !== "academic services") {
+      // If no tab param, set to default
+      setTab("academic services");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Update document title and meta description based on selected tab
   useEffect(() => {
