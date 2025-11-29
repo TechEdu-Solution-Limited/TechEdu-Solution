@@ -98,6 +98,7 @@ const forceLogout = () => {
 
 /**
  * Check if error indicates account is deactivated
+ * Only triggers on specific deactivation messages, not generic 401 errors
  */
 const isAccountDeactivated = (error: any): boolean => {
   if (!error || error.status !== 401) {
@@ -107,15 +108,24 @@ const isAccountDeactivated = (error: any): boolean => {
   // Check error structure: error.error?.details array contains deactivation message
   const errorDetails = error.error?.details || error.details || [];
   const errorMessage = error.message || error.error?.message || "";
+  const errorCode = error.error?.code || error.code || "";
   
-  // Check if any detail or message contains deactivation text
+  // Only check for specific deactivation indicators, NOT generic "UNAUTHORIZED"
+  // This prevents false positives on public API calls that return 401
   const deactivationIndicators = [
     "This account has been deactivated",
     "account has been deactivated",
-    "deactivated",
-    "UNAUTHORIZED",
+    "account is deactivated",
+    "deactivated account",
+    "account deactivation",
   ];
 
+  // Check error code first - must be UNAUTHORIZED with deactivation details
+  const isUnauthorizedCode = errorCode === "UNAUTHORIZED" || errorCode === "UNAUTHORIZED_ERROR";
+  
+  // Only consider it deactivated if:
+  // 1. Error code is UNAUTHORIZED AND
+  // 2. Error details/message contains specific deactivation text
   const hasDeactivationMessage = 
     errorDetails.some((detail: string) =>
       deactivationIndicators.some((indicator) =>
@@ -126,7 +136,8 @@ const isAccountDeactivated = (error: any): boolean => {
       errorMessage.toLowerCase().includes(indicator.toLowerCase())
     );
 
-  return hasDeactivationMessage;
+  // Require both unauthorized code AND deactivation message
+  return isUnauthorizedCode && hasDeactivationMessage;
 };
 
 /**
@@ -154,12 +165,14 @@ export const apiRequest = async <T = any>(
 
     if (!response.ok) {
       // Check if account is deactivated before throwing
+      // Only check if token is present (authenticated requests)
+      // Public endpoints without tokens shouldn't trigger deactivation checks
       const errorData = {
         ...data,
         status: response.status,
       };
       
-      if (isAccountDeactivated(errorData)) {
+      if (token && isAccountDeactivated(errorData)) {
         safeConsole.error("Account deactivated detected in apiRequest, forcing logout:", errorData);
         forceLogout();
       }
@@ -171,7 +184,8 @@ export const apiRequest = async <T = any>(
     return { data, status: response.status, message: data.message };
   } catch (error: any) {
     // If error is already an object from backend, check for deactivation
-    if (error && typeof error === "object") {
+    // Only check if token is present (authenticated requests)
+    if (error && typeof error === "object" && token) {
       if (isAccountDeactivated(error)) {
         safeConsole.error("Account deactivated detected in apiRequest catch, forcing logout:", error);
         forceLogout();
