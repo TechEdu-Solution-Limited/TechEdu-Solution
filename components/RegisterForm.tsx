@@ -604,7 +604,7 @@ const Page = () => {
             {isLoading ? "Registering..." : "Register"}
           </button>
 
-          <div className="w-full flex items-center justify-center gap-4">
+          {/* <div className="w-full flex items-center justify-center gap-4">
             <span className="w-28 h-[2px] rounded-[10px] bg-gray-600"></span>
             <div className="text-center text-sm text-gray-600 py-2">
               or continue
@@ -616,7 +616,7 @@ const Page = () => {
             type="button"
             className="w-full flex items-center justify-center gap-2 border-2 border-gray-200 py-2 rounded-[10px] text-gray-700 hover:bg-gray-200"
             aria-label="Login with Google"
-            // onClick={handleGoogleLogin}
+            onClick={handleGoogleLogin}
             disabled
           >
             <Image
@@ -643,7 +643,7 @@ const Page = () => {
               className="w-5 h-5"
             />
             Register with LinkedIn
-          </button>
+          </button> */}
 
           <p className="text-[1rem] text-center py-4">
             Already have an account?{" "}
