@@ -265,6 +265,19 @@ export default function CatalogPage({
     }
   }, [searchParams]);
 
+  // Scroll to catalog section when hash is present
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash === "#catalog") {
+      // Small delay to ensure the component is rendered
+      setTimeout(() => {
+        const catalogElement = document.getElementById("catalog");
+        if (catalogElement) {
+          catalogElement.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 100);
+    }
+  }, []);
+
   useEffect(() => {
     fetchTeamData();
     // eslint-disable-next-line react-hooks/exhaustive-deps

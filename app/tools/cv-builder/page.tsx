@@ -467,11 +467,11 @@ const page = () => {
   const planClick = (key: PlanKey) => {
     if (key === "free") handleFreeClick();
     else if (key === "pro") {
-      // Navigate to career-development page with search query
-      router.push("/career-development#catalog?search=cv Builder pro plan");
+      // Navigate to career-development page with search query and scroll to catalog
+      router.push("/career-development?search=cv Builder pro plan#catalog");
     }
     else if (key === "coaching") {
-      // Navigate to career-development page (CatalogPage section)
+      // Navigate to career-development page and scroll to catalog section
       router.push("/career-development#catalog");
     }
   };
