@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { getTokenFromCookies } from "@/lib/cookies";
+import { getApiRequest } from "@/lib/apiFetch";
+import safeConsole from "@/lib/console";
 
-const templates = [
+// All available templates
+const allTemplates = [
   {
     id: "classic",
     name: "Classic",
@@ -38,9 +42,119 @@ const templates = [
   },
 ];
 
+// Required product ID for CV Builder Pro
+const REQUIRED_PRODUCT_ID = "6907d65747f7b7c61241eda5";
+// Allowed templates for CV Builder Pro (classic and minimal only)
+const ALLOWED_TEMPLATES = ["classic", "minimal"];
+
 export default function TemplateSelection() {
   const [selectedTemplate, setSelectedTemplate] = useState<string>("classic");
+  const [hasCVBuilderPro, setHasCVBuilderPro] = useState<boolean | null>(null);
+  const [entitlementLoading, setEntitlementLoading] = useState(true);
   const router = useRouter();
+
+  // Check for CV Builder Pro entitlement
+  useEffect(() => {
+    const checkEntitlement = async () => {
+      try {
+        setEntitlementLoading(true);
+        const token = getTokenFromCookies();
+        
+        if (!token) {
+          // No token - redirect to purchase page
+          router.replace("/career-development?search=cv builder pro plan#catalog");
+          return;
+        }
+
+        // Fetch all entitlements
+        const response = await getApiRequest("/api/me/entitlements?subjectType=product", token);
+        
+        // Extract entitlements from response
+        let entitlements: any[] = [];
+        if (Array.isArray(response?.data)) {
+          entitlements = response.data;
+        } else if (Array.isArray(response?.data?.items)) {
+          entitlements = response.data.items;
+        } else if (Array.isArray(response?.data?.data)) {
+          entitlements = response.data.data;
+        }
+
+        // Check if user has the required productId entitlement with active status
+        const hasProAccess = entitlements.some(
+          (entitlement: any) =>
+            entitlement.subjectId === REQUIRED_PRODUCT_ID &&
+            entitlement.status === "active"
+        );
+
+        setHasCVBuilderPro(hasProAccess);
+        
+        // If no access, redirect to purchase page
+        if (!hasProAccess) {
+          router.replace("/career-development?search=cv builder pro plan#catalog");
+        }
+      } catch (err: any) {
+        safeConsole.error("Error checking CV Builder entitlement:", err);
+        setHasCVBuilderPro(false);
+        // On error, redirect to purchase page
+        router.replace("/career-development?search=cv builder pro plan#catalog");
+      } finally {
+        setEntitlementLoading(false);
+      }
+    };
+
+    checkEntitlement();
+  }, [router]);
+
+  // Filter templates based on entitlement (only classic and minimal for CV Builder Pro)
+  const templates = allTemplates.filter((t) => ALLOWED_TEMPLATES.includes(t.id));
+
+  const handleContinue = () => {
+    // Validate template is allowed
+    if (!ALLOWED_TEMPLATES.includes(selectedTemplate)) {
+      return;
+    }
+    // Navigate to the CV builder with selected template, starting a fresh CV
+    router.push(`/dashboard/cv-builder/${selectedTemplate}?new=1`);
+  };
+
+  // Show loading state while checking entitlements
+  if (entitlementLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            Checking Access...
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300">
+            Verifying your CV Builder Pro access
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // If user doesn't have access, they will be redirected, but show a message while redirecting
+  if (hasCVBuilderPro === false) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            Redirecting...
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300">
+            Please purchase CV Builder Pro to continue
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render the page if access check hasn't completed
+  if (hasCVBuilderPro !== true) {
+    return null;
+  }
 
   const handleContinue = () => {
     // Navigate to the CV builder with selected template, starting a fresh CV

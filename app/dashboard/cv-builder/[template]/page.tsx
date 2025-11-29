@@ -52,6 +52,9 @@ export default function TemplateBuilderPage({
   const isNew = searchParams.get("new") === "1";
   const isViewMode = mode === "view";
 
+  // Allowed templates for CV Builder Pro (classic and minimal only)
+  const ALLOWED_TEMPLATES = ["classic", "minimal"];
+
   // Validate template exists
   const template = templateManager.getTemplate(templateId);
   if (!template) {
@@ -63,6 +66,30 @@ export default function TemplateBuilderPage({
           </h1>
           <p className="text-gray-600 mb-6">
             The template "{templateId}" does not exist.
+          </p>
+          <Link
+            href="/dashboard/cv-builder/template-selection"
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-[10px] hover:bg-blue-700"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Template Selection
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Restrict access to only allowed templates
+  if (!ALLOWED_TEMPLATES.includes(templateId)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Template Not Available
+          </h1>
+          <p className="text-gray-600 mb-6">
+            The "{templateId}" template is not available with your current plan. 
+            Please select from Classic or Minimal templates.
           </p>
           <Link
             href="/dashboard/cv-builder/template-selection"

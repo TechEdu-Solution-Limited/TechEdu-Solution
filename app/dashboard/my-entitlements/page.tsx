@@ -24,6 +24,7 @@ import {
   Inbox,
 } from "lucide-react";
 import { getTokenFromCookies } from "@/lib/cookies";
+import safeConsole from "@/lib/console";
 
 type Entitlement = {
   _id: string;
@@ -166,8 +167,8 @@ export default function Page() {
     setLoading(true);
     try {
       const response = await getApiRequest(`/api/me/entitlements?subjectType=${subjectTypeFilter}`, token || "");
-      console.log("fetchEntitlements response", response);
-      console.log("Entitlement Data", response?.data)
+      safeConsole.log("fetchEntitlements response", response);
+      safeConsole.log("Entitlement Data", response?.data)
       const items = extractItems(response?.data);
       setData(items);
     } catch (err: any) {

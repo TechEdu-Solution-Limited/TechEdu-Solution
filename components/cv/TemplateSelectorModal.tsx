@@ -11,9 +11,11 @@ interface TemplateSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
   onTemplateSelect: (template: string) => void;
+  allowedTemplates?: string[]; // Optional prop to restrict available templates
 }
 
-const templates = [
+// All available templates
+const allTemplates = [
   {
     id: "classic",
     name: "Classic",
@@ -53,7 +55,12 @@ export default function TemplateSelectorModal({
   isOpen,
   onClose,
   onTemplateSelect,
+  allowedTemplates,
 }: TemplateSelectorModalProps) {
+  // Filter templates based on allowedTemplates prop, or show all if not provided
+  const templates = allowedTemplates
+    ? allTemplates.filter((t) => allowedTemplates.includes(t.id))
+    : allTemplates;
   const router = useRouter();
   const [selectedTemplate, setSelectedTemplate] = useState("classic");
 
