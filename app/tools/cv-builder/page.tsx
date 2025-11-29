@@ -472,7 +472,7 @@ const page = () => {
     }
     else if (key === "coaching") {
       // Navigate to career-development page (CatalogPage section)
-      router.push("/career-development");
+      router.push("/career-development#catalog");
     }
   };
 
