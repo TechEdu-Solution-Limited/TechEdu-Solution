@@ -1,3 +1,5 @@
+"use client";
+
 import HowItWorks from "@/components/HomePage/HowItWorks";
 import StoryCarousel, { Story } from "@/components/Stories/StoryCarousel";
 import {
