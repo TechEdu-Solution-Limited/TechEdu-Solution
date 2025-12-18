@@ -144,6 +144,17 @@ export function formatSectionContent(section: ResumeSection) {
     case "professional-summary":
       return [{ summary: ensureHtml(section.data?.summary) }];
 
+    case "custom": {
+      // Custom sections can be a single object or an array
+      const data = Array.isArray(section.data) ? section.data : [section.data];
+      return data
+        .filter((item: any) => item && (item.title || item.content))
+        .map((item: any) => ({
+          title: item.title || "",
+          content: ensureHtml(item.content || ""),
+        }));
+    }
+
     case "personal-info":
       return [
         {
@@ -187,6 +198,7 @@ export function getSectionDisplayName(
     interests: "Interests",
     "professional-summary": "Professional Summary",
     "personal-info": "Personal Information",
+    custom: section?.heading || (section?.data as any)?.title || "Custom Section",
   };
 
   return displayNames[sectionType] || sectionType;

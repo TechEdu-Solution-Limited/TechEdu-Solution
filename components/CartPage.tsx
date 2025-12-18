@@ -130,7 +130,6 @@ export default function CartPage() {
     return new Date(preview.expiresAt).getTime() <= Date.now();
   };
 
-
   /* ---------------- Auth box ---------------- */
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
@@ -208,14 +207,14 @@ export default function CartPage() {
   /* ---------------- Role gating ---------------- */
   const canPurchaseProductType = (productType: string, role?: string) => {
     if (!isAuthenticated) return false;
-    
+
     // Universal access product types available to all authenticated users
     const universalProductTypes = [
       "Tools",
       "Marketing, Consultation & Free Services",
     ];
     if (universalProductTypes.includes(productType)) return true;
-    
+
     switch (role) {
       case "student":
         return studentServices.includes(productType);
@@ -231,7 +230,7 @@ export default function CartPage() {
         return true;
     }
   };
-  
+
   const getRoleRestrictionMessage = (productType: string) => {
     if (
       productType === "Academic Support Services" ||
@@ -302,8 +301,9 @@ export default function CartPage() {
 
     if (model === "subscription") {
       // Check if subscription has per-unit pricing with tiers
-      const priceBasis = p.priceBasis || (p.model === "per_unit" ? "per_unit" : "flat");
-      
+      const priceBasis =
+        p.priceBasis || (p.model === "per_unit" ? "per_unit" : "flat");
+
       if (priceBasis === "per_unit") {
         // Use tier-based calculation for per-unit subscription
         const ti = (p.tierType as "volume" | "stairstep") || "volume";
@@ -313,18 +313,19 @@ export default function CartPage() {
               unitPrice: Number(t?.unitPrice || 0),
             }))
           : [];
-        
-        const subtotal = tiers.length > 0
-          ? perUnitPriceCalculator(tiers, ti, qtySafe)
-          : Number(p.basePrice || p.subscriptionPrice || item.price || 0);
-        
+
+        const subtotal =
+          tiers.length > 0
+            ? perUnitPriceCalculator(tiers, ti, qtySafe)
+            : Number(p.basePrice || p.subscriptionPrice || item.price || 0);
+
         const discount = Math.max(0, subtotal * (discountPercentage / 100));
         const afterDisc = Math.max(0, subtotal - discount);
         const vat = taxInclusive
           ? 0
           : Math.max(0, afterDisc * (vatPercentage / 100));
         const total = afterDisc + vat;
-        
+
         return {
           ok: true,
           currency,
@@ -338,7 +339,7 @@ export default function CartPage() {
           subscription: buildSubscriptionDetails(),
         };
       }
-      
+
       // Flat subscription pricing
       const period = Number(p.subscriptionPrice ?? item.price ?? 0);
       const subtotal = period;
@@ -511,7 +512,7 @@ export default function CartPage() {
       productId: item.id,
       quantity: qty,
     };
-    
+
     // Only include unitName if it's per-unit pricing
     if (p.unitName) {
       payload.unitName = p.unitName;
@@ -521,12 +522,13 @@ export default function CartPage() {
       const resp = await PaymentService.postPricePreview(payload, token);
       const serverPreview = resp?.data;
       const options = serverPreview?.data?.options || {};
-      
+
       if (options.pay_in_full) {
         const opt = options.pay_in_full;
         // Extract quoteId from option level or top level of response
-        const quoteId = opt.quoteId || serverPreview.data.quoteId || serverPreview.quoteId;
-        
+        const quoteId =
+          opt.quoteId || serverPreview.data.quoteId || serverPreview.quoteId;
+
         const serverPricePreview: PricePreview = {
           ok: true,
           currency: opt.currency || item.currency || "USD",
@@ -534,30 +536,48 @@ export default function CartPage() {
           subtotal: Number(opt.breakdown?.subtotal || 0),
           vat: Number(opt.breakdown?.vatAmount || 0),
           total: Number(opt.breakdown?.total || 0),
-          unitPrice: typeof opt.breakdown?.unitPrice === "number" ? opt.breakdown.unitPrice : undefined,
+          unitPrice:
+            typeof opt.breakdown?.unitPrice === "number"
+              ? opt.breakdown.unitPrice
+              : undefined,
           model: opt.model as any,
           tierType: opt.tiers?.type as any,
           quoteId: quoteId, // Add quoteId to the preview
           expiresAt: opt.expiresAt || serverPreview.data?.expiresAt,
         };
-        setPricePreviewById((prev) => ({ ...prev, [item.id]: serverPricePreview }));
+        setPricePreviewById((prev) => ({
+          ...prev,
+          [item.id]: serverPricePreview,
+        }));
         ensureDefaultMode(item.id);
-        
+
         // Debug: Log if quoteId is found
         if (quoteId) {
-          safeConsole.log("✅ [CartPage] quoteId extracted for item:", item.id, quoteId);
+          safeConsole.log(
+            "✅ [CartPage] quoteId extracted for item:",
+            item.id,
+            quoteId
+          );
         } else {
-          safeConsole.warn("⚠️ [CartPage] quoteId not found in price preview response", {
-            itemId: item.id,
-            hasOpt: !!opt,
-            optKeys: opt ? Object.keys(opt) : [],
-            hasData: !!serverPreview.data,
-            dataKeys: serverPreview.data ? Object.keys(serverPreview.data) : [],
-          });
+          safeConsole.warn(
+            "⚠️ [CartPage] quoteId not found in price preview response",
+            {
+              itemId: item.id,
+              hasOpt: !!opt,
+              optKeys: opt ? Object.keys(opt) : [],
+              hasData: !!serverPreview.data,
+              dataKeys: serverPreview.data
+                ? Object.keys(serverPreview.data)
+                : [],
+            }
+          );
         }
 
         // If installments are available, parse installments preview
-        if (serverPreview.data.availableModes?.includes("installments") && serverPreview.data.options.installments) {
+        if (
+          serverPreview.data.availableModes?.includes("installments") &&
+          serverPreview.data.options.installments
+        ) {
           const instOpt = serverPreview.data.options.installments;
           setInstallmentsPreviewById((prev) => ({
             ...prev,
@@ -566,13 +586,21 @@ export default function CartPage() {
                 count: Number(instOpt.installments?.count || 0),
                 interval: "month" as const,
                 intervalCount: 1,
-                downPaymentType: (instOpt.installments?.downPayment?.type || "percent") as any,
-                downPaymentValue: Number(instOpt.installments?.downPayment?.value || 0),
+                downPaymentType: (instOpt.installments?.downPayment?.type ||
+                  "percent") as any,
+                downPaymentValue: Number(
+                  instOpt.installments?.downPayment?.value || 0
+                ),
               },
-              downPaymentAmount: Number(instOpt.installments?.downPayment?.amount || 0),
-              installmentAmount: instOpt.installments?.schedule?.[0]?.amount || 0,
+              downPaymentAmount: Number(
+                instOpt.installments?.downPayment?.amount || 0
+              ),
+              installmentAmount:
+                instOpt.installments?.schedule?.[0]?.amount || 0,
               schedule: Array.isArray(instOpt.installments?.schedule)
-                ? instOpt.installments.schedule.map((x: any) => Number(x?.amount || 0))
+                ? instOpt.installments.schedule.map((x: any) =>
+                    Number(x?.amount || 0)
+                  )
                 : [],
               totalFinanced: Number(instOpt.installments?.totalFinanced || 0),
             },
@@ -580,10 +608,13 @@ export default function CartPage() {
         }
       } else if (options.subscription) {
         const opt = options.subscription;
-        const quoteId = opt.quoteId || serverPreview.data.quoteId || serverPreview.quoteId;
+        const quoteId =
+          opt.quoteId || serverPreview.data.quoteId || serverPreview.quoteId;
         const subscriptionMeta = opt.subscription
           ? {
-              price: Number(opt.subscription.price ?? opt.breakdown?.total ?? 0),
+              price: Number(
+                opt.subscription.price ?? opt.breakdown?.total ?? 0
+              ),
               interval: (opt.subscription.interval || "month").toString(),
               intervalCount: Number(opt.subscription.intervalCount ?? 1),
               trialDays: Number(opt.subscription.trialDays ?? 0),
@@ -601,14 +632,20 @@ export default function CartPage() {
           subtotal: Number(opt.breakdown?.subtotal || 0),
           vat: Number(opt.breakdown?.vatAmount || 0),
           total: Number(opt.breakdown?.total || 0),
-          unitPrice: typeof opt.breakdown?.unitPrice === "number" ? opt.breakdown.unitPrice : undefined,
+          unitPrice:
+            typeof opt.breakdown?.unitPrice === "number"
+              ? opt.breakdown.unitPrice
+              : undefined,
           model: opt.model as any,
           tierType: opt.tiers?.type as any,
           quoteId,
           subscription: subscriptionMeta,
           expiresAt: opt.expiresAt || serverPreview.data?.expiresAt,
         };
-        setPricePreviewById((prev) => ({ ...prev, [item.id]: serverPricePreview }));
+        setPricePreviewById((prev) => ({
+          ...prev,
+          [item.id]: serverPricePreview,
+        }));
         ensureDefaultMode(item.id);
       } else {
         // Fallback to local preview if server response is unexpected
@@ -714,7 +751,10 @@ export default function CartPage() {
       if (response.status >= 400) {
         throw new Error(response?.data?.message || "Registration failed");
       } else if (response.status >= 409) {
-        throw new Error(response?.data?.error?.details[0] || "An account with this email already exists");
+        throw new Error(
+          response?.data?.error?.details[0] ||
+            "An account with this email already exists"
+        );
       }
 
       toast.success("Account created! You're signed in.");
@@ -762,17 +802,20 @@ export default function CartPage() {
           );
           const status = (res as any)?.data?.status;
           if (status !== "completed") {
-            const to = role === "student"
-              ? `/onboarding/student?userId=${userId}&redirect=${encodeURIComponent("/cart")}`
-              : role === "recruiter"
-              ? `/onboarding/recruiter?userId=${userId}`
-              : role === "institution"
-              ? `/onboarding/institution?userId=${userId}`
-              : role === "individualTechProfessional"
-              ? `/onboarding/tech-professional?userId=${userId}`
-              : role === "teamTechProfessional"
-              ? `/onboarding/team-tech-professional?userId=${userId}`
-              : "/login";
+            const to =
+              role === "student"
+                ? `/onboarding/student?userId=${userId}&redirect=${encodeURIComponent(
+                    "/cart"
+                  )}`
+                : role === "recruiter"
+                ? `/onboarding/recruiter?userId=${userId}`
+                : role === "institution"
+                ? `/onboarding/institution?userId=${userId}`
+                : role === "individualTechProfessional"
+                ? `/onboarding/tech-professional?userId=${userId}`
+                : role === "teamTechProfessional"
+                ? `/onboarding/team-tech-professional?userId=${userId}`
+                : "/login";
             router.replace(to);
             return;
           }
@@ -781,7 +824,11 @@ export default function CartPage() {
         // On error, safely route student to onboarding with redirect
         const userId = user?.id || user?._id || user?.userId;
         if (userId) {
-          router.replace(`/onboarding/student?userId=${userId}&redirect=${encodeURIComponent("/cart")}`);
+          router.replace(
+            `/onboarding/student?userId=${userId}&redirect=${encodeURIComponent(
+              "/cart"
+            )}`
+          );
           return;
         }
       }
@@ -856,17 +903,20 @@ export default function CartPage() {
           );
           const status = (res as any)?.data?.status;
           if (status !== "completed") {
-            const to = role === "student"
-              ? `/onboarding/student?userId=${userId}&redirect=${encodeURIComponent("/cart")}`
-              : role === "recruiter"
-              ? `/onboarding/recruiter?userId=${userId}`
-              : role === "institution"
-              ? `/onboarding/institution?userId=${userId}`
-              : role === "individualTechProfessional"
-              ? `/onboarding/tech-professional?userId=${userId}`
-              : role === "teamTechProfessional"
-              ? `/onboarding/team-tech-professional?userId=${userId}`
-              : "/login";
+            const to =
+              role === "student"
+                ? `/onboarding/student?userId=${userId}&redirect=${encodeURIComponent(
+                    "/cart"
+                  )}`
+                : role === "recruiter"
+                ? `/onboarding/recruiter?userId=${userId}`
+                : role === "institution"
+                ? `/onboarding/institution?userId=${userId}`
+                : role === "individualTechProfessional"
+                ? `/onboarding/tech-professional?userId=${userId}`
+                : role === "teamTechProfessional"
+                ? `/onboarding/team-tech-professional?userId=${userId}`
+                : "/login";
             router.replace(to);
             return;
           }
@@ -874,7 +924,11 @@ export default function CartPage() {
       } catch (e) {
         const userId = user?.id || user?._id || user?.userId;
         if (userId) {
-          router.replace(`/onboarding/student?userId=${userId}&redirect=${encodeURIComponent("/cart")}`);
+          router.replace(
+            `/onboarding/student?userId=${userId}&redirect=${encodeURIComponent(
+              "/cart"
+            )}`
+          );
           return;
         }
       }
@@ -943,7 +997,9 @@ export default function CartPage() {
     const choice =
       paymentModeById[productId] || getDefaultModeForItem(productId);
     if (hasQuoteExpired(pricePreviewById[productId])) {
-      toast.error("This quote has expired. Please generate a new quote before checkout.");
+      toast.error(
+        "This quote has expired. Please generate a new quote before checkout."
+      );
       return;
     }
     const qty = calculateQuantity(item); // Use calculateQuantity to get correct qty (includes admin for team)
@@ -954,7 +1010,7 @@ export default function CartPage() {
       productId: item.id,
       quantity: qty,
     };
-    
+
     // Only include unitName if it's per-unit pricing
     if (p.unitName) {
       payload.unitName = p.unitName;
@@ -963,7 +1019,7 @@ export default function CartPage() {
       setIsCheckingOutById((prev) => ({ ...prev, [productId]: true }));
       // Send preview request and persist response + chosen mode for Checkout page
       const token = getTokenFromCookies() || "";
-      
+
       // Store checkout selection BEFORE making API call
       const selection: CheckoutSelection = [
         { itemId: productId, mode: choice, quantity: qty },
@@ -979,7 +1035,7 @@ export default function CartPage() {
           sessionStorage.setItem("checkout.preview", JSON.stringify(preview));
           sessionStorage.setItem("checkout.mode", choice);
         }
-        
+
         // Navigate only after successful preview response
         router.push("/checkout");
       } catch (e: any) {
@@ -1172,13 +1228,12 @@ export default function CartPage() {
                   : subscriptionInterval;
               const subscriptionAutoRenew =
                 subscriptionDetails?.autoRenew ??
-                (item.pricing?.autoRenew ?? true);
+                item.pricing?.autoRenew ??
+                true;
               const subscriptionTrialDays =
-                subscriptionDetails?.trialDays ??
-                (item.pricing?.trialDays ?? 0);
+                subscriptionDetails?.trialDays ?? item.pricing?.trialDays ?? 0;
               const subscriptionSetupFee =
-                subscriptionDetails?.setupFee ??
-                (item.pricing?.setupFee ?? 0);
+                subscriptionDetails?.setupFee ?? item.pricing?.setupFee ?? 0;
               const quoteExpired = hasQuoteExpired(pp);
               const isRefreshingQuote = !!isRefreshingQuoteById[item.id];
 
@@ -1211,9 +1266,12 @@ export default function CartPage() {
                       <h3 className="font-bold text-xl text-gray-900 line-clamp-2">
                         {item.title}
                       </h3>
-                      <p className="text-gray-600 line-clamp-2">
-                        {item.description}
-                      </p>
+                      <p
+                        className="text-gray-600 line-clamp-2"
+                        dangerouslySetInnerHTML={{
+                          __html: item.description,
+                        }}
+                      ></p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
@@ -1256,7 +1314,6 @@ export default function CartPage() {
                       </Badge>
                     </div>
 
-
                     {/* Role restriction message */}
                     {!canPurchaseProductType(
                       item.productType,
@@ -1274,7 +1331,10 @@ export default function CartPage() {
 
                     {quoteExpired && (
                       <div className="p-3 bg-amber-50 border border-amber-200 rounded-[10px] text-sm text-amber-800 space-y-2">
-                        <div>The quote for this product has expired. Generate a new quote to continue.</div>
+                        <div>
+                          The quote for this product has expired. Generate a new
+                          quote to continue.
+                        </div>
                         <Button
                           variant="outline"
                           size="sm"
@@ -1284,7 +1344,11 @@ export default function CartPage() {
                         >
                           {isRefreshingQuote ? (
                             <>
-                              <Loader2 size={14} className="mr-2 animate-spin" /> Refreshing…
+                              <Loader2
+                                size={14}
+                                className="mr-2 animate-spin"
+                              />{" "}
+                              Refreshing…
                             </>
                           ) : (
                             "Generate new quote"
@@ -1304,7 +1368,9 @@ export default function CartPage() {
                                 choice === "pay_in_full" ? "default" : "ghost"
                               }
                               className={`px-3 py-1 rounded-none ${
-                                choice === "pay_in_full" ? "text-white hover:bg-blue-700" : "bg-white"
+                                choice === "pay_in_full"
+                                  ? "text-white hover:bg-blue-700"
+                                  : "bg-white"
                               }`}
                               onClick={() =>
                                 setPaymentModeById((prev) => ({
@@ -1323,7 +1389,9 @@ export default function CartPage() {
                                 choice === "installments" ? "default" : "ghost"
                               }
                               className={`px-3 py-1 rounded-none ${
-                                choice === "installments" ? "text-white hover:bg-blue-700" : "bg-white"
+                                choice === "installments"
+                                  ? "text-white hover:bg-blue-700"
+                                  : "bg-white"
                               }`}
                               onClick={() =>
                                 setPaymentModeById((prev) => ({
@@ -1419,14 +1487,16 @@ export default function CartPage() {
                           {subscriptionSetupFee > 0 && (
                             <div className="text-sm text-gray-500">
                               Setup fee:{" "}
-                              {formatCurrency(subscriptionSetupFee, displayCurrency)}
+                              {formatCurrency(
+                                subscriptionSetupFee,
+                                displayCurrency
+                              )}
                             </div>
                           )}
                         </div>
                       )}
                     </div>
 
-                    
                     {/* Bookable hint */}
                     {isAuthenticated && item.requiresBooking && (
                       <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-[10px]">
@@ -1450,7 +1520,8 @@ export default function CartPage() {
                         {choice === "installments" &&
                         installmentsPreviewById[item.id]?.downPaymentAmount
                           ? formatCurrency(
-                              installmentsPreviewById[item.id].downPaymentAmount,
+                              installmentsPreviewById[item.id]
+                                .downPaymentAmount,
                               displayCurrency
                             )
                           : formatCurrency(displayAmount, displayCurrency)}
@@ -1473,7 +1544,8 @@ export default function CartPage() {
                       {choice === "installments" &&
                         installmentsPreviewById[item.id]?.downPaymentAmount && (
                           <p className="text-xs text-gray-400 mt-1 line-through">
-                            Total: {formatCurrency(displayAmount, displayCurrency)}
+                            Total:{" "}
+                            {formatCurrency(displayAmount, displayCurrency)}
                           </p>
                         )}
                     </div>

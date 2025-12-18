@@ -33,6 +33,7 @@ import { getCurrencySymbol } from "@/lib/constants/currencies";
 // ⬇️ NEW: team hook
 import { teamFetcher } from "@/utils/teamFetcher";
 import { number } from "framer-motion";
+import Link from "next/link";
 
 interface CatalogPageProps {
   productType?: string;
@@ -199,6 +200,9 @@ const requiresTeamTechProfessional = (product: Product): boolean => {
     (tierType === "volume" || tierType === "stairstep")
   );
 };
+
+const stripHtml = (html: string): string =>
+  html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
 export default function CatalogPage({
   productType = "Training & Certification",
@@ -770,7 +774,7 @@ export default function CatalogPage({
       {/* Product Grid */}
       <main id="catalog" className="flex-1">
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <div
                 key={i}
@@ -790,17 +794,24 @@ export default function CatalogPage({
         ) : (
           <>
             {/* Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {products.map((product) => {
                 const displayAmount = teamAwareDisplayAmount(
                   (product.pricing as Pricing) || null,
                   membersCount
                 );
+                const plainDescription = stripHtml(
+                  product.description || ""
+                );
+                const shortDescription =
+                  plainDescription.length > 200
+                    ? `${plainDescription.slice(0, 197)}...`
+                    : plainDescription;
 
                 return (
                   <Card
                     key={product._id}
-                    className="flex flex-col h-full bg-white border border-gray-200 rounded-[12px] shadow-sm hover:shadow-lg transition-all duration-200 group cursor-pointer"
+                    className="flex flex-col md:flex-row bg-white border border-gray-200 rounded-[12px] shadow-sm hover:shadow-lg cursor-pointer"
                     onClick={(e) => {
                       const origin = e.target as HTMLElement;
                       if (
@@ -815,18 +826,17 @@ export default function CatalogPage({
                         handleViewDetails(product._id);
                       }
                     }}
-                  >
-                    <div className="relative w-full aspect-square bg-gray-100 rounded-t-xl overflow-hidden">
+                    >
+                    <div className="relative w-full md:w-[40%] h-[200px] md:h-auto bg-gray-100 rounded-t-xl md:rounded-l-xl md:rounded-tr-none overflow-hidden shrink-0">
                       <Image
-                        src=
-                        {
+                        src={
                           product.thumbnailUrl ||
                           product.iconUrl ||
                           "/assets/techedusolution.jpg"
                         }
                         alt={product.service}
                         fill
-                        className="object-cover transition-transform duration-200 group-hover:scale-105"
+                        className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
                       />
                       {((product.pricing?.discountPercentage ?? product.discountPercentage) || 0) > 0 && (
                         <span className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-amber-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow">
@@ -836,12 +846,24 @@ export default function CatalogPage({
                     </div>
 
                     <CardContent className="flex flex-col flex-1 p-4">
-                      <h3 className="font-bold text-lg text-gray-900 mb-1 truncate">
+                      <h3 className="font-bold text-lg text-gray-900 mb-1">
                         {product.service}
                       </h3>
-                      <p className="text-sm text-gray-500 mb-2 line-clamp-2">
-                        {product.description || "No description."}
-                      </p>
+                      {shortDescription && (
+                        <>
+                          <p className="text-sm text-gray-500 mb-1 line-clamp-2">
+                            {shortDescription}
+                          </p>
+                          {product.slug && (
+                            <Link
+                              href={`/training/catalog/${product.slug}`}
+                              className="text-blue-600 hover:text-blue-800 hover:underline text-xs font-bold mb-3"
+                            >
+                              Read more
+                            </Link>
+                          )}
+                        </>
+                      )}
 
                       <div className="flex flex-wrap gap-2 mb-3">
                         <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">

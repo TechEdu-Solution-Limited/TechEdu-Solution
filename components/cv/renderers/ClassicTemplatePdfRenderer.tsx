@@ -386,6 +386,7 @@ export function ClassicTemplatePdfRenderer({
             const isUnorderedSection =
               (section.type as string) === "skills" ||
               (section.type as string) === "languages";
+            const isCustomSection = (section.type as string) === "custom";
 
             // Section container is splittable
             return (
@@ -394,6 +395,21 @@ export function ClassicTemplatePdfRenderer({
                 <Text style={styles.sectionTitle} wrap={false}>
                   {displayName}
                 </Text>
+
+                {/* Custom Sections - Render content directly */}
+                {isCustomSection && (
+                  <View style={{ marginBottom: 10 }}>
+                    {Array.isArray(items) &&
+                      items.map((item: any, i: number) => (
+                        <View key={i} style={{ marginBottom: 8 }}>
+                          <RichPdf
+                            html={item.content || ""}
+                            template={template}
+                          />
+                        </View>
+                      ))}
+                  </View>
+                )}
 
                 {/* Skills/Languages - Render as one block */}
                 {isUnorderedSection && (
@@ -437,6 +453,7 @@ export function ClassicTemplatePdfRenderer({
                 {/* Other sections - Individual items */}
                 {Array.isArray(items) &&
                   !isUnorderedSection &&
+                  !isCustomSection &&
                   items.map((item: any, i: number) => (
                     <View key={i} style={styles.itemContainer}>
                       {/* Unbreakable Header Block: This ensures the title, company, and dates stay on one page. */}

@@ -607,10 +607,26 @@ export function ModernTemplatePdfRenderer({
                         </View>
                       )}
 
+                      {/* Custom Sections - Render content directly */}
+                      {(section.type as string) === "custom" && (
+                        <View style={{ marginBottom: 10 }}>
+                          {Array.isArray(items) &&
+                            items.map((item: any, i: number) => (
+                              <View key={i} style={{ marginBottom: 8 }}>
+                                <RichPdf
+                                  html={item.content || ""}
+                                  template={template}
+                                />
+                              </View>
+                            ))}
+                        </View>
+                      )}
+
                       {/* Other left column sections - Individual items (Awards, Certifications) */}
                       {Array.isArray(items) &&
                         (section.type as string) !== "skills" &&
                         (section.type as string) !== "languages" &&
+                        (section.type as string) !== "custom" &&
                         items.map((item: any, i: number) => (
                           <View key={i} style={styles.itemContainer}>
                             {/* Professional Summary (should ideally be in the right column/main content, but checking for it here just in case based on the original code's structure) */}
@@ -695,7 +711,23 @@ export function ModernTemplatePdfRenderer({
                         {displayName}
                       </Text>
 
+                      {/* Custom Sections - Render content directly */}
+                      {(section.type as string) === "custom" && (
+                        <View style={{ marginBottom: 10 }}>
+                          {Array.isArray(items) &&
+                            items.map((item: any, i: number) => (
+                              <View key={i} style={{ marginBottom: 8 }}>
+                                <RichPdf
+                                  html={item.content || ""}
+                                  template={template}
+                                />
+                              </View>
+                            ))}
+                        </View>
+                      )}
+
                       {Array.isArray(items) &&
+                        (section.type as string) !== "custom" &&
                         items.map((item: any, i: number) => (
                           <View key={i} style={styles.itemContainer}>
                             {/* Professional Summary */}

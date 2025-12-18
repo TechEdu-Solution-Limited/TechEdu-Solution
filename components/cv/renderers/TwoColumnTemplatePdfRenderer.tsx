@@ -653,11 +653,16 @@ export function TwoColumnTemplatePdfRenderer({
                           section.type === "professional-summary" ? (
                             <RichPdf html={item.summary} template={template} />
                           ) : null}
+
+                          {/* Custom Sections (left) */}
+                          {item.content && section.type === "custom" && (
+                            <RichPdf html={item.content} template={template} />
+                          )}
                         </View>
                       ))}
-                  </View>
-                );
-              })}
+                    </View>
+                  );
+                })}
             </View>
 
             {/* RIGHT COLUMN */}
@@ -685,6 +690,11 @@ export function TwoColumnTemplatePdfRenderer({
                           section.type === "professional-summary" ? (
                             <RichPdf html={item.summary} template={template} />
                           ) : null}
+
+                          {/* Custom Sections (right) */}
+                          {item.content && section.type === "custom" && (
+                            <RichPdf html={item.content} template={template} />
+                          )}
 
                           {/* Work Experience */}
                           {(item.title || item.jobTitle) && item.company && (

@@ -448,6 +448,24 @@ export function TwoColumnTemplateHtmlRenderer({
                               }}
                             />
                           )}
+
+                        {/* Custom Sections */}
+                        {item.content && section.type === "custom" && (
+                          <div
+                            className="prose prose-sm max-w-none [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_h3]:text-sm [&_h3]:font-bold [&_strong]:font-bold [&_em]:italic [&_u]:underline [&_s]:line-through [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6 [&_li]:my-1 [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_pre]:bg-gray-100 [&_pre]:p-2 [&_pre]:rounded [&_pre]:text-sm [&_a]:text-blue-600 [&_a]:underline"
+                            style={{
+                              color: leftText,
+                              fontFamily: mapFontFamily(
+                                template.styles.typography.fontFamily
+                              ),
+                              fontSize: `${template.styles.typography.bodySize}px`,
+                              lineHeight: template.styles.typography.lineHeight,
+                            }}
+                            dangerouslySetInnerHTML={{
+                              __html: sanitizeHtml(item.content),
+                            }}
+                          />
+                        )}
                       </div>
                     ))}
                 </div>
@@ -527,6 +545,24 @@ export function TwoColumnTemplateHtmlRenderer({
                               }}
                             />
                           )}
+
+                        {/* Custom Sections */}
+                        {item.content && section.type === "custom" && (
+                          <div
+                            className="prose prose-sm max-w-none [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_h3]:text-sm [&_h3]:font-bold [&_strong]:font-bold [&_em]:italic [&_u]:underline [&_s]:line-through [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6 [&_li]:my-1 [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_pre]:bg-gray-100 [&_pre]:p-2 [&_pre]:rounded [&_pre]:text-sm [&_a]:text-blue-600 [&_a]:underline"
+                            style={{
+                              color: rightText,
+                              fontFamily: mapFontFamily(
+                                template.styles.typography.fontFamily
+                              ),
+                              fontSize: `${template.styles.typography.bodySize}px`,
+                              lineHeight: template.styles.typography.lineHeight,
+                            }}
+                            dangerouslySetInnerHTML={{
+                              __html: sanitizeHtml(item.content),
+                            }}
+                          />
+                        )}
 
                         {/* Work Experience */}
                         {(item.title || item.jobTitle) && item.company && (

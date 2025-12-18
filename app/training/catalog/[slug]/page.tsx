@@ -1,526 +1,162 @@
-"use client";
-import React, { useEffect, useState } from "react";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+
 import { getApiRequest } from "@/lib/apiFetch";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { useCart } from "@/contexts/CartContext";
-import { CartItem } from "@/types/cart";
-import { Product } from "@/types/product";
-import { useParams, notFound } from "next/navigation";
-import type { Currency, Pricing } from "@/lib/constants/pricing";
-import { normalizeCartModel } from "@/utils/helpers";
-import { getCurrencySymbol } from "@/lib/constants/currencies";
-import { teamFetcher } from "@/utils/teamFetcher";
-import {
-  getPrimaryPrice,
-  getDiscountedPriceLabel,
-  formatMoneySafe,
-} from "@/utils/pricingDisplay";
+import type { Product } from "@/types/product";
+import ProductPageClient from "./ProductPageClient";
 
-import { safeConsole } from "@/lib/console";
+const BASE_URL = "https://techedusolution.com";
 
-/* ----------------------------- Pricing helpers ----------------------------- */
-
-const getUpTo = (t: any): number | undefined =>
-  typeof t?.upTo === "number"
-    ? t.upTo
-    : typeof t?.upto === "number"
-    ? t.upto
-    : undefined;
-
-const pickTier = (tiers: any[] = [], qty: number) => {
-  if (!tiers.length) return { tier: undefined, index: -1 };
-  
-  // Find smallest upTo >= qty (hit tier) and track max tier as fallback
-  let bestUpTo: number | null = null;
-  let bestPrice: number | null = null;
-  let bestIndex = -1;
-  
-  let maxUpTo = -Infinity;
-  let maxPrice: number | null = null;
-  let maxIndex = -1;
-  
-  for (let i = 0; i < tiers.length; i++) {
-    const t = tiers[i];
-    if (!t) continue;
-    const cap = getUpTo(t);
-    const price = Number(t.unitPrice);
-    
-    if (typeof cap !== "number" || !Number.isFinite(price)) continue;
-    
-    // candidate hit tier
-    if (cap >= qty && (bestUpTo === null || cap < bestUpTo)) {
-      bestUpTo = cap;
-      bestPrice = price;
-      bestIndex = i;
-    }
-    
-    // track max tier (for qty above all caps)
-    if (cap > maxUpTo) {
-      maxUpTo = cap;
-      maxPrice = price;
-      maxIndex = i;
-    }
-  }
-  
-  // Return best match or fallback to max tier
-  if (bestIndex >= 0) {
-    return { tier: tiers[bestIndex], index: bestIndex };
-  }
-  if (maxIndex >= 0) {
-    return { tier: tiers[maxIndex], index: maxIndex };
-  }
-  
-  return { tier: undefined, index: -1 };
+type ProductSlugPageProps = {
+  params: Promise<{ slug: string }>;
 };
 
-const isPerUnit = (pricing?: Partial<Pricing> | null): boolean => {
-  if (!pricing) return false;
-  // Support both legacy (model: "per_unit") and new structure (priceBasis: "per_unit")
-  return (
-    pricing.priceBasis === "per_unit" ||
-    (pricing.model as any) === "per_unit"
-  );
+type ProductBySlugResponse = {
+  success: boolean;
+  data?: Product;
+  message?: string;
 };
 
-const isStairstep = (pricing: Partial<Pricing> | null): boolean =>
-  pricing ? isPerUnit(pricing) && (pricing.tierType ?? "volume") === "stairstep" : false;
-
-const isVolume = (pricing?: Partial<Pricing> | null): boolean =>
-  pricing ? isPerUnit(pricing) && (pricing.tierType ?? "volume") !== "stairstep" : false;
-
-/**
- * Display amount rules:
- * - one_time → basePrice
- * - subscription → subscriptionPrice
- * - per_unit / volume → (per-unit price at tier picked by membersCount) × (membersCount + 1 admin)
- * - per_unit / stairstep → flat band price (tier picked by membersCount), no multiplication
- */
-const teamAwareDisplayAmount = (
-  pricing: Partial<Pricing> | null,
-  membersCount: number // ← number of team members (EXCLUDING admin)
-): number => {
-  if (!pricing) return 0;
-  const toNum = (v: any): number => {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : 0;
-  };
-
-  // Handle per_unit pricing (legacy: model="per_unit", new: priceBasis="per_unit")
-  if (isPerUnit(pricing)) {
-    // Tier selection based on total count (members + admin)
-    const tierQty = Math.max(1, membersCount + 1);
-    const { tier } = pickTier(pricing.tiers ?? [], tierQty);
-      const unitOrFlat = toNum(tier?.unitPrice ?? pricing.basePrice ?? 0);
-
-    if (isStairstep(pricing)) {
-      // flat band total
-        return unitOrFlat;
-    }
-    // volume → multiply by (members + admin)
-    const qtyMultiplier = Math.max(1, membersCount + 1);
-      return toNum(unitOrFlat * qtyMultiplier);
-  }
-
-  switch (pricing.model) {
-    case "one_time":
-      return toNum(pricing.basePrice ?? (pricing as any)?.price ?? 0);
-
-    case "subscription":
-      // Fallback to basePrice if subscriptionPrice missing in API
-      return toNum(
-        (pricing as any)?.subscriptionPrice ?? pricing.basePrice ?? 0
-      );
-
-    default:
-      return 0;
-  }
-};
-
-const pricingBadgeLabel = (pricing: Pricing | undefined): string => {
-  if (!pricing) return "unit";
-  if (isPerUnit(pricing)) {
-    return isStairstep(pricing) ? "flat" : pricing.unitName || "unit";
-  }
-  if (pricing.model === "one_time") return "person";
-  if (pricing.model === "subscription") return "team";
-  return "unit";
-};
-
-/** For our totals view, we never append "/". Keep slash only for one_time. */
-const showSlash = (pricing: Pricing | undefined): boolean =>
-  pricing?.model === "one_time";
-
-
-export default function ProductPage() {
-  const { slug } = useParams();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
-  const { addToCart, isInCart } = useCart();
-  const { members, fetchTeamData } = teamFetcher();
-
-  useEffect(() => {
-    fetchTeamData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    setLoading(true);
-    getApiRequest<any>(`/api/products/public/slug/${slug}`)
-      .then((response) => {
-        if (response?.data?.success) {
-          setProduct(response.data.data || null);
-        } else {
-          setProduct(null);
-        }
-      })
-      .catch((error) => {
-        safeConsole.error("Error fetching product:", error);
-        setProduct(null);
-      })
-      .finally(() => setLoading(false));
-  }, [slug]);
-
-  if (loading)
-    return (
-      <div className="max-w-3xl mx-auto py-12 px-4 md:px-0 mt-24">
-        <div className="flex flex-col md:flex-row gap-8">
-          <div className="flex-shrink-0 w-full md:w-1/2">
-            <div className="w-full aspect-square bg-gray-200 rounded-[12px] animate-pulse" />
-          </div>
-          <div className="flex-1 flex flex-col gap-4">
-            <div className="h-8 bg-gray-200 rounded animate-pulse w-3/4" />
-            <div className="h-4 bg-gray-200 rounded animate-pulse w-full" />
-            <div className="h-4 bg-gray-200 rounded animate-pulse w-2/3" />
-            <div className="flex gap-2">
-              <div className="h-6 bg-gray-200 rounded-full animate-pulse w-20" />
-              <div className="h-6 bg-gray-200 rounded-full animate-pulse w-24" />
-              <div className="h-6 bg-gray-200 rounded-full animate-pulse w-16" />
-            </div>
-            <div className="h-8 bg-gray-200 rounded animate-pulse w-32" />
-            <div className="h-10 bg-gray-200 rounded animate-pulse w-40" />
-          </div>
-        </div>
-      </div>
+async function fetchProductBySlug(slug: string): Promise<Product | null> {
+  try {
+    const res = await getApiRequest<ProductBySlugResponse>(
+      `/api/products/public/slug/${slug}`
     );
-  if (!product) return notFound();
+    const payload = res?.data;
+    if (payload?.success && payload.data) {
+      return payload.data;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching product by slug", slug, error);
+    return null;
+  }
+}
 
-  const priceFromPricing = product.pricing
-    ? getPrimaryPrice({ pricing: product.pricing })
-    : undefined;
+function buildProductJsonLd(product: Product) {
+  const imagePath =
+    product.thumbnailUrl || product.iconUrl || "/assets/techedusolution.jpg";
+  const imageUrl = imagePath.startsWith("http")
+    ? imagePath
+    : `${BASE_URL}${imagePath}`;
+  const url = `${BASE_URL}/training/catalog/${product.slug}`;
 
-  const cartCurrency = (product.pricing?.currency ||
-    product.currency ||
-    "USD") as Currency;
+  const price =
+    (product.pricing?.basePrice as number | undefined) ??
+    (typeof product.price === "number" ? product.price : 0);
+  const currency = (product.currency || "GBP").toUpperCase();
 
-  const cartPrice =
-    typeof priceFromPricing === "number"
-      ? priceFromPricing
-      : Number(product.price ?? 0); // ensure numeric
+  return {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.service,
+    description: product.seoDescription || product.description,
+    image: [imageUrl],
+    sku: product._id,
+    brand: {
+      "@type": "Brand",
+      name: "TechEdu Solution",
+    },
+    category:
+      product.productCategoryTitle ||
+      product.category ||
+      "Training & Certification",
+    offers: {
+      "@type": "Offer",
+      url,
+      priceCurrency: currency,
+      price: price.toString(),
+      availability: product.enabled
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+    },
+  };
+}
 
-  const membersCount = Math.max(0, members?.length || 0);
-  const qtyMultiplier = Math.max(1, membersCount + 1);
-  const displayAmount = teamAwareDisplayAmount(
-    (product.pricing as Partial<Pricing>) || null,
-    membersCount
-  );
+export async function generateMetadata({
+  params,
+}: ProductSlugPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await fetchProductBySlug(slug);
+  const url = `${BASE_URL}/training/catalog/${slug}`;
 
-  const handleEnroll = () => {
-    // Check if product requires booking
-    const requiresBooking =
-      product.requiresBooking || product.isBookableService || false;
-
-    // NEW FLOW: Add all products to cart (both bookable and non-bookable)
-    const cartItem: CartItem = {
-      id: product._id,
-      title: product.service,
-      description: product.description || "",
-      price: cartPrice, // ✅ safe numeric
-      currency: cartCurrency, // ✅ from pricing or fallback
-      discountPercentage: product.discountPercentage || 0,
-      category:
-        product.productCategoryTitle || product.category || "Uncategorized",
-      productType: product.productType,
-      image:
-        product.thumbnailUrl ||
-        product.iconUrl ||
-        "/assets/techedusolution.jpg",
-      duration: `${product.programLength} ${product.mode}`,
-      certificate: product.hasCertificate,
-      status: product.enabled ? "active" : "inactive",
-      level: product.productSubcategoryName || "",
-      requiresBooking: requiresBooking,
-      pricing: product.pricing
-        ? {
-            model: normalizeCartModel(product.pricing?.model),
-            priceBasis: (product.pricing as any)?.priceBasis,
-            unitName: (product.pricing as any)?.unitName || "team",
-            currency: (product.currency || "usd").toLowerCase(),
-            allowQuantity: !!product.pricing?.allowQuantity,
-            minQty:
-              typeof product.pricing?.minQty === "number"
-                ? product.pricing.minQty
-                : 1,
-            maxQty:
-              typeof product.pricing?.maxQty === "number"
-                ? product.pricing.maxQty
-                : 0,
-            tierType: product.pricing?.tierType,
-            taxInclusive: !!product.pricing?.taxInclusive,
-            // per-unit tiers (if present)
-            tiers: Array.isArray((product.pricing as any)?.tiers)
-              ? (product.pricing as any).tiers
-              : undefined,
-            // base one-time price (treat free as 0)
-            basePrice:
-              product.pricing?.model === "free"
-                ? 0
-                : product.pricing?.basePrice ?? Number(product.price ?? 0),
-            vatPercentage: product.pricing?.vatPercentage,
-            discountPercentage:
-              typeof product.pricing?.discountPercentage === "number"
-                ? product.pricing.discountPercentage
-                : product.discountPercentage || 0,
-            // installments (support hour/day/week/month/year)
-            installments: product.pricing?.installments?.enabled
-              ? {
-                  enabled: true,
-                  count: product.pricing?.installments?.count || 2,
-                  downPaymentType:
-                    product.pricing?.installments?.downPaymentType,
-                  downPaymentValue:
-                    product.pricing?.installments?.downPaymentValue || 0,
-                  interval:
-                    (product.pricing?.installments as any)?.interval || "month",
-                  intervalCount:
-                    product.pricing?.installments?.intervalCount || 1,
-                  allowEarlyPayoff:
-                    product.pricing?.installments?.allowEarlyPayoff,
-                }
-              : { enabled: false },
-            // subscription-like
-            subscriptionPrice:
-              product.pricing?.model === "subscription"
-                ? product.pricing?.basePrice
-                : undefined,
-            interval: (product.pricing as any)?.interval,
-            intervalCount: product.pricing?.intervalCount,
-            trialDays: product.pricing?.trialDays,
-            setupFee: product.pricing?.setupFee,
-            proration: product.pricing?.proration,
-          }
-        : undefined,
-
-      // Product details for booking
-      deliveryMode: product.deliveryMode,
-      sessionType: product.sessionType,
-      isRecurring: product.isRecurring,
-      programLength: product.programLength,
-      mode: product.mode,
-      durationInMinutes: product.durationInMinutes,
-      minutesPerSession: product.minutesPerSession,
-      hasClassroom: product.hasClassroom,
-      hasSession: product.hasSession,
-      hasAssessment: product.hasAssessment,
-      hasCertificate: product.hasCertificate,
-      requiresEnrollment: product.requiresEnrollment,
-      isBookableService: product.isBookableService,
-      isAttachmentRequired: product.isAttachmentRequired || false,
-      instructorId: product.instructorId,
-      instructorName: product.instructorName,
-      virtualPlatform: product.virtualPlatform,
-      classroomCapacity: product.classroomCapacity,
-      classroomRequirements: product.classroomRequirements,
-
-      // NEW: Add booking details for bookable services
-      bookingDetails: requiresBooking
-        ? {
-            fullName: "", // Will be filled in cart
-            email: "", // Will be filled in cart
-            phone: "", // Will be filled in cart
-            preferredDate: undefined, // Will be filled in cart
-            preferredTime: "", // Will be filled in cart
-            numberOfParticipants: 1,
-            participantType: "individual" as const,
-            userNotes: "",
-            bookingId: "", // Will be generated during payment intent creation
-            bookingData: {
-              productId: product._id,
-              productType: product.productType,
-              instructorId: product.instructorId,
-              bookingPurpose: product.service,
-              minutesPerSession: product.minutesPerSession,
-              durationInMinutes: product.durationInMinutes,
-              numberOfExpectedParticipants: 1,
-              isClassroom: product.hasClassroom,
-              isSession: product.hasSession,
-              participantType: "individual",
-              platformRole: "student", // Will be updated based on user role
-              email: "", // Will be filled in cart
-              fullName: "", // Will be filled in cart
-              createdBy: "", // Will be filled in cart
-              profileId: "", // Will be filled in cart
-              participants: [], // Will be filled in cart
-              actualDaysAndTime: [], // Will be filled in cart
-            },
-          }
-        : undefined,
+  if (!product) {
+    return {
+      title: "Training Program Not Found | TechEdu Solution",
+      description:
+        "The training program you are looking for could not be found.",
+      alternates: {
+        canonical: url,
+      },
     };
-    addToCart(cartItem);
-  };
+  }
 
-  const formatDuration = () => {
-    if (product.mode === "days") {
-      return `${product.programLength} day${
-        product.programLength > 1 ? "s" : ""
-      }`;
-    } else if (product.mode === "weeks") {
-      return `${product.programLength} week${
-        product.programLength > 1 ? "s" : ""
-      }`;
-    } else if (product.mode === "months") {
-      return `${product.programLength} month${
-        product.programLength > 1 ? "s" : ""
-      }`;
-    }
-    return `${product.programLength} ${product.mode}`;
-  };
+  const title =
+    product.seoTitle ||
+    `${product.service} | Training & Certification | TechEdu Solution`;
 
-  const formatSessionInfo = () => {
-    const parts = [];
-    if (product.hasSession) {
-      parts.push(`${product.minutesPerSession}min sessions`);
-    }
-    if (product.hasClassroom) {
-      parts.push("Classroom available");
-    }
-    if (product.deliveryMode) {
-      parts.push(
-        product.deliveryMode.charAt(0).toUpperCase() +
-          product.deliveryMode.slice(1)
-      );
-    }
-    return parts.join(" • ");
+  const rawDescription = product.seoDescription || product.description || "";
+  const description =
+    rawDescription.length > 155
+      ? `${rawDescription.slice(0, 152)}...`
+      : rawDescription;
+
+  const imagePath =
+    product.thumbnailUrl || product.iconUrl || "/assets/techedusolution.jpg";
+  const imageUrl = imagePath.startsWith("http")
+    ? imagePath
+    : `${BASE_URL}${imagePath}`;
+
+  const canonicalUrl = `${BASE_URL}/training/catalog/${product.slug}`;
+
+  return {
+    title,
+    description,
+    keywords: product.tags && product.tags.length > 0 ? product.tags : undefined,
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+      siteName: "TechEdu Solution",
+      type: "website",
+      images: [
+        {
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [imageUrl],
+    },
+    alternates: {
+      canonical: canonicalUrl,
+    },
   };
+}
+
+export default async function ProductPage({ params }: ProductSlugPageProps) {
+  const { slug } = await params;
+  const product = await fetchProductBySlug(slug);
+
+  if (!product) {
+    notFound();
+  }
+
+  const jsonLd = buildProductJsonLd(product);
 
   return (
-    <section className="max-w-3xl mx-auto py-12 px-4 md:px-0 mt-24">
-      <div className="flex flex-col md:flex-row gap-8">
-        <div className="flex-shrink-0 w-full md:w-1/2">
-          <div className="relative w-full aspect-square bg-gray-100 rounded-[12px] overflow-hidden">
-            <Image
-              src={
-                product.thumbnailUrl ||
-                product.iconUrl ||
-                "/assets/techedusolution.jpg"
-              }
-              alt={product.service}
-              fill
-              className="object-cover rounded-[12px]"
-            />
-          </div>
-        </div>
-        <div className="flex-1 flex flex-col gap-4">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {product.service}
-          </h1>
-          <p className="text-gray-700 text-lg mb-2">
-            {product.description || "No description available."}
-          </p>
-
-          <div className="flex flex-wrap gap-2 mb-2">
-            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">
-              {product.productCategoryTitle}
-            </span>
-            <span className="bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full">
-              {product.productType}
-            </span>
-            <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">
-              {product.productSubcategoryName}
-            </span>
-            {product.hasCertificate && (
-              <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full">
-                Certificate
-              </span>
-            )}
-          </div>
-
-          <div className="space-y-2 text-sm text-gray-600">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">Duration:</span>
-              <span>{formatDuration()}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-medium">Session Type:</span>
-              <span>{product.sessionType}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-medium">Format:</span>
-              <span>{formatSessionInfo()}</span>
-            </div>
-          </div>
-
-          
-          <div className="flex items-start justify-between mt-auto">
-                        <div className="flex flex-col items-start gap-1">
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-lg font-bold text-blue-600">
-                              {getCurrencySymbol(product.currency || "gbp")}{" "}
-                              {displayAmount}
-                              {showSlash(product.pricing as Pricing)
-                                ? " /"
-                                : ""}
-                            </span>
-                            <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full">
-                              {pricingBadgeLabel(product.pricing as Pricing)}
-                            </span>
-                          </div>
-
-                          {isVolume(product.pricing as Pricing) && (
-                            <span className="text-xs text-gray-500">
-                              team total for {qtyMultiplier} persons (members +
-                              admin)
-                            </span>
-                          )}
-                          {isStairstep(product.pricing as Pricing) && (
-                            <span className="text-xs text-gray-500">
-                              flat band picked by {membersCount} member(s)
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-          {product.tags && product.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-4">
-              {product.tags.map((tag, index) => (
-                <span
-                  key={index}
-                  className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-
-          <div className="flex gap-2 mt-4">
-            <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-[10px] px-6 py-2"
-              onClick={handleEnroll}
-              disabled={isInCart(product._id)}
-            >
-              {isInCart(product._id)
-                ? "In Cart"
-                : product.requiresBooking || product.isBookableService
-                ? "Book Now"
-                : "Enroll Now"}
-            </Button>
-            <Button variant="outline" className="rounded-[10px] px-6 py-2">
-              Add to Wishlist
-            </Button>
-          </div>
-        </div>
-      </div>
-    </section>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <ProductPageClient product={product} />
+    </>
   );
 }
