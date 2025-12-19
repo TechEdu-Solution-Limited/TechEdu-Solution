@@ -1348,7 +1348,7 @@ export default function CheckoutPage() {
                       {selectedItem.title || "Product"}
                     </h3>
                     <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                      {selectedItem.description}
+                      <div dangerouslySetInnerHTML={{ __html: selectedItem.description }} />
                     </p>
 
                     {quoteHasExpired && (

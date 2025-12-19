@@ -332,9 +332,10 @@ export const forgotPassword = async (
  * Reset password with new password
  */
 export const resetPassword = async (
-  password: string
+  token: string,
+  newPassword: string
 ): Promise<ApiResponse<any>> => {
-  return postApiRequest("/api/auth/reset-password", { password });
+  return postApiRequest("/api/auth/reset-password", { token, newPassword });
 };
 
 /**

@@ -4,7 +4,7 @@ import { Eye, EyeOff, Lock, CheckCircle, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { resetPassword } from "@/lib/apiFetch";
 import { toast } from "react-toastify";
 
@@ -28,6 +28,7 @@ const ResetPassword = () => {
   const [isPasswordReset, setIsPasswordReset] = useState(false);
 
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const toggleVisibility = (field: "showPassword" | "showConfirmPassword") => {
     setFormData((prev) => ({
@@ -126,7 +127,14 @@ const ResetPassword = () => {
 
   const handleResetPassword = async () => {
     try {
-      const { data, status, message } = await resetPassword(formData.password);
+      const token = searchParams.get("token");
+      
+      if (!token) {
+        toast.error("Reset token is missing. Please use the link from your email.");
+        return;
+      }
+
+      const { data, status, message } = await resetPassword(token, formData.password);
       toast.success(
         "Password reset successfully! You can now log in with your new password."
       );
