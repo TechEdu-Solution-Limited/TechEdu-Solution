@@ -130,7 +130,7 @@ export const INavLinks: INavLink[] = [
       { href: "/career-development", label: "Career Development" },
     ],
   },
-  { href: "/pricing", label: "Pricing" },
+  { href: "/tools/resources", label: "Resources" },
   {
     label: "CareerConnect",
     href: "/career-connect",
