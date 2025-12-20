@@ -109,7 +109,7 @@ export default function CVPage({ params }: { params: { id: string } }) {
           return;
         }
 
-        // Create a draft for this CV if none exists yet
+        // Create a draft for this CV if none exists yet (sections already normalized in loadCV)
         const working = cv.sections.map((s) => ({
           id: s.id,
           type: s.type,
@@ -164,7 +164,7 @@ export default function CVPage({ params }: { params: { id: string } }) {
       );
       const personalInfo = personalInfoSection?.data || {};
 
-      // Extract other sections - preserve section IDs
+      // Extract other sections - preserve section IDs (already normalized in loadCV)
       const resumeData = cv.sections.map((section) => ({
         id: section.id, // Preserve section ID from existing CV
         type: section.type,
@@ -246,7 +246,36 @@ export default function CVPage({ params }: { params: { id: string } }) {
       }
 
       const data: CVResponse = await response.json();
-      setCv(data.data);
+      const cvData = data.data;
+      
+      // Normalize sections: "summary" -> "professional-summary" and { content } -> { summary }
+      cvData.sections = cvData.sections.map((section: any) => {
+        // Normalize section type
+        let normalizedType = section.type;
+        if (section.type === "summary") {
+          normalizedType = "professional-summary";
+        }
+
+        // Normalize professional summary data
+        let normalizedData = section.data;
+        if (normalizedType === "professional-summary" && normalizedData && typeof normalizedData === "object") {
+          if ("content" in normalizedData && !("summary" in normalizedData)) {
+            normalizedData = {
+              ...normalizedData,
+              summary: normalizedData.content,
+            };
+            delete normalizedData.content;
+          }
+        }
+
+        return {
+          ...section,
+          type: normalizedType,
+          data: normalizedData,
+        };
+      });
+      
+      setCv(cvData);
     } catch (err) {
       console.error("Error loading CV:", err);
       setError(err instanceof Error ? err.message : "Failed to load CV");

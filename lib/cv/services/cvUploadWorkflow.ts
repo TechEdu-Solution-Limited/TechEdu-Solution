@@ -193,39 +193,56 @@ function convertResumeSectionsToProps(sections: ResumeSection[]): any {
     customSections: [],
   };
   sections.forEach((section) => {
-    switch (section.type) {
+    // Normalize section type: "summary" -> "professional-summary"
+    // Cast to any to handle legacy "summary" type from backend
+    const sectionType = section.type as any;
+    const normalizedType = sectionType === "summary" ? "professional-summary" : section.type;
+    
+    // Normalize professional summary data: { content: string } -> { summary: string }
+    let normalizedData: any = section.data;
+    if (normalizedType === "professional-summary" && normalizedData && typeof normalizedData === "object") {
+      if ("content" in normalizedData && !("summary" in normalizedData)) {
+        normalizedData = {
+          ...normalizedData,
+          summary: normalizedData.content,
+        };
+        delete normalizedData.content;
+      }
+    }
+
+    switch (normalizedType) {
       case "personal-info":
-        props.personalInfo = { ...props.personalInfo, ...section.data };
+        props.personalInfo = { ...props.personalInfo, ...normalizedData };
         break;
       case "professional-summary":
-        props.professionalSummary = section.data;
+        props.professionalSummary = normalizedData;
         break;
       case "work-experience":
-        props.experiences = section.data;
+        props.experiences = normalizedData;
         break;
       case "education":
-        props.educations = section.data;
+        props.educations = normalizedData;
         break;
       case "skills":
-        props.skills = section.data;
+        props.skills = normalizedData;
         break;
       case "languages":
-        props.languages = section.data;
+        props.languages = normalizedData;
         break;
       case "certifications":
-        props.certifications = section.data;
+        props.certifications = normalizedData;
         break;
       case "awards":
-        props.awards = section.data;
+        props.awards = normalizedData;
         break;
       case "projects":
-        props.projects = section.data;
+        props.projects = normalizedData;
         break;
       case "interests":
-        props.interests = section.data;
+        props.interests = normalizedData;
         break;
       case "custom":
-        props.customSections.push(section.data);
+        props.customSections.push(normalizedData);
         break;
     }
   });

@@ -501,14 +501,34 @@ export default function TemplateBuilderPage({
       );
       const personalInfo = personalInfoSection?.data || {};
 
-      // Extract other sections
-      const resumeData = cv.sections.map((section: any) => ({
-        id: section.id,
-        type: section.type,
-        heading: section.heading,
-        visible: section.visible,
-        data: section.data,
-      }));
+      // Extract other sections with normalization
+      const resumeData = cv.sections.map((section: any) => {
+        // Normalize section type: "summary" -> "professional-summary"
+        let normalizedType = section.type;
+        if (section.type === "summary") {
+          normalizedType = "professional-summary";
+        }
+
+        // Normalize professional summary data: { content: string } -> { summary: string }
+        let normalizedData = section.data;
+        if (normalizedType === "professional-summary" && normalizedData && typeof normalizedData === "object") {
+          if ("content" in normalizedData && !("summary" in normalizedData)) {
+            normalizedData = {
+              ...normalizedData,
+              summary: normalizedData.content,
+            };
+            delete normalizedData.content;
+          }
+        }
+
+        return {
+          id: section.id,
+          type: normalizedType,
+          heading: section.heading,
+          visible: section.visible,
+          data: normalizedData,
+        };
+      });
 
       // Update template builder with CV data
       templateBuilder.setPersonalInfo(personalInfo);
@@ -521,6 +541,7 @@ export default function TemplateBuilderPage({
       resumeData.forEach((section: any) => {
         switch (section.type) {
           case "professional-summary":
+          case "summary": // Handle legacy "summary" type
             templateBuilder.setProfessionalSummary(section.data);
             break;
           case "work-experience":
@@ -601,13 +622,33 @@ export default function TemplateBuilderPage({
       );
       const personalInfo = personalInfoSection?.data || {};
 
-      const resumeData = sections.map((section: any) => ({
-        id: section.id,
-        type: section.type,
-        heading: section.heading,
-        visible: section.visible,
-        data: section.data,
-      }));
+      const resumeData = sections.map((section: any) => {
+        // Normalize section type: "summary" -> "professional-summary"
+        let normalizedType = section.type;
+        if (section.type === "summary") {
+          normalizedType = "professional-summary";
+        }
+
+        // Normalize professional summary data: { content: string } -> { summary: string }
+        let normalizedData = section.data;
+        if (normalizedType === "professional-summary" && normalizedData && typeof normalizedData === "object") {
+          if ("content" in normalizedData && !("summary" in normalizedData)) {
+            normalizedData = {
+              ...normalizedData,
+              summary: normalizedData.content,
+            };
+            delete normalizedData.content;
+          }
+        }
+
+        return {
+          id: section.id,
+          type: normalizedType,
+          heading: section.heading,
+          visible: section.visible,
+          data: normalizedData,
+        };
+      });
 
       // Update template builder with Draft data
       templateBuilder.setPersonalInfo(personalInfo);
@@ -619,6 +660,7 @@ export default function TemplateBuilderPage({
       resumeData.forEach((section: any) => {
         switch (section.type) {
           case "professional-summary":
+          case "summary": // Handle legacy "summary" type
             templateBuilder.setProfessionalSummary(section.data);
             break;
           case "work-experience":
