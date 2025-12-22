@@ -20,6 +20,7 @@ import { getApiRequest } from "@/lib/apiFetch";
 import { useEffect } from "react";
 // Remove the import since we'll use the existing one
 import CVUploadModal from "@/components/cv/CVUploadModal";
+import AIConsentModal from "@/components/cv/builder/modals/AIConsentModal";
 import { useRole } from "@/contexts/RoleContext";
 import { toast } from "react-toastify";
 
@@ -71,6 +72,8 @@ export default function ResumeBuilder() {
 
   const [templateOpen, setTemplateOpen] = useState(false);
   const [ingesting, setIngesting] = useState(false);
+  const [showAIConsentModal, setShowAIConsentModal] = useState(false);
+  const [pendingTemplateId, setPendingTemplateId] = useState<string | null>(null);
 
   const [overrideOpen, setOverrideOpen] = useState(false);
   const pendingFileRef = useRef<File | null>(null);
@@ -264,6 +267,15 @@ export default function ResumeBuilder() {
 
   const handleStartFromScratch = () => {
     router.push(`/dashboard/cv-builder/template-selection`);
+  };
+
+  const proceedWithTemplate = async (templateId: string) => {
+    if (!uploadedFile?.url) {
+      toast.error("Please upload a CV first");
+      return;
+    }
+    await ingestCvFromUrl(uploadedFile.url, templateId);
+    setPendingTemplateId(null);
   };
 
   async function ingestCvFromUrl(fileUrl: string, templateId: string) {
@@ -745,7 +757,10 @@ export default function ResumeBuilder() {
       {/* Template Modal */}
       <TemplateSelectorModal
         isOpen={templateOpen}
-        onClose={() => setTemplateOpen(false)}
+        onClose={() => {
+          setTemplateOpen(false);
+          setPendingTemplateId(null);
+        }}
         onTemplateSelect={async (templateId: string) => {
           if (!uploadedFile?.url) return;
           // Validate template is allowed
@@ -753,7 +768,9 @@ export default function ResumeBuilder() {
             toast.error("This template requires CV Builder Pro. Please purchase to access all templates.");
             return;
           }
-          await ingestCvFromUrl(uploadedFile.url, templateId);
+          setPendingTemplateId(templateId);
+          setTemplateOpen(false);
+          setShowAIConsentModal(true);
         }}
         allowedTemplates={ALLOWED_TEMPLATES}
       />
@@ -855,6 +872,22 @@ export default function ResumeBuilder() {
         onStartEditing={() => {
           setShowCVRatingModal(false);
           // User can continue to use CV builder as they have access
+        }}
+      />
+
+      <AIConsentModal
+        isOpen={showAIConsentModal}
+        onClose={() => {
+          setShowAIConsentModal(false);
+          setPendingTemplateId(null);
+        }}
+        onAccept={async () => {
+          setShowAIConsentModal(false);
+          if (pendingTemplateId) {
+            await proceedWithTemplate(pendingTemplateId);
+          } else {
+            toast.error("Please select a template to continue");
+          }
         }}
       />
     </div>
