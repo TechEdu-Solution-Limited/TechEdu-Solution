@@ -213,15 +213,10 @@ export default function Contact() {
               </svg>
               <h2 className="text-3xl font-bold text-black">Our Mission</h2>
             </div>
-            <p className="text-opacity-90 leading-relaxed max-w-md text-center">
-              Our mission at TechEdu Solution Ltd is to empower individuals and
-              businesses by providing innovative, technology-driven solutions
-              that inspire growth and enable success. Through our tailored
-              educational services and professional consultancy, we strive to
-              simplify learning, foster career excellence, and deliver
-              measurable impact for our clients. At the heart of our mission is
-              a commitment to quality, integrity, and the transformative power
-              of education.
+            <p className="text-opacity-90 leading-relaxed max-w-lg text-center">
+              At TechEdu Solution Ltd, our mission is to empower individuals and organisations through innovative, technology-driven solutions that accelerate growth and enable sustainable success. We deliver tailored education, career development, and professional consultancy services designed to simplify complexity, build future-ready capabilities, and drive measurable, real-world impact.
+              <br />
+              Guided by a commitment to quality, integrity, and excellence, we harness the transformative power of education, data, and emerging technologies to unlock potential, strengthen leadership, and help our clients thrive in an evolving digital and AI-driven world.
             </p>
           </div>
 
@@ -232,7 +227,7 @@ export default function Contact() {
           />
 
           {/* Vision */}
-          <div className="relative space-y-6 text-center md:py-24 flex flex-col items-center justify-center">
+          <div className="relative space-y-6 text-center md:py-24 flex flex-col items-center justify-center md:justify-start">
             <div className="flex justify-center items-center gap-2">
               {/* Vision Icon */}
               <svg
@@ -252,10 +247,7 @@ export default function Contact() {
               <h2 className="text-3xl font-bold text-black">Our Vision</h2>
             </div>
             <p className="text-opacity-90 leading-relaxed max-w-md text-center">
-              To be the leading platform that empowers learners and
-              professionals with cutting-edge educational and career advancement
-              solutions, fostering innovation, growth, and success in a rapidly
-              evolving world.
+            To become the trusted global platform for future-ready education and career advancement, equipping learners, Leaders and professionals with the skills, insight, and technology-driven solutions needed to lead, innovate, and succeed in a rapidly evolving world. 
             </p>
           </div>
         </div>

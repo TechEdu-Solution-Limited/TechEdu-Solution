@@ -49,9 +49,9 @@ const services = [
   },
   {
     title: "Corporate Consultancy",
-    description: "Data training, team transformation",
+    description: "Business analysis training, leadership training, AI Governance & Compliance, AI Business Analysis Training, AI Governance Career Accelerator, team transformation",
     cta: "View Consultancy",
-    url: "corporate-consultancy",
+    url: "/corporate-consultancy",
     icon: (
       <Building2
         size={80}
