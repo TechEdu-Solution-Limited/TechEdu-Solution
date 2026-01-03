@@ -53,36 +53,36 @@ const getUpTo = (t: any): number | undefined =>
   typeof t?.upTo === "number"
     ? t.upTo
     : typeof t?.upto === "number"
-    ? t.upto
-    : undefined;
+      ? t.upto
+      : undefined;
 
 const pickTier = (tiers: any[] = [], qty: number) => {
   if (!tiers.length) return { tier: undefined, index: -1 };
-  
+
   // Find smallest upTo >= qty (hit tier) and track max tier as fallback
   let bestUpTo: number | null = null;
   let bestPrice: number | null = null;
   let bestIndex = -1;
-  
+
   let maxUpTo = -Infinity;
   let maxPrice: number | null = null;
   let maxIndex = -1;
-  
+
   for (let i = 0; i < tiers.length; i++) {
     const t = tiers[i];
     if (!t) continue;
     const cap = getUpTo(t);
     const price = Number(t.unitPrice);
-    
+
     if (typeof cap !== "number" || !Number.isFinite(price)) continue;
-    
+
     // candidate hit tier
     if (cap >= qty && (bestUpTo === null || cap < bestUpTo)) {
       bestUpTo = cap;
       bestPrice = price;
       bestIndex = i;
     }
-    
+
     // track max tier (for qty above all caps)
     if (cap > maxUpTo) {
       maxUpTo = cap;
@@ -90,7 +90,7 @@ const pickTier = (tiers: any[] = [], qty: number) => {
       maxIndex = i;
     }
   }
-  
+
   // Return best match or fallback to max tier
   if (bestIndex >= 0) {
     return { tier: tiers[bestIndex], index: bestIndex };
@@ -98,7 +98,7 @@ const pickTier = (tiers: any[] = [], qty: number) => {
   if (maxIndex >= 0) {
     return { tier: tiers[maxIndex], index: maxIndex };
   }
-  
+
   return { tier: undefined, index: -1 };
 };
 
@@ -126,13 +126,16 @@ const isVolume = (pricing?: Partial<Pricing> | null): boolean =>
  */
 const teamAwareDisplayAmount = (
   pricing: Partial<Pricing> | null,
-  membersCount: number // ← number of team members (EXCLUDING admin)
+  membersCount: number, // ← number of team members (EXCLUDING admin)
+  discountPercentage: number = 0
 ): number => {
   if (!pricing) return 0;
   const toNum = (v: any): number => {
     const n = Number(v);
     return Number.isFinite(n) ? n : 0;
   };
+
+  let amount = 0;
 
   // Handle per_unit pricing (legacy: model="per_unit", new: priceBasis="per_unit")
   if (isPerUnit(pricing)) {
@@ -143,26 +146,35 @@ const teamAwareDisplayAmount = (
 
     if (isStairstep(pricing)) {
       // flat band total
-      return unitOrFlat;
+      amount = unitOrFlat;
+    } else {
+      // volume → multiply by (members + admin)
+      const qtyMultiplier = Math.max(1, membersCount + 1);
+      amount = toNum(unitOrFlat * qtyMultiplier);
     }
-    // volume → multiply by (members + admin)
-    const qtyMultiplier = Math.max(1, membersCount + 1);
-    return toNum(unitOrFlat * qtyMultiplier);
+  } else {
+    switch (pricing.model) {
+      case "one_time":
+        amount = toNum(pricing.basePrice ?? (pricing as any)?.price ?? 0);
+        break;
+
+      case "subscription":
+        // Fallback to basePrice if subscriptionPrice missing in API
+        amount = toNum(
+          (pricing as any)?.subscriptionPrice ?? pricing.basePrice ?? 0
+        );
+        break;
+
+      default:
+        amount = 0;
+    }
   }
 
-  switch (pricing.model) {
-    case "one_time":
-      return toNum(pricing.basePrice ?? (pricing as any)?.price ?? 0);
-
-    case "subscription":
-      // Fallback to basePrice if subscriptionPrice missing in API
-      return toNum(
-        (pricing as any)?.subscriptionPrice ?? pricing.basePrice ?? 0
-      );
-
-    default:
-      return 0;
+  if (discountPercentage > 0) {
+    amount = amount * (1 - discountPercentage / 100);
   }
+
+  return Math.round(amount * 100) / 100;
 };
 
 const pricingBadgeLabel = (pricing: Pricing | undefined): string => {
@@ -191,10 +203,10 @@ const showSlash = (pricing: Pricing | undefined): boolean =>
 const requiresTeamTechProfessional = (product: Product): boolean => {
   const pricing = product.pricing;
   if (!pricing) return false;
-  
+
   const unitName = (pricing as any)?.unitName || pricing.unitName;
   const tierType = pricing.tierType;
-  
+
   return (
     unitName === "team" &&
     (tierType === "volume" || tierType === "stairstep")
@@ -474,12 +486,12 @@ export default function CatalogPage({
 
     const cartPos = cartIcon
       ? (() => {
-          const cartRect = cartIcon.getBoundingClientRect();
-          return {
-            x: cartRect.left + cartRect.width / 2,
-            y: cartRect.top + cartRect.height / 2,
-          };
-        })()
+        const cartRect = cartIcon.getBoundingClientRect();
+        return {
+          x: cartRect.left + cartRect.width / 2,
+          y: cartRect.top + cartRect.height / 2,
+        };
+      })()
       : { x: window.innerWidth - 80, y: 60 };
 
     const startPos = {
@@ -495,6 +507,9 @@ export default function CatalogPage({
       endPos: cartPos,
     });
 
+    const effectiveDiscount =
+      product.pricing?.discountPercentage || product.discountPercentage || 0;
+
     setTimeout(() => {
       const cartItem: CartItem = {
         id: product._id,
@@ -502,12 +517,7 @@ export default function CatalogPage({
         description: product.description || "",
         price: product.pricing?.basePrice || 0, // snapshot; server will recompute
         currency: (product.currency || "gbp").toUpperCase(),
-        discountPercentage:
-          typeof product.pricing?.discountPercentage === "number"
-            ? product.pricing.discountPercentage
-            : typeof product.discountPercentage === "number"
-            ? product.discountPercentage
-            : 0,
+        discountPercentage: effectiveDiscount,
         category:
           product.productCategoryTitle || product.category || "Uncategorized",
         productType: product.productType,
@@ -551,27 +561,27 @@ export default function CatalogPage({
               : product.pricing?.basePrice ?? Number(product.price ?? 0),
           installments: product.pricing?.installments?.enabled
             ? {
-                enabled: true,
-                count: product.pricing?.installments?.count || 2,
-                downPaymentType: product.pricing?.installments?.downPaymentType,
-                downPaymentValue:
-                  product.pricing?.installments?.downPaymentValue || 0,
-                // Allow hour/day/week/month/year for installments
-                interval: (product.pricing?.installments as any)?.interval,
-                intervalCount: product.pricing?.installments?.intervalCount,
-                allowEarlyPayoff:
-                  product.pricing?.installments?.allowEarlyPayoff,
-              }
+              enabled: true,
+              count: product.pricing?.installments?.count || 2,
+              downPaymentType: product.pricing?.installments?.downPaymentType,
+              downPaymentValue:
+                product.pricing?.installments?.downPaymentValue || 0,
+              // Allow hour/day/week/month/year for installments
+              interval: (product.pricing?.installments as any)?.interval,
+              intervalCount: product.pricing?.installments?.intervalCount,
+              allowEarlyPayoff:
+                product.pricing?.installments?.allowEarlyPayoff,
+            }
             : { enabled: false },
 
           // optional subscription-ish
           subscriptionPrice: product.pricing?.basePrice,
           interval:
             product.pricing?.interval &&
-            (product.pricing.interval === "day" ||
-              product.pricing.interval === "week" ||
-              product.pricing.interval === "month" ||
-              product.pricing.interval === "year")
+              (product.pricing.interval === "day" ||
+                product.pricing.interval === "week" ||
+                product.pricing.interval === "month" ||
+                product.pricing.interval === "year")
               ? product.pricing.interval
               : undefined,
           intervalCount: product.pricing?.intervalCount,
@@ -580,12 +590,7 @@ export default function CatalogPage({
           proration: product.pricing?.proration,
           vatPercentage: product.pricing?.vatPercentage,
           // keep discount at pricing level for calculators
-          discountPercentage:
-            typeof product.pricing?.discountPercentage === "number"
-              ? product.pricing.discountPercentage
-              : typeof product.discountPercentage === "number"
-              ? product.discountPercentage
-              : 0,
+          discountPercentage: effectiveDiscount,
         },
 
         // Booking metadata
@@ -611,42 +616,42 @@ export default function CatalogPage({
 
         bookingDetails: requiresBooking
           ? {
-              fullName: "",
-              email: "",
-              phone: "",
-              preferredDate: undefined,
-              preferredTime: "",
-              // ⬇️ For volume, participants = members + admin; for others default to 1
-              numberOfParticipants: isVolume(product.pricing as Pricing)
+            fullName: "",
+            email: "",
+            phone: "",
+            preferredDate: undefined,
+            preferredTime: "",
+            // ⬇️ For volume, participants = members + admin; for others default to 1
+            numberOfParticipants: isVolume(product.pricing as Pricing)
+              ? qtyMultiplier
+              : 1,
+            participantType: "individual",
+            userNotes: "",
+            bookingId: "",
+            bookingData: {
+              productId: product._id,
+              productType: product.productType,
+              instructorId: product.instructorId,
+              bookingPurpose: product.service,
+              minutesPerSession: product.minutesPerSession,
+              durationInMinutes: product.durationInMinutes,
+              numberOfExpectedParticipants: isVolume(
+                product.pricing as Pricing
+              )
                 ? qtyMultiplier
                 : 1,
+              isClassroom: product.hasClassroom,
+              isSession: product.hasSession,
               participantType: "individual",
-              userNotes: "",
-              bookingId: "",
-              bookingData: {
-                productId: product._id,
-                productType: product.productType,
-                instructorId: product.instructorId,
-                bookingPurpose: product.service,
-                minutesPerSession: product.minutesPerSession,
-                durationInMinutes: product.durationInMinutes,
-                numberOfExpectedParticipants: isVolume(
-                  product.pricing as Pricing
-                )
-                  ? qtyMultiplier
-                  : 1,
-                isClassroom: product.hasClassroom,
-                isSession: product.hasSession,
-                participantType: "individual",
-                platformRole: "student",
-                email: "",
-                fullName: "",
-                createdBy: "",
-                profileId: "",
-                participants: [],
-                actualDaysAndTime: [],
-              },
-            }
+              platformRole: "student",
+              email: "",
+              fullName: "",
+              createdBy: "",
+              profileId: "",
+              participants: [],
+              actualDaysAndTime: [],
+            },
+          }
           : undefined,
       };
 
@@ -703,11 +708,10 @@ export default function CatalogPage({
                 setSelectedCategory("");
                 setPage(1);
               }}
-              className={`px-4 md:px-6 py-2.5 font-medium transition-all whitespace-nowrap flex-shrink-0 rounded-full border ${
-                selectedCategory === ""
-                  ? "text-white bg-[#0D1140] border-[#0D1140] shadow-md"
-                  : "text-gray-600 hover:text-gray-900 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-              }`}
+              className={`px-4 md:px-6 py-2.5 font-medium transition-all whitespace-nowrap flex-shrink-0 rounded-full border ${selectedCategory === ""
+                ? "text-white bg-[#0D1140] border-[#0D1140] shadow-md"
+                : "text-gray-600 hover:text-gray-900 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                }`}
             >
               All Programs
             </button>
@@ -724,11 +728,10 @@ export default function CatalogPage({
                     setSelectedCategory(cat);
                     setPage(1);
                   }}
-                  className={`px-4 md:px-6 py-2.5 font-medium transition-all whitespace-nowrap flex-shrink-0 rounded-full border ${
-                    selectedCategory === cat
-                      ? "text-white bg-[#0D1140] border-[#0D1140] shadow-md"
-                      : "text-gray-600 hover:text-gray-900 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                  }`}
+                  className={`px-4 md:px-6 py-2.5 font-medium transition-all whitespace-nowrap flex-shrink-0 rounded-full border ${selectedCategory === cat
+                    ? "text-white bg-[#0D1140] border-[#0D1140] shadow-md"
+                    : "text-gray-600 hover:text-gray-900 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                    }`}
                 >
                   {cat}
                 </button>
@@ -796,10 +799,23 @@ export default function CatalogPage({
             {/* Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {products.map((product) => {
+                const effectiveDiscount =
+                  product.pricing?.discountPercentage ||
+                  product.discountPercentage ||
+                  0;
+
                 const displayAmount = teamAwareDisplayAmount(
                   (product.pricing as Pricing) || null,
-                  membersCount
+                  membersCount,
+                  effectiveDiscount
                 );
+
+                const originalAmount = teamAwareDisplayAmount(
+                  (product.pricing as Pricing) || null,
+                  membersCount,
+                  0
+                );
+
                 const plainDescription = stripHtml(
                   product.description || ""
                 );
@@ -826,7 +842,7 @@ export default function CatalogPage({
                         handleViewDetails(product._id);
                       }
                     }}
-                    >
+                  >
                     <div className="relative w-full md:w-[40%] h-[200px] md:h-auto bg-gray-100 rounded-t-xl md:rounded-l-xl md:rounded-tr-none overflow-hidden shrink-0">
                       <Image
                         src={
@@ -838,9 +854,9 @@ export default function CatalogPage({
                         fill
                         className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
                       />
-                      {((product.pricing?.discountPercentage ?? product.discountPercentage) || 0) > 0 && (
+                      {effectiveDiscount > 0 && (
                         <span className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-amber-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow">
-                          -{product.pricing?.discountPercentage ?? product.discountPercentage}%
+                          -{effectiveDiscount}%
                         </span>
                       )}
                     </div>
@@ -896,17 +912,41 @@ export default function CatalogPage({
                               </span>
                             ) : (
                               <>
-                                <span className="text-lg font-bold text-blue-600">
-                                  {getCurrencySymbol(product.currency || "gbp")} {displayAmount}
-                                  {((product.pricing as any)?.model === "subscription")
-                                    ? (() => {
-                                        const ic = Number((product.pricing as any)?.intervalCount || 1);
-                                        const interval = (product.pricing as any)?.interval || "month";
-                                        const label = ic > 1 ? `${ic} ${interval}s` : `${interval}`;
+                                <div className="flex flex-col">
+                                  {effectiveDiscount > 0 && (
+                                    <span className="text-sm text-gray-400 line-through">
+                                      {getCurrencySymbol(
+                                        product.currency || "gbp"
+                                      )}{" "}
+                                      {originalAmount}
+                                    </span>
+                                  )}
+                                  <span className="text-lg font-bold text-blue-600">
+                                    {getCurrencySymbol(
+                                      product.currency || "gbp"
+                                    )}{" "}
+                                    {displayAmount}
+                                    {(product.pricing as any)?.model ===
+                                      "subscription"
+                                      ? (() => {
+                                        const ic = Number(
+                                          (product.pricing as any)
+                                            ?.intervalCount || 1
+                                        );
+                                        const interval =
+                                          (product.pricing as any)
+                                            ?.interval || "month";
+                                        const label =
+                                          ic > 1
+                                            ? `${ic} ${interval}s`
+                                            : `${interval}`;
                                         return ` / ${label}`;
                                       })()
-                                    : (showSlash(product.pricing as Pricing) ? " /" : "")}
-                                </span>
+                                      : showSlash(product.pricing as Pricing)
+                                        ? " /"
+                                        : ""}
+                                  </span>
+                                </div>
                                 <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full">
                                   {pricingBadgeLabel(product.pricing as Pricing)}
                                 </span>
@@ -915,11 +955,11 @@ export default function CatalogPage({
                                     {((product.pricing as any)?.autoRenew === false)
                                       ? "No renewal"
                                       : (() => {
-                                          const ic = Number((product.pricing as any)?.intervalCount || 1);
-                                          const interval = (product.pricing as any)?.interval || "month";
-                                          const label = ic > 1 ? `${ic} ${interval}s` : `${interval}`;
-                                          return `Auto-renews every ${label}`;
-                                        })()}
+                                        const ic = Number((product.pricing as any)?.intervalCount || 1);
+                                        const interval = (product.pricing as any)?.interval || "month";
+                                        const label = ic > 1 ? `${ic} ${interval}s` : `${interval}`;
+                                        return `Auto-renews every ${label}`;
+                                      })()}
                                   </span>
                                 )}
                               </>
@@ -953,14 +993,13 @@ export default function CatalogPage({
                           const requiresTeam = requiresTeamTechProfessional(product);
                           const hasPermission = userData?.role === "teamTechProfessional";
                           const isRestricted = requiresTeam && !hasPermission;
-                          
+
                           return (
                             <Button
-                              className={`rounded-[10px] text-white px-4 py-2 w-full ${
-                                isRestricted
-                                  ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed"
-                                  : "bg-blue-600 hover:bg-blue-700"
-                              }`}
+                              className={`rounded-[10px] text-white px-4 py-2 w-full ${isRestricted
+                                ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed"
+                                : "bg-blue-600 hover:bg-blue-700"
+                                }`}
                               onClick={(e) => handleAddToCart(product, e)}
                               disabled={isRestricted}
                               data-add-to-cart
@@ -974,8 +1013,8 @@ export default function CatalogPage({
                                 ? "Team Only"
                                 : product.requiresBooking ||
                                   product.isBookableService
-                                ? "Book Now"
-                                : "Add to Cart"}
+                                  ? "Book Now"
+                                  : "Add to Cart"}
                             </Button>
                           );
                         })()}
@@ -994,9 +1033,8 @@ export default function CatalogPage({
                     <PaginationItem>
                       <PaginationPrevious
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        className={`cursor-pointer ${
-                          page === 1 ? "pointer-events-none opacity-50" : ""
-                        }`}
+                        className={`cursor-pointer ${page === 1 ? "pointer-events-none opacity-50" : ""
+                          }`}
                       />
                     </PaginationItem>
 
@@ -1026,11 +1064,10 @@ export default function CatalogPage({
                               <PaginationLink
                                 onClick={() => setPage(p)}
                                 isActive={page === p}
-                                className={`cursor-pointer ${
-                                  page === p
-                                    ? "rounded-[10px] bg-[#0D1140] text-white border-0"
-                                    : ""
-                                }`}
+                                className={`cursor-pointer ${page === p
+                                  ? "rounded-[10px] bg-[#0D1140] text-white border-0"
+                                  : ""
+                                  }`}
                               >
                                 {p}
                               </PaginationLink>
@@ -1060,11 +1097,10 @@ export default function CatalogPage({
                         onClick={() =>
                           setPage((p) => Math.min(totalPages, p + 1))
                         }
-                        className={`cursor-pointer ${
-                          page >= totalPages
-                            ? "pointer-events-none opacity-50"
-                            : ""
-                        }`}
+                        className={`cursor-pointer ${page >= totalPages
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                          }`}
                       />
                     </PaginationItem>
                   </PaginationContent>

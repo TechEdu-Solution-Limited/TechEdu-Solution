@@ -18,8 +18,8 @@ const getUpTo = (t: any): number | undefined =>
   typeof t?.upTo === "number"
     ? t.upTo
     : typeof t?.upto === "number"
-    ? t.upto
-    : undefined;
+      ? t.upto
+      : undefined;
 
 const pickTier = (tiers: any[] = [], qty: number) => {
   if (!tiers.length) return { tier: undefined, index: -1 };
@@ -91,13 +91,16 @@ const isVolume = (pricing?: Partial<Pricing> | null): boolean =>
  */
 const teamAwareDisplayAmount = (
   pricing: Partial<Pricing> | null,
-  membersCount: number // ← number of team members (EXCLUDING admin)
+  membersCount: number, // ← number of team members (EXCLUDING admin)
+  discountPercentage: number = 0
 ): number => {
   if (!pricing) return 0;
   const toNum = (v: any): number => {
     const n = Number(v);
     return Number.isFinite(n) ? n : 0;
   };
+
+  let amount = 0;
 
   // Handle per_unit pricing (legacy: model="per_unit", new: priceBasis="per_unit")
   if (isPerUnit(pricing)) {
@@ -108,26 +111,35 @@ const teamAwareDisplayAmount = (
 
     if (isStairstep(pricing)) {
       // flat band total
-      return unitOrFlat;
+      amount = unitOrFlat;
+    } else {
+      // volume → multiply by (members + admin)
+      const qtyMultiplier = Math.max(1, membersCount + 1);
+      amount = toNum(unitOrFlat * qtyMultiplier);
     }
-    // volume → multiply by (members + admin)
-    const qtyMultiplier = Math.max(1, membersCount + 1);
-    return toNum(unitOrFlat * qtyMultiplier);
+  } else {
+    switch (pricing.model) {
+      case "one_time":
+        amount = toNum(pricing.basePrice ?? (pricing as any)?.price ?? 0);
+        break;
+
+      case "subscription":
+        // Fallback to basePrice if subscriptionPrice missing in API
+        amount = toNum(
+          (pricing as any)?.subscriptionPrice ?? pricing.basePrice ?? 0
+        );
+        break;
+
+      default:
+        amount = 0;
+    }
   }
 
-  switch (pricing.model) {
-    case "one_time":
-      return toNum(pricing.basePrice ?? (pricing as any)?.price ?? 0);
-
-    case "subscription":
-      // Fallback to basePrice if subscriptionPrice missing in API
-      return toNum(
-        (pricing as any)?.subscriptionPrice ?? pricing.basePrice ?? 0
-      );
-
-    default:
-      return 0;
+  if (discountPercentage > 0) {
+    amount = amount * (1 - discountPercentage / 100);
   }
+
+  return Math.round(amount * 100) / 100;
 };
 
 const pricingBadgeLabel = (pricing: Pricing | undefined): string => {
@@ -152,6 +164,9 @@ export default function ProductPageClient({ product }: ProductPageClientProps) {
   const { addToCart, isInCart } = useCart();
   const { members, fetchTeamData } = teamFetcher();
 
+  const membersCount = Math.max(0, members?.length || 0); // excludes admin
+  const qtyMultiplier = Math.max(1, membersCount + 1); // includes admin
+
   useEffect(() => {
     fetchTeamData();
   }, [fetchTeamData]);
@@ -169,11 +184,19 @@ export default function ProductPageClient({ product }: ProductPageClientProps) {
       ? priceFromPricing
       : Number(product.price ?? 0); // ensure numeric
 
-  const membersCount = Math.max(0, members?.length || 0);
-  const qtyMultiplier = Math.max(1, membersCount + 1);
+  const effectiveDiscount =
+    product.pricing?.discountPercentage || product.discountPercentage || 0;
+
   const displayAmount = teamAwareDisplayAmount(
     (product.pricing as Partial<Pricing>) || null,
-    membersCount
+    membersCount,
+    effectiveDiscount
+  );
+
+  const originalAmount = teamAwareDisplayAmount(
+    (product.pricing as Partial<Pricing>) || null,
+    membersCount,
+    0
   );
 
   const handleEnroll = () => {
@@ -188,7 +211,7 @@ export default function ProductPageClient({ product }: ProductPageClientProps) {
       description: product.description || "",
       price: cartPrice, // ✅ safe numeric
       currency: cartCurrency, // ✅ from pricing or fallback
-      discountPercentage: product.discountPercentage || 0,
+      discountPercentage: effectiveDiscount,
       category:
         product.productCategoryTitle || product.category || "Uncategorized",
       productType: product.productType,
@@ -203,63 +226,60 @@ export default function ProductPageClient({ product }: ProductPageClientProps) {
       requiresBooking: requiresBooking,
       pricing: product.pricing
         ? {
-            model: normalizeCartModel(product.pricing?.model),
-            priceBasis: (product.pricing as any)?.priceBasis,
-            unitName: (product.pricing as any)?.unitName || "team",
-            currency: (product.currency || "usd").toLowerCase(),
-            allowQuantity: !!product.pricing?.allowQuantity,
-            minQty:
-              typeof product.pricing?.minQty === "number"
-                ? product.pricing.minQty
-                : 1,
-            maxQty:
-              typeof product.pricing?.maxQty === "number"
-                ? product.pricing.maxQty
-                : 0,
-            tierType: product.pricing?.tierType,
-            taxInclusive: !!product.pricing?.taxInclusive,
-            // per-unit tiers (if present)
-            tiers: Array.isArray((product.pricing as any)?.tiers)
-              ? (product.pricing as any).tiers
+          model: normalizeCartModel(product.pricing?.model),
+          priceBasis: (product.pricing as any)?.priceBasis,
+          unitName: (product.pricing as any)?.unitName || "team",
+          currency: (product.currency || "usd").toLowerCase(),
+          allowQuantity: !!product.pricing?.allowQuantity,
+          minQty:
+            typeof product.pricing?.minQty === "number"
+              ? product.pricing.minQty
+              : 1,
+          maxQty:
+            typeof product.pricing?.maxQty === "number"
+              ? product.pricing.maxQty
+              : 0,
+          tierType: product.pricing?.tierType,
+          taxInclusive: !!product.pricing?.taxInclusive,
+          // per-unit tiers (if present)
+          tiers: Array.isArray((product.pricing as any)?.tiers)
+            ? (product.pricing as any).tiers
+            : undefined,
+          // base one-time price (treat free as 0)
+          basePrice:
+            product.pricing?.model === "free"
+              ? 0
+              : product.pricing?.basePrice ?? Number(product.price ?? 0),
+          vatPercentage: product.pricing?.vatPercentage,
+          discountPercentage: effectiveDiscount,
+          // installments (support hour/day/week/month/year)
+          installments: product.pricing?.installments?.enabled
+            ? {
+              enabled: true,
+              count: product.pricing?.installments?.count || 2,
+              downPaymentType:
+                product.pricing?.installments?.downPaymentType,
+              downPaymentValue:
+                product.pricing?.installments?.downPaymentValue || 0,
+              interval:
+                (product.pricing?.installments as any)?.interval || "month",
+              intervalCount:
+                product.pricing?.installments?.intervalCount || 1,
+              allowEarlyPayoff:
+                product.pricing?.installments?.allowEarlyPayoff,
+            }
+            : { enabled: false },
+          // subscription-like
+          subscriptionPrice:
+            product.pricing?.model === "subscription"
+              ? product.pricing?.basePrice
               : undefined,
-            // base one-time price (treat free as 0)
-            basePrice:
-              product.pricing?.model === "free"
-                ? 0
-                : product.pricing?.basePrice ?? Number(product.price ?? 0),
-            vatPercentage: product.pricing?.vatPercentage,
-            discountPercentage:
-              typeof product.pricing?.discountPercentage === "number"
-                ? product.pricing.discountPercentage
-                : product.discountPercentage || 0,
-            // installments (support hour/day/week/month/year)
-            installments: product.pricing?.installments?.enabled
-              ? {
-                  enabled: true,
-                  count: product.pricing?.installments?.count || 2,
-                  downPaymentType:
-                    product.pricing?.installments?.downPaymentType,
-                  downPaymentValue:
-                    product.pricing?.installments?.downPaymentValue || 0,
-                  interval:
-                    (product.pricing?.installments as any)?.interval || "month",
-                  intervalCount:
-                    product.pricing?.installments?.intervalCount || 1,
-                  allowEarlyPayoff:
-                    product.pricing?.installments?.allowEarlyPayoff,
-                }
-              : { enabled: false },
-            // subscription-like
-            subscriptionPrice:
-              product.pricing?.model === "subscription"
-                ? product.pricing?.basePrice
-                : undefined,
-            interval: (product.pricing as any)?.interval,
-            intervalCount: product.pricing?.intervalCount,
-            trialDays: product.pricing?.trialDays,
-            setupFee: product.pricing?.setupFee,
-            proration: product.pricing?.proration,
-          }
+          interval: (product.pricing as any)?.interval,
+          intervalCount: product.pricing?.intervalCount,
+          trialDays: product.pricing?.trialDays,
+          setupFee: product.pricing?.setupFee,
+          proration: product.pricing?.proration,
+        }
         : undefined,
 
       // Product details for booking
@@ -286,35 +306,35 @@ export default function ProductPageClient({ product }: ProductPageClientProps) {
       // NEW: Add booking details for bookable services
       bookingDetails: requiresBooking
         ? {
-            fullName: "", // Will be filled in cart
+          fullName: "", // Will be filled in cart
+          email: "", // Will be filled in cart
+          phone: "", // Will be filled in cart
+          preferredDate: undefined, // Will be filled in cart
+          preferredTime: "", // Will be filled in cart
+          numberOfParticipants: 1,
+          participantType: "individual" as const,
+          userNotes: "",
+          bookingId: "", // Will be generated during payment intent creation
+          bookingData: {
+            productId: product._id,
+            productType: product.productType,
+            instructorId: product.instructorId,
+            bookingPurpose: product.service,
+            minutesPerSession: product.minutesPerSession,
+            durationInMinutes: product.durationInMinutes,
+            numberOfExpectedParticipants: 1,
+            isClassroom: product.hasClassroom,
+            isSession: product.hasSession,
+            participantType: "individual",
+            platformRole: "student", // Will be updated based on user role
             email: "", // Will be filled in cart
-            phone: "", // Will be filled in cart
-            preferredDate: undefined, // Will be filled in cart
-            preferredTime: "", // Will be filled in cart
-            numberOfParticipants: 1,
-            participantType: "individual" as const,
-            userNotes: "",
-            bookingId: "", // Will be generated during payment intent creation
-            bookingData: {
-              productId: product._id,
-              productType: product.productType,
-              instructorId: product.instructorId,
-              bookingPurpose: product.service,
-              minutesPerSession: product.minutesPerSession,
-              durationInMinutes: product.durationInMinutes,
-              numberOfExpectedParticipants: 1,
-              isClassroom: product.hasClassroom,
-              isSession: product.hasSession,
-              participantType: "individual",
-              platformRole: "student", // Will be updated based on user role
-              email: "", // Will be filled in cart
-              fullName: "", // Will be filled in cart
-              createdBy: "", // Will be filled in cart
-              profileId: "", // Will be filled in cart
-              participants: [], // Will be filled in cart
-              actualDaysAndTime: [], // Will be filled in cart
-            },
-          }
+            fullName: "", // Will be filled in cart
+            createdBy: "", // Will be filled in cart
+            profileId: "", // Will be filled in cart
+            participants: [], // Will be filled in cart
+            actualDaysAndTime: [], // Will be filled in cart
+          },
+        }
         : undefined,
     };
     addToCart(cartItem);
@@ -322,17 +342,14 @@ export default function ProductPageClient({ product }: ProductPageClientProps) {
 
   const formatDuration = () => {
     if (product.mode === "days") {
-      return `${product.programLength} day${
-        product.programLength > 1 ? "s" : ""
-      }`;
+      return `${product.programLength} day${product.programLength > 1 ? "s" : ""
+        }`;
     } else if (product.mode === "weeks") {
-      return `${product.programLength} week${
-        product.programLength > 1 ? "s" : ""
-      }`;
+      return `${product.programLength} week${product.programLength > 1 ? "s" : ""
+        }`;
     } else if (product.mode === "months") {
-      return `${product.programLength} month${
-        product.programLength > 1 ? "s" : ""
-      }`;
+      return `${product.programLength} month${product.programLength > 1 ? "s" : ""
+        }`;
     }
     return `${product.programLength} ${product.mode}`;
   };
@@ -348,7 +365,7 @@ export default function ProductPageClient({ product }: ProductPageClientProps) {
     if (product.deliveryMode) {
       parts.push(
         product.deliveryMode.charAt(0).toUpperCase() +
-          product.deliveryMode.slice(1)
+        product.deliveryMode.slice(1)
       );
     }
     return parts.join(" • ");
@@ -377,9 +394,9 @@ export default function ProductPageClient({ product }: ProductPageClientProps) {
           </h1>
           <p className="text-gray-700 text-lg mb-2">
             <div
-                  className="prose prose-slate max-w-none text-slate-700 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: product.description }}
-                />
+              className="prose prose-slate max-w-none text-slate-700 leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: product.description }}
+            />
           </p>
 
           <div className="flex flex-wrap gap-2 mb-2">
@@ -417,10 +434,18 @@ export default function ProductPageClient({ product }: ProductPageClientProps) {
           <div className="flex items-start justify-between mt-auto">
             <div className="flex flex-col items-start gap-1">
               <div className="flex items-baseline gap-1">
-                <span className="text-lg font-bold text-blue-600">
-                  {getCurrencySymbol(product.currency || "gbp")} {displayAmount}
-                  {showSlash(product.pricing as Pricing) ? " /" : ""}
-                </span>
+                <div className="flex flex-col">
+                  {effectiveDiscount > 0 && (
+                    <span className="text-sm text-gray-400 line-through">
+                      {getCurrencySymbol(product.currency || "gbp")}{" "}
+                      {originalAmount}
+                    </span>
+                  )}
+                  <span className="text-lg font-bold text-blue-600">
+                    {getCurrencySymbol(product.currency || "gbp")} {displayAmount}
+                    {showSlash(product.pricing as Pricing) ? " /" : ""}
+                  </span>
+                </div>
                 <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full">
                   {pricingBadgeLabel(product.pricing as Pricing)}
                 </span>
@@ -461,8 +486,8 @@ export default function ProductPageClient({ product }: ProductPageClientProps) {
               {isInCart(product._id)
                 ? "In Cart"
                 : product.requiresBooking || product.isBookableService
-                ? "Book Now"
-                : "Enroll Now"}
+                  ? "Book Now"
+                  : "Enroll Now"}
             </Button>
             <Button variant="outline" className="rounded-[10px] px-6 py-2">
               Add to Wishlist
