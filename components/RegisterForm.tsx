@@ -93,7 +93,7 @@ const Page = () => {
         ...prevErrors,
         confirmPassword:
           updatedFormData.confirmPassword &&
-          updatedFormData.confirmPassword !== updatedFormData.password
+            updatedFormData.confirmPassword !== updatedFormData.password
             ? "Passwords do not match."
             : "",
       }));
@@ -196,18 +196,12 @@ const Page = () => {
     } catch (error: any) {
       // Handle the backend error structure with error.details array
       if (error?.error?.details && Array.isArray(error.error.details)) {
-        toast.error(
-          process.env.NEXT_PUBLIC_NODE_ENV === "production"
-            ? "Something went wrong"
-            : error.error.details.join(", ")
-        );
+        // Always show backend validation details (e.g. "Email already registered")
+        toast.error(error.error.details.join(", ") || "Registration failed");
       } else if (error?.details && Array.isArray(error.details)) {
-        toast.error(
-          process.env.NEXT_PUBLIC_NODE_ENV === "production"
-            ? "Something went wrong"
-            : error.details.join(", ")
-        );
+        toast.error(error.details.join(", ") || "Registration failed");
       } else {
+        // Generic fallback for unexpected errors
         toast.error(
           process.env.NEXT_PUBLIC_NODE_ENV === "production"
             ? "Registration failed"
@@ -472,51 +466,46 @@ const Page = () => {
             <ul role="list" className="flex flex-wrap gap-2 mt-2 text-[10px]">
               <li
                 role="listitem"
-                className={`rounded-full px-2 py-1 min-w-[160px] text-center ${
-                  passwordCriteria.length
+                className={`rounded-full px-2 py-1 min-w-[160px] text-center ${passwordCriteria.length
                     ? "bg-green-500 text-white"
                     : "bg-gray-200"
-                }`}
+                  }`}
               >
                 At least 8 characters
               </li>
               <li
                 role="listitem"
-                className={`rounded-full px-2 py-1 min-w-[160px] text-center ${
-                  passwordCriteria.capital
+                className={`rounded-full px-2 py-1 min-w-[160px] text-center ${passwordCriteria.capital
                     ? "bg-green-500 text-white"
                     : "bg-gray-200"
-                }`}
+                  }`}
               >
                 At least one capital letter
               </li>
               <li
                 role="listitem"
-                className={`rounded-full px-2 py-1 min-w-[160px] text-center ${
-                  passwordCriteria.lowercase
+                className={`rounded-full px-2 py-1 min-w-[160px] text-center ${passwordCriteria.lowercase
                     ? "bg-green-500 text-white"
                     : "bg-gray-200"
-                }`}
+                  }`}
               >
                 At least one lowercase letter
               </li>
               <li
                 role="listitem"
-                className={`rounded-full px-2 py-1 min-w-[160px] text-center ${
-                  passwordCriteria.number
+                className={`rounded-full px-2 py-1 min-w-[160px] text-center ${passwordCriteria.number
                     ? "bg-green-500 text-white"
                     : "bg-gray-200"
-                }`}
+                  }`}
               >
                 At least one number
               </li>
               <li
                 role="listitem"
-                className={`rounded-full px-2 py-1 min-w-[160px] text-center ${
-                  passwordCriteria.specialChar
+                className={`rounded-full px-2 py-1 min-w-[160px] text-center ${passwordCriteria.specialChar
                     ? "bg-green-500 text-white"
                     : "bg-gray-200"
-                }`}
+                  }`}
               >
                 At least one special character
               </li>

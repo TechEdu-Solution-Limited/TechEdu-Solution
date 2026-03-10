@@ -236,12 +236,12 @@ export default function CartPage() {
       productType === "Academic Support Services" ||
       productType === "Career Development & Mentorship"
     ) {
-      return "Only students can purchase";
+      return "Students and Tech Professionals can purchase";
     } else if (
       productType === "Training & Certification" ||
       productType === "Career Development & Mentorship"
     ) {
-      return "Only tech professionals can purchase";
+      return "Only Tech Professionals can purchase";
     }
     return "";
   };

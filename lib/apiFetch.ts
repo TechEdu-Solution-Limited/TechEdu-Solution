@@ -183,16 +183,17 @@ export const apiRequest = async <T = any>(
 
     return { data, status: response.status, message: data.message };
   } catch (error: any) {
-    // If error is already an object from backend, check for deactivation
-    // Only check if token is present (authenticated requests)
-    if (error && typeof error === "object" && token) {
-      if (isAccountDeactivated(error)) {
+    // If this is already a structured backend error object (thrown by us above),
+    // re-throw it directly so callers can access error.error.details etc.
+    // The token check only applies to the deactivation side-effect, not the re-throw.
+    if (error && typeof error === "object" && "status" in error) {
+      if (token && isAccountDeactivated(error)) {
         safeConsole.error("Account deactivated detected in apiRequest catch, forcing logout:", error);
         forceLogout();
       }
       throw error;
     }
-    // Otherwise, throw a generic error
+    // Otherwise wrap network/unexpected errors into a plain object
     throw {
       message: error.message || "Network error occurred",
       status: error.status || 0,
