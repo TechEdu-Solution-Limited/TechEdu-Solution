@@ -68,8 +68,11 @@ export const uploadFileToFirebase = async (
       : `${folder}/${fileName}`;
     const storageRef = ref(storage, fullPath);
 
-    // Upload the file
-    const snapshot = await uploadBytes(storageRef, file);
+    // Upload the file with aggressive caching
+    const metadata = {
+      cacheControl: 'public, max-age=31536000'
+    };
+    const snapshot = await uploadBytes(storageRef, file, metadata);
 
     // Get the download URL
     const downloadURL = await getDownloadURL(snapshot.ref);

@@ -35,7 +35,10 @@ export const uploadFileWithSDK = async (
 ): Promise<string> => {
   try {
     const storageRef = ref(storage, `${path}/${file.name}`);
-    const snapshot = await uploadBytes(storageRef, file);
+    const metadata = {
+      cacheControl: 'public, max-age=31536000'
+    };
+    const snapshot = await uploadBytes(storageRef, file, metadata);
     const downloadURL = await getDownloadURL(snapshot.ref);
 
     safeConsole.log("File uploaded successfully:", downloadURL);
